@@ -1,8 +1,8 @@
 import { Router, Response } from "express";
-import multer from "multer";
 import { requireAuth, AuthRequest } from "../middleware/auth";
-import { getActiveConfig, getEntityConfig } from "../services/config-engine";
+import { getAppConfig, getEntityConfig } from "../services/config-engine";
 import { parseCsvHeaders, previewCsv, importCsv } from "../services/csv-service";
+import multer from "multer";
 
 const router = Router();
 
@@ -24,22 +24,22 @@ const upload = multer({
 // ============================================================
 
 /**
- * POST /api/csv/:entityName/preview
+ * POST /api/csv/:appId/:entityName/preview
  * Upload a CSV and get headers + preview rows.
  */
 router.post(
-  "/:entityName/preview",
+  "/:appId/:entityName/preview",
   requireAuth,
   upload.single("file"),
   async (req: AuthRequest, res: Response) => {
     try {
-      const { entityName } = req.params;
-      const config = getActiveConfig();
+      const { appId, entityName } = req.params;
+      const config = await getAppConfig(appId);
 
       if (!config || !config.entities[entityName]) {
         res.status(404).json({
           success: false,
-          error: `Entity "${entityName}" not found`,
+          error: `App or Entity "${entityName}" not found`,
         });
         return;
       }
@@ -54,7 +54,7 @@ router.post(
 
       const csvData = req.file.buffer.toString("utf-8");
       const preview = previewCsv(csvData);
-      const entityConfig = getEntityConfig(entityName);
+      const entityConfig = await getEntityConfig(appId, entityName);
 
       // Get entity fields for mapping suggestions
       const entityFields = entityConfig
@@ -96,22 +96,22 @@ router.post(
 );
 
 /**
- * POST /api/csv/:entityName/import
+ * POST /api/csv/:appId/:entityName/import
  * Import CSV data with column mapping.
  */
 router.post(
-  "/:entityName/import",
+  "/:appId/:entityName/import",
   requireAuth,
   upload.single("file"),
   async (req: AuthRequest, res: Response) => {
     try {
-      const { entityName } = req.params;
-      const config = getActiveConfig();
+      const { appId, entityName } = req.params;
+      const config = await getAppConfig(appId);
 
       if (!config || !config.entities[entityName]) {
         res.status(404).json({
           success: false,
-          error: `Entity "${entityName}" not found`,
+          error: `App or Entity "${entityName}" not found`,
         });
         return;
       }
@@ -149,6 +149,7 @@ router.post(
       const csvData = req.file.buffer.toString("utf-8");
 
       const result = await importCsv({
+        appId,
         entityName,
         csvData,
         mapping,

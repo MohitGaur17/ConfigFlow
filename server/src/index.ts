@@ -2,10 +2,9 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import authRoutes from "./routes/auth";
-import configRoutes from "./routes/config";
+import appsRoutes from "./routes/apps";
 import entityRoutes from "./routes/entity";
 import csvRoutes from "./routes/csv";
-import { loadActiveConfig } from "./services/config-engine";
 
 dotenv.config();
 
@@ -26,7 +25,7 @@ app.use(express.json({ limit: "10mb" }));
 // Routes
 // ============================================================
 app.use("/api/auth", authRoutes);
-app.use("/api/config", configRoutes);
+app.use("/api/apps", appsRoutes);
 app.use("/api/entities", entityRoutes);
 app.use("/api/csv", csvRoutes);
 
@@ -53,14 +52,6 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 // ============================================================
 async function start() {
   try {
-    // Load cached config on startup
-    const config = await loadActiveConfig();
-    if (config) {
-      console.log(`[Server] Loaded config: "${config.app.name}"`);
-    } else {
-      console.log("[Server] No active config found. Upload one via POST /api/config");
-    }
-
     app.listen(PORT, () => {
       console.log(`[Server] Running on http://localhost:${PORT}`);
     });

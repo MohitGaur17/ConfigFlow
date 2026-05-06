@@ -5,3 +5,24 @@ dist/
 *.log
 .next/
 .vercel/
+
+# Environment files
+.env*
+
+# Local database files
+server/prisma/dev.db
+server/prisma/*.db
+
+# Temporary helper scripts
+clean.js
+harden.js
+fix-all.js
+fix_double_sidebar.js
+fix_register.js
+client/src/components/renderers/fix.js
+client/src/components/renderers/fix2.js
+client/src/components/renderers/fix3.js
+
+# OS artifacts
+.DS_Store
+Thumbs.db

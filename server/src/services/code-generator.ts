@@ -1,0 +1,387 @@
+import { AppConfig, EntityConfig } from "../shared/types";
+
+// ============================================================
+// Code Generator Service — Generates a full Next.js + Prisma
+// codebase from a JSON AppConfig.
+// ============================================================
+
+export type VirtualFileSystem = Map<string, string>;
+
+export function generateCodebase(config: AppConfig): VirtualFileSystem {
+  const vfs = new Map<string, string>();
+
+  // 1. Configs
+  vfs.set("package.json", generatePackageJson(config));
+  vfs.set("tsconfig.json", generateTsConfig());
+  vfs.set("tailwind.config.ts", generateTailwindConfig());
+  vfs.set("postcss.config.js", generatePostcssConfig());
+  vfs.set("next.config.js", generateNextConfig());
+
+  // 2. Database
+  vfs.set("prisma/schema.prisma", generatePrismaSchema(config));
+  vfs.set("src/lib/prisma.ts", generatePrismaClient());
+
+  // 3. App Core
+  vfs.set("src/app/globals.css", generateGlobalsCss());
+  vfs.set("src/app/layout.tsx", generateRootLayout(config));
+  vfs.set("src/app/page.tsx", generateHomePage(config));
+
+  // 4. API Routes
+  for (const [entityName, entityConfig] of Object.entries(config.entities)) {
+    vfs.set(`src/app/api/${entityName}/route.ts`, generateApiRoute(entityName, entityConfig));
+    vfs.set(`src/app/api/${entityName}/[id]/route.ts`, generateApiIdRoute(entityName));
+  }
+
+  // 5. Pages
+  for (const page of config.pages) {
+    if (page.type === "table" || page.type === "form") {
+      vfs.set(`src/app/(pages)/${page.path}/page.tsx`, generateEntityPage(page.name, page.entity!));
+    }
+  }
+
+  return vfs;
+}
+
+function generatePackageJson(config: AppConfig): string {
+  return JSON.stringify({
+    name: config.app.name.toLowerCase().replace(/\s+/g, "-"),
+    version: "0.1.0",
+    private: true,
+    scripts: {
+      "dev": "next dev",
+      "build": "next build",
+      "start": "next start",
+      "lint": "next lint",
+      "db:push": "prisma db push",
+      "db:studio": "prisma studio"
+    },
+    dependencies: {
+      "@prisma/client": "^5.22.0",
+      "lucide-react": "^0.368.0",
+      "next": "14.2.3",
+      "react": "^18",
+      "react-dom": "^18",
+      "recharts": "^2.12.7"
+    },
+    devDependencies: {
+      "@types/node": "^20",
+      "@types/react": "^18",
+      "@types/react-dom": "^18",
+      "postcss": "^8",
+      "prisma": "^5.22.0",
+      "tailwindcss": "^3.4.1",
+      "typescript": "^5"
+    }
+  }, null, 2);
+}
+
+function generateTsConfig(): string {
+  return `{
+  "compilerOptions": {
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [{ "name": "next" }],
+    "paths": { "@/*": ["./src/*"] }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
+}`;
+}
+
+function generateTailwindConfig(): string {
+  return `import type { Config } from "tailwindcss";
+
+const config: Config = {
+  content: [
+    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        primary: "#3b82f6",
+        background: "#ffffff",
+      },
+    },
+  },
+  plugins: [],
+};
+export default config;`;
+}
+
+function generatePostcssConfig(): string {
+  return `module.exports = {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+};`;
+}
+
+function generateNextConfig(): string {
+  return `/** @type {import('next').NextConfig} */
+const nextConfig = {};
+export default nextConfig;`;
+}
+
+function generatePrismaSchema(config: AppConfig): string {
+  let schema = `generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+`;
+
+  for (const [entityName, entityConfig] of Object.entries(config.entities)) {
+    // Capitalize first letter
+    const modelName = entityName.charAt(0).toUpperCase() + entityName.slice(1);
+    schema += `model ${modelName} {\n`;
+    schema += `  id String @id @default(uuid())\n`;
+    
+    for (const [fieldName, field] of Object.entries(entityConfig.fields)) {
+      let type = "String";
+      if (field.type === "number") type = "Int";
+      if (field.type === "boolean") type = "Boolean";
+      if (field.type === "date") type = "DateTime";
+      
+      const optional = field.required ? "" : "?";
+      schema += `  ${fieldName} ${type}${optional}\n`;
+    }
+    
+    schema += `  createdAt DateTime @default(now())\n`;
+    schema += `  updatedAt DateTime @updatedAt\n`;
+    schema += `}\n\n`;
+  }
+
+  return schema;
+}
+
+function generatePrismaClient(): string {
+  return `import { PrismaClient } from '@prisma/client'
+
+const prismaClientSingleton = () => {
+  return new PrismaClient()
+}
+
+declare global {
+  var prismaGlobal: undefined | ReturnType<typeof prismaClientSingleton>
+}
+
+const prisma = globalThis.prismaGlobal ?? prismaClientSingleton()
+
+export default prisma
+
+if (process.env.NODE_ENV !== 'production') globalThis.prismaGlobal = prisma`;
+}
+
+function generateGlobalsCss(): string {
+  return `@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  background-color: #f3f4f6;
+  color: #1f2937;
+}`;
+}
+
+function generateRootLayout(config: AppConfig): string {
+  return `import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
+import Link from "next/link";
+
+const inter = Inter({ subsets: ["latin"] });
+
+export const metadata: Metadata = {
+  title: "${config.app.name}",
+  description: "Generated by Antigravity AI",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="en">
+      <body className={inter.className}>
+        <div className="flex h-screen bg-gray-100">
+          {/* Sidebar */}
+          <aside className="w-64 bg-gray-900 text-white flex flex-col">
+            <div className="p-6">
+              <h1 className="text-xl font-bold">${config.app.name}</h1>
+            </div>
+            <nav className="flex-1 px-4 space-y-2">
+              <Link href="/" className="block px-4 py-2 rounded hover:bg-gray-800">Dashboard</Link>
+              ${config.pages.map(p => 
+                `<Link href="/${p.path}" className="block px-4 py-2 rounded hover:bg-gray-800">${p.name}</Link>`
+              ).join("\n              ")}
+            </nav>
+          </aside>
+          
+          {/* Main Content */}
+          <main className="flex-1 overflow-auto bg-gray-50">
+            {children}
+          </main>
+        </div>
+      </body>
+    </html>
+  );
+}`;
+}
+
+function generateHomePage(config: AppConfig): string {
+  return `export default function Home() {
+  return (
+    <div className="p-8">
+      <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
+      <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
+        <p className="text-gray-600">Welcome to ${config.app.name}. Select a page from the sidebar to begin.</p>
+      </div>
+    </div>
+  );
+}`;
+}
+
+function generateApiRoute(entityName: string, entityConfig: EntityConfig): string {
+  const modelName = entityName.charAt(0).toUpperCase() + entityName.slice(1);
+  return `import { NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
+
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    // Simple implementation: fetch all
+    const records = await prisma.${modelName.toLowerCase()}.findMany({
+      orderBy: { createdAt: 'desc' }
+    });
+    return NextResponse.json({ success: true, data: records });
+  } catch (error) {
+    return NextResponse.json({ success: false, error: "Failed to fetch data" }, { status: 500 });
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const record = await prisma.${modelName.toLowerCase()}.create({
+      data: body
+    });
+    return NextResponse.json({ success: true, data: record }, { status: 201 });
+  } catch (error) {
+    return NextResponse.json({ success: false, error: "Failed to create record" }, { status: 500 });
+  }
+}`;
+}
+
+function generateApiIdRoute(entityName: string): string {
+  const modelName = entityName.charAt(0).toUpperCase() + entityName.slice(1);
+  return `import { NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
+
+export async function GET(request: Request, { params }: { params: { id: string } }) {
+  try {
+    const record = await prisma.${modelName.toLowerCase()}.findUnique({
+      where: { id: params.id }
+    });
+    if (!record) return NextResponse.json({ success: false, error: "Not found" }, { status: 404 });
+    return NextResponse.json({ success: true, data: record });
+  } catch (error) {
+    return NextResponse.json({ success: false, error: "Failed to fetch record" }, { status: 500 });
+  }
+}
+
+export async function PUT(request: Request, { params }: { params: { id: string } }) {
+  try {
+    const body = await request.json();
+    const record = await prisma.${modelName.toLowerCase()}.update({
+      where: { id: params.id },
+      data: body
+    });
+    return NextResponse.json({ success: true, data: record });
+  } catch (error) {
+    return NextResponse.json({ success: false, error: "Failed to update record" }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+  try {
+    await prisma.${modelName.toLowerCase()}.delete({
+      where: { id: params.id }
+    });
+    return NextResponse.json({ success: true, data: { message: "Deleted" } });
+  } catch (error) {
+    return NextResponse.json({ success: false, error: "Failed to delete record" }, { status: 500 });
+  }
+}`;
+}
+
+function generateEntityPage(pageName: string, entityName: string): string {
+  return `"use client";
+import { useState, useEffect } from "react";
+
+export default function Page() {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/${entityName}")
+      .then(res => res.json())
+      .then(json => {
+        if (json.success) setData(json.data);
+        setLoading(false);
+      });
+  }, []);
+
+  return (
+    <div className="p-8">
+      <h1 className="text-3xl font-bold mb-6">${pageName}</h1>
+      
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        {loading ? (
+          <div className="p-8 text-center text-gray-500">Loading data...</div>
+        ) : data.length === 0 ? (
+          <div className="p-8 text-center text-gray-500">No records found.</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-200">
+                  {Object.keys(data[0]).filter(k => k !== 'id').map(key => (
+                    <th key={key} className="p-4 text-sm font-semibold text-gray-700 capitalize">{key}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {data.map((row: any) => (
+                  <tr key={row.id} className="hover:bg-gray-50">
+                    {Object.keys(row).filter(k => k !== 'id').map(key => (
+                      <td key={key} className="p-4 text-sm text-gray-600">{String(row[key])}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}`;
+}

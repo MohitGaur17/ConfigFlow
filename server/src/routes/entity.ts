@@ -1,6 +1,6 @@
 import { Router, Response } from "express";
 import { requireAuth, AuthRequest } from "../middleware/auth";
-import { getActiveConfig, getEntityConfig } from "../services/config-engine";
+import { getAppConfig, getEntityConfig } from "../services/config-engine";
 import {
   listRecords,
   getRecord,
@@ -17,20 +17,20 @@ const router = Router();
 
 // ============================================================
 // Dynamic Entity Routes — CRUD for any entity defined in config.
-// All routes are prefixed with /api/entities/:entityName
+// All routes are prefixed with /api/entities/:appId/:entityName
 // ============================================================
 
 /**
- * Middleware: Verify entity exists in config.
+ * Middleware: Verify app exists and entity exists in config.
  */
-function validateEntity(req: AuthRequest, res: Response, next: Function) {
-  const { entityName } = req.params;
-  const config = getActiveConfig();
+async function validateEntity(req: AuthRequest, res: Response, next: Function) {
+  const { appId, entityName } = req.params;
+  const config = await getAppConfig(appId);
 
   if (!config) {
-    res.status(503).json({
+    res.status(404).json({
       success: false,
-      error: "No config loaded. Upload a config first.",
+      error: "App not found.",
     });
     return;
   }
@@ -47,15 +47,15 @@ function validateEntity(req: AuthRequest, res: Response, next: Function) {
 }
 
 /**
- * GET /api/entities/:entityName
+ * GET /api/entities/:appId/:entityName
  * List records with pagination, filtering, sorting, and search.
  */
-router.get("/:entityName", requireAuth, validateEntity, async (req: AuthRequest, res: Response) => {
+router.get("/:appId/:entityName", requireAuth, validateEntity, async (req: AuthRequest, res: Response) => {
   try {
-    const { entityName } = req.params;
-    const entityConfig = getEntityConfig(entityName);
+    const { appId, entityName } = req.params;
+    const entityConfig = await getEntityConfig(appId, entityName);
 
-    const result = await listRecords(entityName, {
+    const result = await listRecords(appId, entityName, {
       page: parseInt(req.query.page as string) || 1,
       pageSize: parseInt(req.query.pageSize as string) || 10,
       sortBy: req.query.sortBy as string,
@@ -75,16 +75,17 @@ router.get("/:entityName", requireAuth, validateEntity, async (req: AuthRequest,
 });
 
 /**
- * GET /api/entities/:entityName/stats
+ * GET /api/entities/:appId/:entityName/stats
  * Get aggregation stats for dashboard widgets.
  */
-router.get("/:entityName/stats", requireAuth, validateEntity, async (req: AuthRequest, res: Response) => {
+router.get("/:appId/:entityName/stats", requireAuth, validateEntity, async (req: AuthRequest, res: Response) => {
   try {
-    const { entityName } = req.params;
-    const entityConfig = getEntityConfig(entityName);
+    const { appId, entityName } = req.params;
+    const entityConfig = await getEntityConfig(appId, entityName);
     const { operation, field, groupBy } = req.query;
 
     const result = await getEntityStats(
+      appId,
       entityName,
       (operation as string) || "count",
       field as string,
@@ -101,16 +102,17 @@ router.get("/:entityName/stats", requireAuth, validateEntity, async (req: AuthRe
 });
 
 /**
- * GET /api/entities/:entityName/recent
+ * GET /api/entities/:appId/:entityName/recent
  * Get recent records for list widgets.
  */
-router.get("/:entityName/recent", requireAuth, validateEntity, async (req: AuthRequest, res: Response) => {
+router.get("/:appId/:entityName/recent", requireAuth, validateEntity, async (req: AuthRequest, res: Response) => {
   try {
-    const { entityName } = req.params;
-    const entityConfig = getEntityConfig(entityName);
+    const { appId, entityName } = req.params;
+    const entityConfig = await getEntityConfig(appId, entityName);
     const limit = parseInt(req.query.limit as string) || 5;
 
     const result = await getRecentRecords(
+      appId,
       entityName,
       limit,
       req.userId,
@@ -125,15 +127,15 @@ router.get("/:entityName/recent", requireAuth, validateEntity, async (req: AuthR
 });
 
 /**
- * GET /api/entities/:entityName/:id
+ * GET /api/entities/:appId/:entityName/:id
  * Get a single record by ID.
  */
-router.get("/:entityName/:id", requireAuth, validateEntity, async (req: AuthRequest, res: Response) => {
+router.get("/:appId/:entityName/:id", requireAuth, validateEntity, async (req: AuthRequest, res: Response) => {
   try {
-    const { entityName, id } = req.params;
-    const entityConfig = getEntityConfig(entityName);
+    const { appId, entityName, id } = req.params;
+    const entityConfig = await getEntityConfig(appId, entityName);
 
-    const record = await getRecord(entityName, id, req.userId, entityConfig?.userScoped);
+    const record = await getRecord(appId, entityName, id, req.userId, entityConfig?.userScoped);
     if (!record) {
       res.status(404).json({ success: false, error: "Record not found" });
       return;
@@ -147,13 +149,13 @@ router.get("/:entityName/:id", requireAuth, validateEntity, async (req: AuthRequ
 });
 
 /**
- * POST /api/entities/:entityName
+ * POST /api/entities/:appId/:entityName
  * Create a new record.
  */
-router.post("/:entityName", requireAuth, validateEntity, async (req: AuthRequest, res: Response) => {
+router.post("/:appId/:entityName", requireAuth, validateEntity, async (req: AuthRequest, res: Response) => {
   try {
-    const { entityName } = req.params;
-    const record = await createRecord(entityName, req.body, req.userId);
+    const { appId, entityName } = req.params;
+    const record = await createRecord(appId, entityName, req.body, req.userId);
 
     res.status(201).json({ success: true, data: record });
   } catch (error: any) {
@@ -171,15 +173,15 @@ router.post("/:entityName", requireAuth, validateEntity, async (req: AuthRequest
 });
 
 /**
- * PUT /api/entities/:entityName/:id
+ * PUT /api/entities/:appId/:entityName/:id
  * Update a record.
  */
-router.put("/:entityName/:id", requireAuth, validateEntity, async (req: AuthRequest, res: Response) => {
+router.put("/:appId/:entityName/:id", requireAuth, validateEntity, async (req: AuthRequest, res: Response) => {
   try {
-    const { entityName, id } = req.params;
-    const entityConfig = getEntityConfig(entityName);
+    const { appId, entityName, id } = req.params;
+    const entityConfig = await getEntityConfig(appId, entityName);
 
-    const record = await updateRecord(entityName, id, req.body, req.userId, entityConfig?.userScoped);
+    const record = await updateRecord(appId, entityName, id, req.body, req.userId, entityConfig?.userScoped);
     res.json({ success: true, data: record });
   } catch (error: any) {
     if (error instanceof ValidationError) {
@@ -200,15 +202,15 @@ router.put("/:entityName/:id", requireAuth, validateEntity, async (req: AuthRequ
 });
 
 /**
- * DELETE /api/entities/:entityName/:id
+ * DELETE /api/entities/:appId/:entityName/:id
  * Delete a record.
  */
-router.delete("/:entityName/:id", requireAuth, validateEntity, async (req: AuthRequest, res: Response) => {
+router.delete("/:appId/:entityName/:id", requireAuth, validateEntity, async (req: AuthRequest, res: Response) => {
   try {
-    const { entityName, id } = req.params;
-    const entityConfig = getEntityConfig(entityName);
+    const { appId, entityName, id } = req.params;
+    const entityConfig = await getEntityConfig(appId, entityName);
 
-    await deleteRecord(entityName, id, req.userId, entityConfig?.userScoped);
+    await deleteRecord(appId, entityName, id, req.userId, entityConfig?.userScoped);
     res.json({ success: true, data: { message: "Record deleted" } });
   } catch (error: any) {
     if (error instanceof NotFoundError) {

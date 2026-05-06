@@ -1,13 +1,14 @@
-import { PrismaClient, Prisma } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 import { EntityConfig, FieldConfig } from "../shared/types";
 import { validateRecordData } from "../shared/config-validator";
-import { getEntityId, getEntityConfig } from "./config-engine";
+import { getEntityConfig } from "./config-engine";
 
 const prisma = new PrismaClient();
 
 // ============================================================
 // Entity Service — Dynamic CRUD operations for any entity.
 // Handles filtering, pagination, sorting, search, and stats.
+// Now scoped by appId for multi-tenant SaaS architecture.
 // ============================================================
 
 export interface ListOptions {
@@ -35,16 +36,13 @@ export interface ListResult {
 /**
  * List records for an entity with filtering, pagination, sorting, and search.
  */
-export async function listRecords(entityName: string, options: ListOptions): Promise<ListResult> {
-  const entityId = getEntityId(entityName);
-  if (!entityId) throw new Error(`Entity "${entityName}" not found`);
-
-  const entityConfig = getEntityConfig(entityName);
+export async function listRecords(appId: string, entityName: string, options: ListOptions): Promise<ListResult> {
+  const entityConfig = await getEntityConfig(appId, entityName);
   const page = Math.max(1, options.page || 1);
   const pageSize = Math.min(100, Math.max(1, options.pageSize || 10));
 
   // Build where clause
-  const where: any = { entityId };
+  const where: any = { appId, entityName };
 
   // User scoping
   if (options.userScoped && options.userId) {
@@ -130,15 +128,13 @@ export async function listRecords(entityName: string, options: ListOptions): Pro
  * Get a single record by ID.
  */
 export async function getRecord(
+  appId: string,
   entityName: string,
   recordId: string,
   userId?: string,
   userScoped?: boolean
 ): Promise<{ id: string; data: Record<string, unknown>; createdAt: Date; updatedAt: Date } | null> {
-  const entityId = getEntityId(entityName);
-  if (!entityId) throw new Error(`Entity "${entityName}" not found`);
-
-  const where: any = { id: recordId, entityId };
+  const where: any = { id: recordId, appId, entityName };
   if (userScoped && userId) {
     where.userId = userId;
   }
@@ -158,14 +154,12 @@ export async function getRecord(
  * Create a new record with validation.
  */
 export async function createRecord(
+  appId: string,
   entityName: string,
   data: Record<string, unknown>,
   userId?: string
 ): Promise<{ id: string; data: Record<string, unknown> }> {
-  const entityId = getEntityId(entityName);
-  if (!entityId) throw new Error(`Entity "${entityName}" not found`);
-
-  const entityConfig = getEntityConfig(entityName);
+  const entityConfig = await getEntityConfig(appId, entityName);
   if (!entityConfig) throw new Error(`Entity config for "${entityName}" not found`);
 
   // Validate
@@ -179,7 +173,8 @@ export async function createRecord(
 
   const record = await prisma.record.create({
     data: {
-      entityId,
+      appId,
+      entityName,
       userId: entityConfig.userScoped ? userId : null,
       data: finalData as any,
     },
@@ -192,23 +187,22 @@ export async function createRecord(
  * Update a record with partial data validation.
  */
 export async function updateRecord(
+  appId: string,
   entityName: string,
   recordId: string,
   data: Record<string, unknown>,
   userId?: string,
   userScoped?: boolean
 ): Promise<{ id: string; data: Record<string, unknown> }> {
-  const entityId = getEntityId(entityName);
-  if (!entityId) throw new Error(`Entity "${entityName}" not found`);
-
-  const entityConfig = getEntityConfig(entityName);
+  const entityConfig = await getEntityConfig(appId, entityName);
   if (!entityConfig) throw new Error(`Entity config for "${entityName}" not found`);
 
-  // Check record exists and belongs to user
+  // Check record exists and belongs to user/app
   const existing = await prisma.record.findFirst({
     where: {
       id: recordId,
-      entityId,
+      appId,
+      entityName,
       ...(userScoped && userId ? { userId } : {}),
     },
   });
@@ -236,18 +230,17 @@ export async function updateRecord(
  * Delete a record.
  */
 export async function deleteRecord(
+  appId: string,
   entityName: string,
   recordId: string,
   userId?: string,
   userScoped?: boolean
 ): Promise<void> {
-  const entityId = getEntityId(entityName);
-  if (!entityId) throw new Error(`Entity "${entityName}" not found`);
-
   const existing = await prisma.record.findFirst({
     where: {
       id: recordId,
-      entityId,
+      appId,
+      entityName,
       ...(userScoped && userId ? { userId } : {}),
     },
   });
@@ -260,6 +253,7 @@ export async function deleteRecord(
  * Get aggregation stats for dashboard widgets.
  */
 export async function getEntityStats(
+  appId: string,
   entityName: string,
   operation: string,
   field?: string,
@@ -267,10 +261,7 @@ export async function getEntityStats(
   userId?: string,
   userScoped?: boolean
 ): Promise<{ value: number; groups?: Array<{ key: string; value: number }> }> {
-  const entityId = getEntityId(entityName);
-  if (!entityId) throw new Error(`Entity "${entityName}" not found`);
-
-  const where: any = { entityId };
+  const where: any = { appId, entityName };
   if (userScoped && userId) {
     where.userId = userId;
   }
@@ -320,15 +311,13 @@ export async function getEntityStats(
  * Get recent records for list widgets.
  */
 export async function getRecentRecords(
+  appId: string,
   entityName: string,
   limit: number,
   userId?: string,
   userScoped?: boolean
 ): Promise<Array<{ id: string; data: Record<string, unknown>; createdAt: Date }>> {
-  const entityId = getEntityId(entityName);
-  if (!entityId) throw new Error(`Entity "${entityName}" not found`);
-
-  const where: any = { entityId };
+  const where: any = { appId, entityName };
   if (userScoped && userId) {
     where.userId = userId;
   }

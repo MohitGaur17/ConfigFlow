@@ -13,6 +13,7 @@ export interface CsvMapping {
 }
 
 export interface CsvImportOptions {
+  appId: string;
   entityName: string;
   csvData: string;
   mapping: CsvMapping;
@@ -63,7 +64,7 @@ export function previewCsv(
  * and creates records for valid rows.
  */
 export async function importCsv(options: CsvImportOptions): Promise<CsvImportResult> {
-  const { entityName, csvData, mapping, userId } = options;
+  const { appId, entityName, csvData, mapping, userId } = options;
 
   // Parse all CSV data
   const parseResult = Papa.parse(csvData, {
@@ -119,7 +120,7 @@ export async function importCsv(options: CsvImportOptions): Promise<CsvImportRes
       }
 
       // Create record (validation happens inside createRecord)
-      await createRecord(entityName, mappedData, userId);
+      await createRecord(appId, entityName, mappedData, userId);
       result.imported++;
     } catch (error: any) {
       result.skipped++;

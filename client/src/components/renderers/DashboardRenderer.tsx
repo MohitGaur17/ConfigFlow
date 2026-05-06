@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
 import api from "@/lib/api";
 import { PageConfig, EntityConfig, WidgetConfig, useConfig } from "@/lib/config-context";
 import {
@@ -54,6 +55,8 @@ function WidgetCard({ widget }: { widget: WidgetConfig }) {
 function StatWidget({ widget }: { widget: WidgetConfig }) {
   const [value, setValue] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const routeParams = useParams();
+  const appId = routeParams?.appId as string;
 
   useEffect(() => {
     const fetchStat = async () => {
@@ -103,6 +106,8 @@ function StatWidget({ widget }: { widget: WidgetConfig }) {
 function ChartWidget({ widget }: { widget: WidgetConfig }) {
   const [data, setData] = useState<Array<{ key: string; value: number }>>([]);
   const [loading, setLoading] = useState(true);
+  const routeParams = useParams();
+  const appId = routeParams?.appId as string;
 
   useEffect(() => {
     const fetchChart = async () => {
@@ -208,12 +213,14 @@ function ListWidget({ widget }: { widget: WidgetConfig }) {
   const { getEntity } = useConfig();
   const [records, setRecords] = useState<Array<{ id: string; data: Record<string, unknown>; createdAt: string }>>([]);
   const [loading, setLoading] = useState(true);
+  const routeParams = useParams();
+  const appId = routeParams?.appId as string;
   const entityConfig = getEntity(widget.entity);
 
   useEffect(() => {
     const fetchRecent = async () => {
       try {
-        const res = await api.get(`/entities/${widget.entity}/recent`, {
+        const res = await api.get(`/entities/${appId}/${widget.entity}/recent`, {
           params: { limit: widget.limit || 5 },
         });
         if (res.data.success) {

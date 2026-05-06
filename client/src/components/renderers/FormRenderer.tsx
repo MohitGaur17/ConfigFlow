@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useParams } from "next/navigation";
 import api from "@/lib/api";
 import { EntityConfig, FieldConfig } from "@/lib/config-context";
 import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
@@ -42,6 +43,8 @@ export default function FormRenderer({
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [globalError, setGlobalError] = useState<string | null>(null);
+  const routeParams = useParams();
+  const appId = routeParams?.appId as string;
 
   const handleChange = (fieldName: string, value: unknown) => {
     setFormData((prev) => ({ ...prev, [fieldName]: value }));
@@ -69,9 +72,9 @@ export default function FormRenderer({
       }
 
       if (mode === "edit" && recordId) {
-        await api.put(`/entities/${entityName}/${recordId}`, cleanData);
+        await api.put(`/entities/${appId}/${entityName}/${recordId}`, cleanData);
       } else {
-        await api.post(`/entities/${entityName}`, cleanData);
+        await api.post(`/entities/${appId}/${entityName}`, cleanData);
       }
 
       setSuccess(true);

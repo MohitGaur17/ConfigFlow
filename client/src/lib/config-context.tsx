@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { useParams } from "next/navigation";
 import api from "./api";
 
 // ============================================================
@@ -82,25 +83,33 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const params = useParams();
+  const appId = params?.appId as string;
+
   const fetchConfig = useCallback(async () => {
+    if (!appId) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
-      const res = await api.get("/config/active");
+      const res = await api.get(`/apps/${appId}`);
       if (res.data.success) {
-        setConfig(res.data.data);
+        setConfig(res.data.data.config);
       }
     } catch (err: any) {
       if (err.response?.status === 404) {
         setConfig(null);
-        setError("No config loaded. Upload a config to get started.");
+        setError("App not found.");
       } else {
-        setError(err.response?.data?.error || "Failed to load config");
+        setError(err.response?.data?.error || "Failed to load app config");
       }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [appId]);
 
   useEffect(() => {
     fetchConfig();
