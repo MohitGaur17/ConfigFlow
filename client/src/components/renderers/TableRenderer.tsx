@@ -156,18 +156,18 @@ export default function TableRenderer({ pageConfig, entityConfig, entityName }: 
   return (
     <div className="space-y-4">
       {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-        <div className="flex flex-wrap gap-2 items-center">
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
           {/* Search */}
           {pageConfig.searchable && (
-            <div className="relative">
+            <div className="relative w-full sm:w-auto">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                 placeholder="Search..."
-                className="pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 w-48 sm:w-64"
+                className="w-full sm:w-56 lg:w-64 pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white text-sm placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
               />
             </div>
           )}
@@ -181,7 +181,7 @@ export default function TableRenderer({ pageConfig, entityConfig, entityName }: 
                 key={field}
                 value={filters[field] || ""}
                 onChange={(e) => handleFilterChange(field, e.target.value)}
-                className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                className="w-full sm:w-auto px-3 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white text-sm appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
               >
                 <option value="" className="bg-gray-900">All {fieldConfig.label || field}</option>
                 {fieldConfig.options?.map((opt) => (
@@ -194,24 +194,24 @@ export default function TableRenderer({ pageConfig, entityConfig, entityName }: 
           })}
         </div>
 
-        <div className="flex gap-2">
+        <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:justify-end">
           {/* CSV Import Button */}
           <button
             onClick={() => setShowCsvModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-white/70 text-sm font-medium transition-colors"
+            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white/70 text-sm font-medium transition-colors"
           >
             <FileSpreadsheet className="w-4 h-4" />
-            <span className="hidden sm:inline">Import CSV</span>
+            <span>Import CSV</span>
           </button>
 
           {/* Create Button */}
           {actions.includes("create") && (
             <button
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-white text-sm font-medium transition-colors"
+              className="flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-white text-sm font-medium transition-colors"
             >
               <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">Add New</span>
+              <span>Add New</span>
             </button>
           )}
         </div>
@@ -224,8 +224,87 @@ export default function TableRenderer({ pageConfig, entityConfig, entityName }: 
           {error}
         </div>
       ) : (
-        <div className="border border-white/10 rounded-xl overflow-hidden">
-          <div className="overflow-x-auto">
+        <div className="border border-white/10 rounded-2xl overflow-hidden bg-white/[0.02]">
+          <div className="xl:hidden p-3 grid gap-3">
+            {loading ? (
+              <div className="py-10 text-center">
+                <Loader2 className="w-8 h-8 animate-spin text-indigo-400 mx-auto" />
+              </div>
+            ) : records.length === 0 ? (
+              <div className="py-12 text-center text-white/30">
+                No records found. {actions.includes("create") ? "Create your first one!" : ""}
+              </div>
+            ) : (
+              records.map((record) => (
+                <article key={record.id} className="rounded-2xl border border-white/10 bg-black/20 p-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-3 mb-4">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.2em] text-white/35">Record</p>
+                      <p className="text-sm font-medium text-white/80 break-all">{record.id.slice(0, 8)}</p>
+                    </div>
+                    {(actions.includes("edit") || actions.includes("delete")) && (
+                      <div className="flex items-center gap-1">
+                        {actions.includes("edit") && (
+                          <button
+                            onClick={() => setEditingRecord(record)}
+                            className="p-2 hover:bg-white/10 rounded-md text-white/40 hover:text-white/80 transition-colors"
+                            title="Edit"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                        )}
+                        {actions.includes("delete") && (
+                          <button
+                            onClick={() => handleDelete(record.id)}
+                            disabled={deletingId === record.id}
+                            className="p-2 hover:bg-red-500/10 rounded-md text-white/40 hover:text-red-400 transition-colors disabled:opacity-50"
+                            title="Delete"
+                          >
+                            {deletingId === record.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-4 h-4" />
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {columns.map((col) => {
+                      const fieldConfig = entityConfig.fields[col] || { type: "string" };
+                      const value = record.data[col];
+                      const isEnum = fieldConfig.type === "enum";
+
+                      return (
+                        <div key={col} className="rounded-xl border border-white/5 bg-white/[0.03] p-3">
+                          <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/35 mb-1">
+                            {fieldConfig.label || col}
+                          </div>
+                          <div className="text-sm text-white/80">
+                            {isEnum && value ? (
+                              <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(value)}`}>
+                                {formatCellValue(value, fieldConfig)}
+                              </span>
+                            ) : fieldConfig.type === "boolean" ? (
+                              <span className={value ? "text-emerald-400" : "text-white/30"}>
+                                {formatCellValue(value, fieldConfig)}
+                              </span>
+                            ) : (
+                              formatCellValue(value, fieldConfig)
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </article>
+              ))
+            )}
+          </div>
+
+          <div className="hidden xl:block overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-white/10 bg-white/[0.02]">
@@ -330,8 +409,8 @@ export default function TableRenderer({ pageConfig, entityConfig, entityName }: 
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-white/10 bg-white/[0.01]">
-              <p className="text-sm text-white/40">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-4 py-3 border-t border-white/10 bg-white/[0.01]">
+              <p className="text-sm text-white/40 text-center sm:text-left">
                 Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)} of {total}
               </p>
               <div className="flex items-center gap-1">
@@ -405,18 +484,18 @@ export default function TableRenderer({ pageConfig, entityConfig, entityName }: 
 
 function Modal({ title, onClose, children, wide }: { title: string; onClose: () => void; children: React.ReactNode; wide?: boolean }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 backdrop-blur-sm animate-in fade-in sm:items-center sm:p-4" onClick={onClose}>
       <div
-        className={`bg-gray-900 border border-white/10 rounded-2xl shadow-2xl w-full ${wide ? "max-w-3xl" : "max-w-lg"} max-h-[90vh] overflow-y-auto`}
+        className={`w-full ${wide ? "sm:max-w-3xl" : "sm:max-w-lg"} max-h-[92vh] overflow-y-auto border border-white/10 bg-gray-900 shadow-2xl rounded-t-3xl sm:rounded-2xl sm:max-h-[90vh]`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between p-5 border-b border-white/10">
+        <div className="flex items-center justify-between border-b border-white/10 p-4 sm:p-5">
           <h2 className="text-lg font-semibold text-white">{title}</h2>
           <button onClick={onClose} className="p-1 hover:bg-white/10 rounded-md text-white/50 hover:text-white transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="p-5">{children}</div>
+        <div className="p-4 sm:p-5">{children}</div>
       </div>
     </div>
   );

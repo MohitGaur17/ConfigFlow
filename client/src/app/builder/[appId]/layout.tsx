@@ -59,20 +59,21 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
   }
 
   return (
-    <div className="h-screen flex flex-col bg-[#0A0A0A] text-white overflow-hidden">
+    <div className="min-h-[100svh] flex flex-col bg-[#0A0A0A] text-white overflow-hidden">
       
       {/* Builder Header */}
-      <header className="h-14 border-b border-white/10 bg-black flex items-center justify-between px-4 shrink-0 z-50 shadow-2xl">
-        <div className="flex items-center gap-4">
+      <header className="border-b border-white/10 bg-black px-3 py-3 sm:px-4 shrink-0 z-50 shadow-2xl">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex items-center gap-3 min-w-0">
           <button 
             onClick={() => router.push("/dashboard")}
-            className="p-2 hover:bg-white/10 rounded-lg text-white/50 hover:text-white transition-colors"
+            className="p-2.5 hover:bg-white/10 rounded-lg text-white/50 hover:text-white transition-colors shrink-0"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
-          <div className="flex items-center gap-2">
-            <span className="font-bold tracking-tight">{appData.name}</span>
-            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="font-bold tracking-tight truncate max-w-[10rem] sm:max-w-[16rem] lg:max-w-none">{appData.name}</span>
+            <div className="hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 shrink-0">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
               <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
                 Live Preview
@@ -82,10 +83,10 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
         </div>
 
         {/* View Toggle */}
-        <div className="absolute left-1/2 -translate-x-1/2 flex bg-white/5 p-1 rounded-xl border border-white/10 shadow-inner">
+        <div className="flex self-center lg:absolute lg:left-1/2 lg:-translate-x-1/2 bg-white/5 p-1 rounded-xl border border-white/10 shadow-inner w-full lg:w-auto justify-between lg:justify-center">
           <button
             onClick={() => setActiveTab("preview")}
-            className={`flex items-center gap-2 px-6 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
+            className={`flex flex-1 lg:flex-none items-center justify-center gap-2 px-4 sm:px-6 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
               activeTab === "preview" 
                 ? "bg-white text-black shadow-lg scale-105" 
                 : "text-white/40 hover:text-white hover:bg-white/5"
@@ -96,7 +97,7 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
           </button>
           <button
             onClick={() => setActiveTab("code")}
-            className={`flex items-center gap-2 px-6 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
+            className={`flex flex-1 lg:flex-none items-center justify-center gap-2 px-4 sm:px-6 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
               activeTab === "code" 
                 ? "bg-white text-black shadow-lg scale-105" 
                 : "text-white/40 hover:text-white hover:bg-white/5"
@@ -108,15 +109,16 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 justify-end lg:justify-start">
           <button
             onClick={handleDownload}
             disabled={isExporting}
-            className="group relative flex items-center gap-2 px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold rounded-xl transition-all active:scale-95 disabled:opacity-50 shadow-lg shadow-indigo-500/20"
+            className="group relative flex items-center justify-center gap-2 px-4 sm:px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold rounded-xl transition-all active:scale-95 disabled:opacity-50 shadow-lg shadow-indigo-500/20 min-w-[9rem]"
           >
             {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4 group-hover:-translate-y-0.5 transition-transform" />}
             {isExporting ? "Zipping..." : "Download ZIP"}
           </button>
+        </div>
         </div>
       </header>
 

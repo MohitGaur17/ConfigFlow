@@ -104,7 +104,7 @@ export default function FormRenderer({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5 max-w-2xl">
+    <form onSubmit={handleSubmit} className="w-full space-y-5 max-w-2xl">
       {globalError && (
         <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -123,11 +123,11 @@ export default function FormRenderer({
         />
       ))}
 
-      <div className="flex gap-3 pt-4">
+      <div className="flex flex-col-reverse gap-3 pt-4 sm:flex-row">
         <button
           type="submit"
           disabled={submitting}
-          className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-lg text-white font-medium transition-colors flex items-center gap-2"
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-6 py-3 font-medium text-white transition-colors hover:bg-indigo-500 disabled:opacity-50 sm:w-auto"
         >
           {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
           {mode === "edit" ? "Update" : "Create"}
@@ -136,7 +136,7 @@ export default function FormRenderer({
           <button
             type="button"
             onClick={onCancel}
-            className="px-6 py-2.5 bg-white/5 hover:bg-white/10 rounded-lg text-white/70 font-medium transition-colors"
+            className="w-full rounded-xl bg-white/5 px-6 py-3 font-medium text-white/70 transition-colors hover:bg-white/10 sm:w-auto"
           >
             Cancel
           </button>

@@ -25,6 +25,13 @@ export function generateCodebase(config: AppConfig): VirtualFileSystem {
   vfs.set("src/app/globals.css", generateGlobalsCss());
   vfs.set("src/app/layout.tsx", generateRootLayout(config));
   vfs.set("src/app/page.tsx", generateHomePage(config));
+    vfs.set("src/components/PwaRegister.tsx", generatePwaRegister());
+
+    // 3b. PWA assets
+    vfs.set("src/app/manifest.ts", generateManifest(config));
+    vfs.set("public/sw.js", generateServiceWorker());
+    vfs.set("public/icon.svg", generateIconSvg(config));
+    vfs.set("public/apple-touch-icon.svg", generateIconSvg(config));
 
   // 4. API Routes
   for (const [entityName, entityConfig] of Object.entries(config.entities)) {
@@ -35,7 +42,8 @@ export function generateCodebase(config: AppConfig): VirtualFileSystem {
   // 5. Pages
   for (const page of config.pages) {
     if (page.type === "table" || page.type === "form") {
-      vfs.set(`src/app/(pages)/${page.path}/page.tsx`, generateEntityPage(page.name, page.entity!));
+      const normalizedPath = page.path.replace(/^\//, "");
+      vfs.set(`src/app/(pages)/${normalizedPath}/page.tsx`, generateEntityPage(page.name, page.entity!));
     }
   }
 
@@ -83,6 +91,11 @@ function generateGeneratedReadme(config: AppConfig): string {
     '5. Run the dev server:',
     '',
     '   npm run dev',
+
+      'PWA',
+
+      '- The generated app includes a web manifest, installable icons, and a service worker.',
+      '- Open the app in a supported browser to install it to your device or desktop.',
     '',
     'Notes',
     '- The Prisma schema is under prisma/schema.prisma.',
@@ -195,6 +208,9 @@ const config: Config = {
         primary: "#3b82f6",
         background: "#ffffff",
       },
+      boxShadow: {
+        soft: "0 12px 40px rgba(0, 0, 0, 0.12)",
+      },
     },
   },
   plugins: [],
@@ -215,6 +231,99 @@ function generateNextConfig(): string {
   return `/** @type {import('next').NextConfig} */
 const nextConfig = {};
 export default nextConfig;`;
+}
+
+function generateManifest(config: AppConfig): string {
+  return JSON.stringify(
+    {
+      name: config.app.name,
+      short_name: config.app.name.slice(0, 12),
+      description: config.app.description || "Generated app",
+      start_url: "/",
+      scope: "/",
+      display: "standalone",
+      background_color: "#09090b",
+      theme_color: config.app.theme?.primaryColor || "#6366f1",
+      icons: [
+        {
+          src: "/icon.svg",
+          sizes: "any",
+          type: "image/svg+xml",
+          purpose: "any maskable",
+        },
+      ],
+    },
+    null,
+    2,
+  );
+}
+
+function generateServiceWorker(): string {
+  return `const CACHE_NAME = "antigravity-app-v1";
+const ASSETS = ["/", "/manifest.webmanifest", "/icon.svg", "/apple-touch-icon.svg"];
+
+self.addEventListener("install", (event) => {
+  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)));
+  self.skipWaiting();
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))
+    )
+  );
+  self.clients.claim();
+});
+
+self.addEventListener("fetch", (event) => {
+  if (event.request.method !== "GET") return;
+  event.respondWith(
+    caches.match(event.request).then((cached) => {
+      if (cached) return cached;
+      return fetch(event.request)
+        .then((response) => {
+          const cloned = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, cloned));
+          return response;
+        })
+        .catch(() => caches.match("/"));
+    })
+  );
+});`;
+}
+
+function generateIconSvg(config: AppConfig): string {
+  const label = config.app.name.slice(0, 2).toUpperCase();
+  const accent = config.app.theme?.primaryColor || "#6366f1";
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="${config.app.name}">
+  <defs>
+    <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="${accent}"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#g)"/>
+  <rect x="88" y="88" width="336" height="336" rx="84" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.18)"/>
+  <text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="160" font-weight="800" fill="#ffffff">${label}</text>
+</svg>`;
+}
+
+function generatePwaRegister(): string {
+  return `"use client";
+
+import { useEffect } from "react";
+
+export default function PwaRegister() {
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) return;
+    navigator.serviceWorker.register("/sw.js").catch(() => {
+      // Ignore install-time failures in unsupported browsers.
+    });
+  }, []);
+
+  return null;
+}`;
 }
 
 function generatePrismaSchema(config: AppConfig): string {
@@ -276,23 +385,70 @@ function generateGlobalsCss(): string {
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  color-scheme: dark;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
 body {
-  background-color: #f3f4f6;
-  color: #1f2937;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top, rgba(99, 102, 241, 0.12), transparent 36%),
+    linear-gradient(180deg, #020617 0%, #0f172a 100%);
+  color: #e5e7eb;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::selection {
+  background: rgba(99, 102, 241, 0.35);
+  color: white;
 }`;
 }
 
 function generateRootLayout(config: AppConfig): string {
-  return `import type { Metadata } from "next";
+  const pages = config.pages.map((page) => ({ name: page.name, path: page.path }));
+  const desktopLinks = pages
+    .map((page) => `              <Link href="${page.path}" className="flex items-center rounded-xl px-4 py-3 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white">${page.name}</Link>`)
+    .join("\n");
+  const mobileLinks = pages
+    .slice(0, 4)
+    .map((page) => `                <Link href="${page.path}" className="flex flex-col items-center justify-center rounded-2xl px-2 py-2 text-[10px] font-medium text-slate-300 transition active:scale-[0.98]">${page.name}</Link>`)
+    .join("\n");
+  const topLinks = pages
+    .map((page) => `                <Link href="${page.path}" className="whitespace-nowrap rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-medium text-slate-200">${page.name}</Link>`)
+    .join("\n");
+
+  return `import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
+import PwaRegister from "@/components/PwaRegister";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "${config.app.name}",
   description: "Generated by Antigravity AI",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "${config.app.name}",
+    statusBarStyle: "default",
+  },
+  themeColor: "${config.app.theme?.primaryColor || "#6366f1"}",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -302,25 +458,44 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        <div className="flex h-screen bg-gray-100">
-          {/* Sidebar */}
-          <aside className="w-64 bg-gray-900 text-white flex flex-col">
-            <div className="p-6">
-              <h1 className="text-xl font-bold">${config.app.name}</h1>
+      <body className={inter.className + " bg-slate-950 text-slate-100 antialiased"}>
+        <PwaRegister />
+        <div className="min-h-screen md:flex">
+          <aside className="hidden md:flex md:w-72 md:flex-col md:border-r md:border-white/10 md:bg-slate-950/80 md:backdrop-blur-xl">
+            <div className="border-b border-white/10 p-6">
+              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-indigo-300/70">Antigravity AI</p>
+              <h1 className="mt-3 text-2xl font-bold text-white">${config.app.name}</h1>
+              <p className="mt-2 text-sm leading-6 text-slate-400">${config.app.description || "A responsive app generated from your configuration."}</p>
             </div>
-            <nav className="flex-1 px-4 space-y-2">
-              <Link href="/" className="block px-4 py-2 rounded hover:bg-gray-800">Dashboard</Link>
-              ${config.pages.map(p => 
-                `<Link href="/${p.path}" className="block px-4 py-2 rounded hover:bg-gray-800">${p.name}</Link>`
-              ).join("\n              ")}
+            <nav className="flex-1 space-y-1 px-3 py-4">
+${desktopLinks}
             </nav>
           </aside>
-          
-          {/* Main Content */}
-          <main className="flex-1 overflow-auto bg-gray-50">
-            {children}
-          </main>
+
+          <div className="flex min-h-screen flex-1 flex-col">
+            <header className="sticky top-0 z-30 border-b border-white/10 bg-slate-950/85 px-4 py-3 backdrop-blur-xl md:hidden">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-indigo-300/70">Antigravity AI</p>
+                  <h1 className="text-base font-semibold text-white">${config.app.name}</h1>
+                </div>
+                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-300">PWA ready</span>
+              </div>
+              <nav className="mt-3 flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+${topLinks}
+              </nav>
+            </header>
+
+            <main className="flex-1 px-4 py-5 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:px-8 md:py-8">
+              <div className="mx-auto w-full max-w-7xl">{children}</div>
+            </main>
+
+            <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-slate-950/90 px-2 py-2 backdrop-blur-xl md:hidden">
+              <div className="grid grid-cols-4 gap-2">
+${mobileLinks}
+              </div>
+            </nav>
+          </div>
         </div>
       </body>
     </html>
@@ -331,10 +506,43 @@ export default function RootLayout({
 function generateHomePage(config: AppConfig): string {
   return `export default function Home() {
   return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
-      <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
-        <p className="text-gray-600">Welcome to ${config.app.name}. Select a page from the sidebar to begin.</p>
+    <div className="space-y-6">
+      <section className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-soft backdrop-blur-xl md:p-8">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.35em] text-indigo-300/70">Overview</p>
+        <div className="mt-3 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div className="max-w-2xl">
+            <h1 className="text-3xl font-bold tracking-tight text-white md:text-5xl">${config.app.name}</h1>
+            <p className="mt-4 text-sm leading-7 text-slate-300 md:text-base">${config.app.description || 'Welcome to your generated app.'}</p>
+          </div>
+          <div className="grid grid-cols-2 gap-3 text-sm md:min-w-80">
+            <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
+              <div className="text-slate-400">Responsive</div>
+              <div className="mt-1 font-semibold text-white">Mobile first</div>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
+              <div className="text-slate-400">Installable</div>
+              <div className="mt-1 font-semibold text-white">PWA ready</div>
+            </div>
+          </div>
+        </div>
+      </section>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-5">
+          <p className="text-sm text-slate-400">Fast setup</p>
+          <p className="mt-2 text-lg font-semibold text-white">Generate, deploy, install</p>
+        </div>
+        <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-5">
+          <p className="text-sm text-slate-400">Responsive layout</p>
+          <p className="mt-2 text-lg font-semibold text-white">Sidebar on desktop, bottom nav on mobile</p>
+        </div>
+        <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-5">
+          <p className="text-sm text-slate-400">Offline ready</p>
+          <p className="mt-2 text-lg font-semibold text-white">Manifest + service worker</p>
+        </div>
+        <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-5">
+          <p className="text-sm text-slate-400">Data driven</p>
+          <p className="mt-2 text-lg font-semibold text-white">Entity pages scale to your config</p>
+        </div>
       </div>
     </div>
   );
@@ -348,10 +556,8 @@ import prisma from "@/lib/prisma";
 
 export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    // Simple implementation: fetch all
     const records = await prisma.${modelName.toLowerCase()}.findMany({
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: "desc" }
     });
     return NextResponse.json({ success: true, data: records });
   } catch (error) {
@@ -416,11 +622,13 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
 
 function generateEntityPage(pageName: string, entityName: string): string {
   return `"use client";
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Search, Plus, MoreHorizontal } from "lucide-react";
 
 export default function Page() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState("");
 
   useEffect(() => {
     fetch("/api/${entityName}")
@@ -431,36 +639,85 @@ export default function Page() {
       });
   }, []);
 
+  const filteredData = useMemo(() => {
+    if (!query) return data;
+    const search = query.toLowerCase();
+    return data.filter((row: any) =>
+      Object.values(row).some((value) => String(value).toLowerCase().includes(search))
+    );
+  }, [data, query]);
+
   return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold mb-6">${pageName}</h1>
-      
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        {loading ? (
-          <div className="p-8 text-center text-gray-500">Loading data...</div>
-        ) : data.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">No records found.</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-gray-50 border-b border-gray-200">
-                  {Object.keys(data[0]).filter(k => k !== 'id').map(key => (
-                    <th key={key} className="p-4 text-sm font-semibold text-gray-700 capitalize">{key}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {data.map((row: any) => (
-                  <tr key={row.id} className="hover:bg-gray-50">
-                    {Object.keys(row).filter(k => k !== 'id').map(key => (
-                      <td key={key} className="p-4 text-sm text-gray-600">{String(row[key])}</td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+    <div className="space-y-6">
+      <section className="rounded-3xl border border-white/10 bg-white/5 p-5 shadow-soft backdrop-blur-xl md:p-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.35em] text-indigo-300/70">${pageName}</p>
+            <h1 className="mt-2 text-2xl font-bold text-white md:text-4xl">${pageName}</h1>
           </div>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <label className="flex min-w-0 items-center gap-2 rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-slate-300">
+              <Search className="h-4 w-4 text-slate-400" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search records"
+                className="w-full bg-transparent outline-none placeholder:text-slate-500"
+              />
+            </label>
+            <button className="inline-flex items-center justify-center gap-2 rounded-2xl bg-indigo-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20 transition hover:bg-indigo-400 active:scale-[0.98]">
+              <Plus className="h-4 w-4" />
+              Add
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <div className="rounded-3xl border border-white/10 bg-slate-950/60 shadow-soft overflow-hidden">
+        {loading ? (
+          <div className="p-8 text-center text-slate-400">Loading data...</div>
+        ) : filteredData.length === 0 ? (
+          <div className="p-8 text-center text-slate-400">No records found.</div>
+        ) : (
+          <>
+            <div className="hidden overflow-x-auto md:block">
+              <table className="w-full border-collapse text-left">
+                <thead>
+                  <tr className="border-b border-white/10 bg-white/[0.03]">
+                    {Object.keys(filteredData[0]).filter(k => k !== 'id').map(key => (
+                      <th key={key} className="p-4 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">{key}</th>
+                    ))}
+                    <th className="p-4 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400"><MoreHorizontal className="h-4 w-4" /></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {filteredData.map((row: any) => (
+                    <tr key={row.id} className="transition hover:bg-white/[0.03]">
+                      {Object.keys(row).filter(k => k !== 'id').map(key => (
+                        <td key={key} className="p-4 text-sm text-slate-300">{String(row[key])}</td>
+                      ))}
+                      <td className="p-4 text-slate-500">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="grid gap-3 p-3 md:hidden">
+              {filteredData.map((row: any) => (
+                <article key={row.id} className="rounded-2xl border border-white/10 bg-slate-950/70 p-4">
+                  {Object.keys(row).filter(k => k !== 'id').map(key => (
+                    <div key={key} className="mb-3 last:mb-0">
+                      <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">{key}</div>
+                      <div className="mt-1 break-words text-sm text-slate-200">{String(row[key])}</div>
+                    </div>
+                  ))}
+                </article>
+              ))}
+            </div>
+          </>
         )}
       </div>
     </div>
