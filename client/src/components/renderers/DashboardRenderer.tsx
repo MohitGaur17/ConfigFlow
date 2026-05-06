@@ -24,6 +24,14 @@ interface DashboardRendererProps {
 export default function DashboardRenderer({ pageConfig }: DashboardRendererProps) {
   const widgets = pageConfig.widgets || [];
 
+  if (widgets.length === 0) {
+    return (
+      <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-center text-white/40">
+        No dashboard widgets are configured for this page.
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {widgets.map((widget, i) => (
@@ -55,12 +63,15 @@ function WidgetCard({ widget }: { widget: WidgetConfig }) {
 function StatWidget({ widget }: { widget: WidgetConfig }) {
   const [value, setValue] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const routeParams = useParams();
   const appId = routeParams?.appId as string;
 
   useEffect(() => {
     const fetchStat = async () => {
       try {
+        setLoading(true);
+        setError(null);
         const params: Record<string, string> = { operation: widget.operation || "count" };
         if (widget.field) params.field = widget.field;
 
@@ -68,8 +79,9 @@ function StatWidget({ widget }: { widget: WidgetConfig }) {
         if (res.data.success) {
           setValue(res.data.data.value);
         }
-      } catch {
+      } catch (err: any) {
         setValue(0);
+        setError(err.response?.data?.error || "Failed to load widget data");
       } finally {
         setLoading(false);
       }
@@ -87,6 +99,8 @@ function StatWidget({ widget }: { widget: WidgetConfig }) {
           <p className="text-sm text-white/50 mb-1">{widget.label}</p>
           {loading ? (
             <Loader2 className="w-6 h-6 animate-spin text-indigo-400 mt-2" />
+          ) : error ? (
+            <p className="text-sm text-amber-300 mt-2">{error}</p>
           ) : (
             <p className="text-3xl font-bold text-white">
               {value?.toLocaleString() ?? "0"}
@@ -106,12 +120,15 @@ function StatWidget({ widget }: { widget: WidgetConfig }) {
 function ChartWidget({ widget }: { widget: WidgetConfig }) {
   const [data, setData] = useState<Array<{ key: string; value: number }>>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const routeParams = useParams();
   const appId = routeParams?.appId as string;
 
   useEffect(() => {
     const fetchChart = async () => {
       try {
+        setLoading(true);
+        setError(null);
         const params: Record<string, string> = {
           operation: widget.operation || "count",
           groupBy: widget.groupBy || "",
@@ -125,8 +142,9 @@ function ChartWidget({ widget }: { widget: WidgetConfig }) {
             value: g.value,
           })));
         }
-      } catch {
+      } catch (err: any) {
         setData([]);
+        setError(err.response?.data?.error || "Failed to load chart data");
       } finally {
         setLoading(false);
       }
@@ -147,7 +165,9 @@ function ChartWidget({ widget }: { widget: WidgetConfig }) {
   return (
     <div className="bg-white/5 border border-white/10 rounded-xl p-5 sm:col-span-2 lg:col-span-2">
       <p className="text-sm font-medium text-white/70 mb-4">{widget.label}</p>
-      {data.length === 0 ? (
+      {error ? (
+        <p className="text-center text-amber-300 py-8 text-sm">{error}</p>
+      ) : data.length === 0 ? (
         <p className="text-center text-white/30 py-8">No data yet</p>
       ) : (
         <div className="h-56">
@@ -213,27 +233,44 @@ function ListWidget({ widget }: { widget: WidgetConfig }) {
   const { getEntity } = useConfig();
   const [records, setRecords] = useState<Array<{ id: string; data: Record<string, unknown>; createdAt: string }>>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const routeParams = useParams();
   const appId = routeParams?.appId as string;
   const entityConfig = getEntity(widget.entity);
 
   useEffect(() => {
+    if (!entityConfig) {
+      setLoading(false);
+      return;
+    }
+
     const fetchRecent = async () => {
       try {
+        setLoading(true);
+        setError(null);
         const res = await api.get(`/entities/${appId}/${widget.entity}/recent`, {
           params: { limit: widget.limit || 5 },
         });
         if (res.data.success) {
           setRecords(res.data.data);
         }
-      } catch {
+      } catch (err: any) {
         setRecords([]);
+        setError(err.response?.data?.error || "Failed to load recent records");
       } finally {
         setLoading(false);
       }
     };
     fetchRecent();
-  }, [appId, widget]);
+  }, [appId, widget, entityConfig]);
+
+  if (!entityConfig) {
+    return (
+      <div className="bg-white/5 border border-amber-500/20 rounded-xl p-5">
+        <p className="text-amber-300 text-sm">Missing entity configuration for "{widget.entity}".</p>
+      </div>
+    );
+  }
 
   const displayField = entityConfig?.displayField || Object.keys(entityConfig?.fields || {})[0] || "id";
 
@@ -245,6 +282,8 @@ function ListWidget({ widget }: { widget: WidgetConfig }) {
       </div>
       {loading ? (
         <Loader2 className="w-5 h-5 animate-spin text-indigo-400 mx-auto my-4" />
+      ) : error ? (
+        <p className="text-center text-amber-300 py-4 text-sm">{error}</p>
       ) : records.length === 0 ? (
         <p className="text-center text-white/30 py-4 text-sm">No records yet</p>
       ) : (

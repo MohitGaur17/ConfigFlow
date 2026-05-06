@@ -27,13 +27,19 @@ export default function FormRenderer({
   onSuccess,
   onCancel,
 }: FormRendererProps) {
-  const fieldEntries = Object.entries(entityConfig.fields).filter(
-    ([name]) => !fields || fields.includes(name)
+  const requestedFieldNames = fields || Object.keys(entityConfig.fields);
+  const resolvedFieldEntries = requestedFieldNames.map(
+    (fieldName) => [fieldName, entityConfig.fields[fieldName]] as const
   );
+
+  const missingFields = resolvedFieldEntries
+    .filter(([, fieldConfig]) => !fieldConfig)
+    .map(([fieldName]) => fieldName);
 
   const [formData, setFormData] = useState<Record<string, unknown>>(() => {
     const defaults: Record<string, unknown> = {};
-    for (const [name, config] of fieldEntries) {
+    for (const [name, config] of resolvedFieldEntries) {
+      if (!config) continue;
       defaults[name] = initialData?.[name] ?? config.default ?? "";
     }
     return defaults;
@@ -112,7 +118,13 @@ export default function FormRenderer({
         </div>
       )}
 
-      {fieldEntries.map(([fieldName, fieldConfig]) => (
+      {missingFields.length > 0 && (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-200">
+          Missing fields in config: {missingFields.join(", ")}. They will be rendered as generic text inputs.
+        </div>
+      )}
+
+      {resolvedFieldEntries.map(([fieldName, fieldConfig]) => (
         <FieldInput
           key={fieldName}
           name={fieldName}
@@ -150,14 +162,14 @@ export default function FormRenderer({
 
 interface FieldInputProps {
   name: string;
-  config: FieldConfig;
+  config?: FieldConfig;
   value: unknown;
   error?: string;
   onChange: (value: unknown) => void;
 }
 
 function FieldInput({ name, config, value, error, onChange }: FieldInputProps) {
-  const label = config.label || name;
+  const label = config?.label || name;
   const baseInputClass = `w-full bg-white/5 border ${
     error ? "border-red-500/50" : "border-white/10"
   } rounded-lg px-4 py-2.5 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-transparent transition-all`;
@@ -166,7 +178,7 @@ function FieldInput({ name, config, value, error, onChange }: FieldInputProps) {
     <div className="space-y-1.5">
       <label className="block text-sm font-medium text-white/70">
         {label}
-        {config.required && <span className="text-red-400 ml-1">*</span>}
+        {config?.required && <span className="text-red-400 ml-1">*</span>}
       </label>
 
       {renderInput()}
@@ -176,6 +188,18 @@ function FieldInput({ name, config, value, error, onChange }: FieldInputProps) {
   );
 
   function renderInput() {
+    if (!config) {
+      return (
+        <input
+          type="text"
+          value={String(value ?? "")}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={`Missing config for ${name}`}
+          className={baseInputClass}
+        />
+      );
+    }
+
     switch (config.type) {
       case "text":
         return (
@@ -294,6 +318,20 @@ function FieldInput({ name, config, value, error, onChange }: FieldInputProps) {
 
       case "string":
       default:
+        if (config.type !== "string") {
+          return (
+            <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-200">
+              Unsupported field type "{config.type}". Using a plain text input.
+              <input
+                type="text"
+                value={String(value ?? "")}
+                onChange={(e) => onChange(e.target.value)}
+                placeholder={config.placeholder}
+                className={`${baseInputClass} mt-2`}
+              />
+            </div>
+          );
+        }
         return (
           <input
             type="text"

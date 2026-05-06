@@ -31,16 +31,6 @@ export default function TableRenderer({ pageConfig, entityConfig, entityName }: 
   const [records, setRecords] = useState<RecordData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  if (!entityConfig) {
-    return (
-      <div className="p-8 text-center bg-red-500/10 border border-red-500/20 rounded-xl">
-        <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-        <h3 className="text-lg font-semibold text-white mb-2">Configuration Error</h3>
-        <p className="text-white/60">Entity "{entityName}" is missing from the application configuration.</p>
-      </div>
-    );
-  }
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
@@ -54,11 +44,17 @@ export default function TableRenderer({ pageConfig, entityConfig, entityName }: 
   const [showCsvModal, setShowCsvModal] = useState(false);
 
   const pageSize = pageConfig.pageSize || 10;
-  const columns = pageConfig.columns || Object.keys(entityConfig.fields);
+  const entityFields = entityConfig?.fields || {};
+  const columns = pageConfig.columns || Object.keys(entityFields);
   const actions = pageConfig.actions || [];
   const filterFields = pageConfig.filters || [];
+  const missingColumns = columns.filter((column) => !entityFields[column]);
 
   const fetchRecords = useCallback(async () => {
+    if (!entityConfig) {
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -90,8 +86,13 @@ export default function TableRenderer({ pageConfig, entityConfig, entityName }: 
   }, [appId, entityName, page, pageSize, sortBy, sortOrder, search, filters]);
 
   useEffect(() => {
+    if (!entityConfig) {
+      setLoading(false);
+      return;
+    }
+
     fetchRecords();
-  }, [fetchRecords]);
+  }, [entityConfig, fetchRecords]);
 
   const handleSort = (column: string) => {
     if (sortBy === column) {
@@ -153,8 +154,26 @@ export default function TableRenderer({ pageConfig, entityConfig, entityName }: 
     return "bg-white/10 text-white/70";
   };
 
+  if (!entityConfig) {
+    return (
+      <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-8 text-center">
+        <AlertCircle className="mx-auto mb-4 h-12 w-12 text-red-500" />
+        <h3 className="mb-2 text-lg font-semibold text-white">Configuration Error</h3>
+        <p className="text-white/60">
+          Entity "{entityName}" is missing from the application configuration.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
+      {missingColumns.length > 0 && (
+        <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-200">
+          Missing fields in config: {missingColumns.join(", ")}. Falling back to generic display for these columns.
+        </div>
+      )}
+
       {/* Toolbar */}
       <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
@@ -174,7 +193,7 @@ export default function TableRenderer({ pageConfig, entityConfig, entityName }: 
 
           {/* Filters */}
           {filterFields.map((field) => {
-            const fieldConfig = entityConfig.fields[field];
+            const fieldConfig = entityFields[field];
             if (!fieldConfig || fieldConfig.type !== "enum") return null;
             return (
               <select
@@ -309,7 +328,7 @@ export default function TableRenderer({ pageConfig, entityConfig, entityName }: 
               <thead>
                 <tr className="border-b border-white/10 bg-white/[0.02]">
                   {columns.map((col) => {
-                    const fieldConfig = entityConfig.fields[col];
+                    const fieldConfig = entityFields[col] || { type: "string", label: col };
                     return (
                       <th
                         key={col}
@@ -351,7 +370,7 @@ export default function TableRenderer({ pageConfig, entityConfig, entityName }: 
                   records.map((record) => (
                     <tr key={record.id} className="hover:bg-white/[0.02] transition-colors">
                       {columns.map((col) => {
-                        const fieldConfig = entityConfig.fields[col] || { type: "string" };
+                        const fieldConfig = entityFields[col] || { type: "string", label: col };
                         const value = record.data[col];
                         const isEnum = fieldConfig.type === "enum";
 
