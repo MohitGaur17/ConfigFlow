@@ -1,61 +1,128 @@
-# AI App Generator
+# ConfigFlow
 
-A **config-driven full-stack runtime** that reads JSON configuration and dynamically generates forms, tables, dashboards, REST APIs, and database structures.
+ConfigFlow is a config-driven full-stack app builder.
+Users submit JSON app configs, then preview, manage, and export generated apps from a single dashboard.
 
-## 🏗️ Architecture
+## Architecture
 
-- **Frontend**: Next.js 14 (App Router) + Tailwind CSS + Recharts
-- **Backend**: Express.js + TypeScript + JWT Auth
-- **Database**: PostgreSQL + Prisma ORM (JSONB for dynamic entities)
-- **Deployment**: Vercel (frontend) + Railway (backend) + Neon (PostgreSQL)
+- Frontend: Next.js (App Router), React, Tailwind CSS
+- Backend: Express.js, TypeScript, JWT auth
+- Database: PostgreSQL with Prisma
+- Monorepo: npm workspaces (`client`, `server`, `shared`)
 
-## ✨ Features
+## Current Product Flow
 
-### Core System
-- **Dynamic UI Rendering** — Forms, tables, dashboards generated from JSON config
-- **Dynamic API Generation** — CRUD endpoints auto-created for any entity
-- **Component Registry** — Extensible pattern for adding new page types
-- **Config Hot-Swap** — Switch between configs without restart
+1. User registers or logs in.
+2. User pastes a JSON app config on the landing page.
+3. Backend validates config and creates a user-owned app record.
+4. User is redirected to `/builder/:appId` for live preview.
+5. Dynamic routes render pages from that app's config.
+6. User can export generated source code as a ZIP.
 
-### 3 Mandatory Features
-1. **JWT Authentication** — Register/login, user-scoped data access
-2. **CSV Import** — Upload → column mapping UI → validation → batch insert
-3. **Responsive UI** — Mobile-first design, collapsible sidebar, horizontal-scroll tables
+## Key Features
 
-### Edge Case Handling
-- Missing/unknown fields → graceful fallbacks
-- Unknown page types → fallback renderer with warning
-- Invalid data → field-level validation errors
-- Empty states → helpful CTAs
-- Schema mismatches → renders available fields
+- JWT authentication with protected API routes
+- Multi-app, per-user app management
+- Dynamic CRUD API routes scoped by `appId` and `entityName`
+- Dashboard widgets (stats/charts/recent data)
+- CSV preview and import with mapping suggestions
+- Code export endpoint that returns a generated ZIP
 
-## 🚀 Quick Start
+## Repository Structure
+
+```text
+.
+|- client/              # Next.js frontend
+|- server/              # Express API + Prisma integration
+|- shared/              # Shared types and config validation utilities
+|- configs/             # Example JSON app configs
+|- package.json         # Workspace scripts
+`- tsconfig.base.json   # Base TypeScript config
+```
+
+## Prerequisites
+
+- Node.js 18+
+- npm 9+
+- PostgreSQL database
+
+## Environment Variables
+
+Create `server/.env`:
+
+```env
+DATABASE_URL=postgresql://USER:PASSWORD@HOST:PORT/DB_NAME
+JWT_SECRET=replace-with-a-strong-secret
+PORT=4000
+CLIENT_URL=http://localhost:3000
+```
+
+Optional for frontend (`client/.env.local`):
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:4000
+```
+
+## Local Development
+
+Install dependencies:
 
 ```bash
-# Install dependencies
 npm install
+```
 
-# Set up database (update server/.env with your PostgreSQL URL)
-cd server && npx prisma db push
+Prepare Prisma schema:
 
-# Start both servers
+```bash
+npm run prisma:push --workspace=server
+```
+
+Run frontend and backend together:
+
+```bash
 npm run dev
 ```
 
-## 📁 Project Structure
+Default URLs:
 
+- Frontend: http://localhost:3000
+- Backend: http://localhost:4000
+- Health check: http://localhost:4000/api/health
+
+## Main API Routes
+
+Auth:
+
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+
+Apps:
+
+- `POST /api/apps`
+- `GET /api/apps`
+- `GET /api/apps/:id`
+- `DELETE /api/apps/:id`
+- `GET /api/apps/:id/export`
+
+Entities (dynamic):
+
+- `GET /api/entities/:appId/:entityName`
+- `GET /api/entities/:appId/:entityName/:id`
+- `POST /api/entities/:appId/:entityName`
+- `PUT /api/entities/:appId/:entityName/:id`
+- `DELETE /api/entities/:appId/:entityName/:id`
+- `GET /api/entities/:appId/:entityName/stats`
+- `GET /api/entities/:appId/:entityName/recent`
+
+CSV:
+
+- `POST /api/csv/:appId/:entityName/preview`
+- `POST /api/csv/:appId/:entityName/import`
+
+## Build
+
+```bash
+npm run build
 ```
-├── client/          # Next.js frontend
-├── server/          # Express backend
-├── shared/          # Shared TypeScript types & validators
-└── configs/         # Sample JSON configs (Task Manager, Inventory)
-```
 
-## 🔧 Sample Configs
-
-The system ships with two sample configs to prove it's truly config-driven:
-
-1. **Task Manager** — 2 entities (tasks, projects), dashboard with charts, CRUD tables
-2. **Inventory Pro** — 3 entities with relations (products, suppliers, orders)
-
-You can upload any valid JSON config via the Config Manager page.
+This builds both server and client workspaces.
