@@ -1,4 +1,4 @@
-# Track A: AI App Generator — Implementation Plan
+# AI App Generator — Implementation Plan
 
 ## Goal
 Build a **config-driven full-stack runtime** that reads a JSON configuration and dynamically generates forms, tables, dashboards, REST APIs, and database structures. Like a mini [Base44](https://base44.com/) — not a single hardcoded app, but a **system that generates apps from config**.
