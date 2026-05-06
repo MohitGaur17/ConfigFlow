@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import { useParams } from "next/navigation";
 import api from "@/lib/api";
 import { EntityConfig, PageConfig } from "@/lib/config-context";
 import FormRenderer from "./FormRenderer";
@@ -24,6 +25,9 @@ interface RecordData {
 }
 
 export default function TableRenderer({ pageConfig, entityConfig, entityName }: TableRendererProps) {
+  const params = useParams();
+  const appId = params?.appId as string;
+  
   const [records, setRecords] = useState<RecordData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -72,7 +76,7 @@ export default function TableRenderer({ pageConfig, entityConfig, entityName }: 
         params.filters = JSON.stringify(filters);
       }
 
-      const res = await api.get(`/entities/${entityName}`, { params });
+      const res = await api.get(`/entities/${appId}/${entityName}`, { params });
       if (res.data.success) {
         setRecords(res.data.data);
         setTotalPages(res.data.pagination.totalPages);
@@ -83,7 +87,7 @@ export default function TableRenderer({ pageConfig, entityConfig, entityName }: 
     } finally {
       setLoading(false);
     }
-  }, [entityName, page, pageSize, sortBy, sortOrder, search, filters]);
+  }, [appId, entityName, page, pageSize, sortBy, sortOrder, search, filters]);
 
   useEffect(() => {
     fetchRecords();
@@ -103,7 +107,7 @@ export default function TableRenderer({ pageConfig, entityConfig, entityName }: 
     if (!confirm("Are you sure you want to delete this record?")) return;
     try {
       setDeletingId(id);
-      await api.delete(`/entities/${entityName}/${id}`);
+      await api.delete(`/entities/${appId}/${entityName}/${id}`);
       fetchRecords();
     } catch (err: any) {
       alert(err.response?.data?.error || "Failed to delete");

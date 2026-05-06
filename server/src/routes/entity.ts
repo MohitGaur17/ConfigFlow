@@ -1,5 +1,5 @@
 import { Router, Response } from "express";
-import { requireAuth, AuthRequest } from "../middleware/auth";
+import { requireAuth, optionalAuth, AuthRequest } from "../middleware/auth";
 import { getAppConfig, getEntityConfig } from "../services/config-engine";
 import {
   listRecords,
@@ -50,7 +50,7 @@ async function validateEntity(req: AuthRequest, res: Response, next: Function) {
  * GET /api/entities/:appId/:entityName
  * List records with pagination, filtering, sorting, and search.
  */
-router.get("/:appId/:entityName", requireAuth, validateEntity, async (req: AuthRequest, res: Response) => {
+router.get("/:appId/:entityName", optionalAuth, validateEntity, async (req: AuthRequest, res: Response) => {
   try {
     const { appId, entityName } = req.params;
     const entityConfig = await getEntityConfig(appId, entityName);
@@ -78,7 +78,7 @@ router.get("/:appId/:entityName", requireAuth, validateEntity, async (req: AuthR
  * GET /api/entities/:appId/:entityName/stats
  * Get aggregation stats for dashboard widgets.
  */
-router.get("/:appId/:entityName/stats", requireAuth, validateEntity, async (req: AuthRequest, res: Response) => {
+router.get("/:appId/:entityName/stats", optionalAuth, validateEntity, async (req: AuthRequest, res: Response) => {
   try {
     const { appId, entityName } = req.params;
     const entityConfig = await getEntityConfig(appId, entityName);
@@ -105,7 +105,7 @@ router.get("/:appId/:entityName/stats", requireAuth, validateEntity, async (req:
  * GET /api/entities/:appId/:entityName/recent
  * Get recent records for list widgets.
  */
-router.get("/:appId/:entityName/recent", requireAuth, validateEntity, async (req: AuthRequest, res: Response) => {
+router.get("/:appId/:entityName/recent", optionalAuth, validateEntity, async (req: AuthRequest, res: Response) => {
   try {
     const { appId, entityName } = req.params;
     const entityConfig = await getEntityConfig(appId, entityName);
@@ -130,7 +130,7 @@ router.get("/:appId/:entityName/recent", requireAuth, validateEntity, async (req
  * GET /api/entities/:appId/:entityName/:id
  * Get a single record by ID.
  */
-router.get("/:appId/:entityName/:id", requireAuth, validateEntity, async (req: AuthRequest, res: Response) => {
+router.get("/:appId/:entityName/:id", optionalAuth, validateEntity, async (req: AuthRequest, res: Response) => {
   try {
     const { appId, entityName, id } = req.params;
     const entityConfig = await getEntityConfig(appId, entityName);

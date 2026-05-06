@@ -64,7 +64,7 @@ function StatWidget({ widget }: { widget: WidgetConfig }) {
         const params: Record<string, string> = { operation: widget.operation || "count" };
         if (widget.field) params.field = widget.field;
 
-        const res = await api.get(`/entities/${widget.entity}/stats`, { params });
+        const res = await api.get(`/entities/${appId}/${widget.entity}/stats`, { params });
         if (res.data.success) {
           setValue(res.data.data.value);
         }
@@ -75,7 +75,7 @@ function StatWidget({ widget }: { widget: WidgetConfig }) {
       }
     };
     fetchStat();
-  }, [widget]);
+  }, [appId, widget]);
 
   const icon = widget.operation === "count" ? Hash : widget.operation === "avg" ? Calculator : TrendingUp;
   const Icon = icon;
@@ -118,7 +118,7 @@ function ChartWidget({ widget }: { widget: WidgetConfig }) {
         };
         if (widget.field) params.field = widget.field;
 
-        const res = await api.get(`/entities/${widget.entity}/stats`, { params });
+        const res = await api.get(`/entities/${appId}/${widget.entity}/stats`, { params });
         if (res.data.success && res.data.data.groups) {
           setData(res.data.data.groups.map((g: { key: string; value: number }) => ({
             key: g.key.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()),
@@ -132,7 +132,7 @@ function ChartWidget({ widget }: { widget: WidgetConfig }) {
       }
     };
     fetchChart();
-  }, [widget]);
+  }, [appId, widget]);
 
   if (loading) {
     return (
@@ -233,7 +233,7 @@ function ListWidget({ widget }: { widget: WidgetConfig }) {
       }
     };
     fetchRecent();
-  }, [widget]);
+  }, [appId, widget]);
 
   const displayField = entityConfig?.displayField || Object.keys(entityConfig?.fields || {})[0] || "id";
 
