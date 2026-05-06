@@ -1,0 +1,178 @@
+{
+  "app": {
+    "name": "Task Manager",
+    "description": "A simple project task management application",
+    "theme": {
+      "primaryColor": "#6366f1",
+      "mode": "dark"
+    },
+    "auth": {
+      "enabled": true
+    }
+  },
+  "entities": {
+    "task": {
+      "displayField": "title",
+      "userScoped": true,
+      "fields": {
+        "title": {
+          "type": "string",
+          "required": true,
+          "label": "Task Title",
+          "placeholder": "Enter task title..."
+        },
+        "description": {
+          "type": "text",
+          "label": "Description",
+          "placeholder": "Describe the task..."
+        },
+        "status": {
+          "type": "enum",
+          "required": true,
+          "options": ["todo", "in_progress", "review", "done"],
+          "default": "todo",
+          "label": "Status"
+        },
+        "priority": {
+          "type": "enum",
+          "options": ["low", "medium", "high", "critical"],
+          "default": "medium",
+          "label": "Priority"
+        },
+        "dueDate": {
+          "type": "date",
+          "label": "Due Date"
+        },
+        "estimatedHours": {
+          "type": "number",
+          "label": "Estimated Hours",
+          "min": 0,
+          "max": 1000
+        },
+        "completed": {
+          "type": "boolean",
+          "label": "Completed",
+          "default": false
+        },
+        "assigneeEmail": {
+          "type": "email",
+          "label": "Assignee Email",
+          "placeholder": "assignee@example.com"
+        }
+      }
+    },
+    "project": {
+      "displayField": "name",
+      "userScoped": true,
+      "fields": {
+        "name": {
+          "type": "string",
+          "required": true,
+          "label": "Project Name"
+        },
+        "description": {
+          "type": "text",
+          "label": "Description"
+        },
+        "status": {
+          "type": "enum",
+          "options": ["planning", "active", "on_hold", "completed"],
+          "default": "planning",
+          "label": "Status"
+        },
+        "startDate": {
+          "type": "date",
+          "label": "Start Date"
+        },
+        "endDate": {
+          "type": "date",
+          "label": "End Date"
+        }
+      }
+    }
+  },
+  "pages": [
+    {
+      "type": "dashboard",
+      "name": "Dashboard",
+      "path": "/dashboard",
+      "widgets": [
+        {
+          "type": "stat",
+          "label": "Total Tasks",
+          "entity": "task",
+          "operation": "count"
+        },
+        {
+          "type": "stat",
+          "label": "Total Projects",
+          "entity": "project",
+          "operation": "count"
+        },
+        {
+          "type": "stat",
+          "label": "Avg Estimated Hours",
+          "entity": "task",
+          "operation": "avg",
+          "field": "estimatedHours"
+        },
+        {
+          "type": "chart",
+          "label": "Tasks by Status",
+          "entity": "task",
+          "groupBy": "status",
+          "chartType": "pie"
+        },
+        {
+          "type": "chart",
+          "label": "Tasks by Priority",
+          "entity": "task",
+          "groupBy": "priority",
+          "chartType": "bar"
+        },
+        {
+          "type": "list",
+          "label": "Recent Tasks",
+          "entity": "task",
+          "limit": 5
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "name": "Tasks",
+      "path": "/tasks",
+      "entity": "task",
+      "columns": ["title", "status", "priority", "dueDate", "estimatedHours", "completed"],
+      "actions": ["create", "edit", "delete"],
+      "filters": ["status", "priority"],
+      "searchable": true,
+      "pageSize": 10
+    },
+    {
+      "type": "form",
+      "name": "New Task",
+      "path": "/tasks/new",
+      "entity": "task",
+      "submitAction": "create"
+    },
+    {
+      "type": "table",
+      "name": "Projects",
+      "path": "/projects",
+      "entity": "project",
+      "columns": ["name", "status", "startDate", "endDate"],
+      "actions": ["create", "edit", "delete"],
+      "filters": ["status"],
+      "searchable": true,
+      "pageSize": 10
+    },
+    {
+      "type": "form",
+      "name": "New Project",
+      "path": "/projects/new",
+      "entity": "project",
+      "submitAction": "create"
+    }
+  ]
+}

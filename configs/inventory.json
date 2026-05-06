@@ -1,0 +1,261 @@
+{
+  "app": {
+    "name": "Inventory Pro",
+    "description": "Inventory and supplier management system",
+    "theme": {
+      "primaryColor": "#10b981",
+      "mode": "dark"
+    },
+    "auth": {
+      "enabled": true
+    }
+  },
+  "entities": {
+    "product": {
+      "displayField": "name",
+      "userScoped": true,
+      "fields": {
+        "name": {
+          "type": "string",
+          "required": true,
+          "label": "Product Name"
+        },
+        "sku": {
+          "type": "string",
+          "required": true,
+          "label": "SKU",
+          "placeholder": "e.g. PRD-001"
+        },
+        "category": {
+          "type": "enum",
+          "options": ["electronics", "clothing", "food", "furniture", "other"],
+          "default": "other",
+          "label": "Category"
+        },
+        "price": {
+          "type": "number",
+          "required": true,
+          "label": "Price (₹)",
+          "min": 0
+        },
+        "quantity": {
+          "type": "number",
+          "required": true,
+          "label": "Quantity in Stock",
+          "min": 0,
+          "default": 0
+        },
+        "reorderLevel": {
+          "type": "number",
+          "label": "Reorder Level",
+          "min": 0,
+          "default": 10
+        },
+        "supplier": {
+          "type": "relation",
+          "entity": "supplier",
+          "label": "Supplier"
+        },
+        "isActive": {
+          "type": "boolean",
+          "label": "Active",
+          "default": true
+        },
+        "lastRestocked": {
+          "type": "date",
+          "label": "Last Restocked"
+        },
+        "website": {
+          "type": "url",
+          "label": "Product URL"
+        }
+      }
+    },
+    "supplier": {
+      "displayField": "companyName",
+      "userScoped": true,
+      "fields": {
+        "companyName": {
+          "type": "string",
+          "required": true,
+          "label": "Company Name"
+        },
+        "contactPerson": {
+          "type": "string",
+          "label": "Contact Person"
+        },
+        "email": {
+          "type": "email",
+          "required": true,
+          "label": "Email"
+        },
+        "phone": {
+          "type": "string",
+          "label": "Phone"
+        },
+        "rating": {
+          "type": "number",
+          "label": "Rating",
+          "min": 1,
+          "max": 5
+        },
+        "status": {
+          "type": "enum",
+          "options": ["active", "inactive", "pending"],
+          "default": "active",
+          "label": "Status"
+        }
+      }
+    },
+    "order": {
+      "displayField": "orderNumber",
+      "userScoped": true,
+      "fields": {
+        "orderNumber": {
+          "type": "string",
+          "required": true,
+          "label": "Order Number"
+        },
+        "product": {
+          "type": "relation",
+          "entity": "product",
+          "label": "Product"
+        },
+        "quantity": {
+          "type": "number",
+          "required": true,
+          "label": "Quantity",
+          "min": 1
+        },
+        "totalAmount": {
+          "type": "number",
+          "label": "Total Amount (₹)",
+          "min": 0
+        },
+        "status": {
+          "type": "enum",
+          "options": ["pending", "confirmed", "shipped", "delivered", "cancelled"],
+          "default": "pending",
+          "label": "Order Status"
+        },
+        "orderDate": {
+          "type": "date",
+          "required": true,
+          "label": "Order Date"
+        },
+        "deliveryDate": {
+          "type": "date",
+          "label": "Expected Delivery"
+        }
+      }
+    }
+  },
+  "pages": [
+    {
+      "type": "dashboard",
+      "name": "Dashboard",
+      "path": "/dashboard",
+      "widgets": [
+        {
+          "type": "stat",
+          "label": "Total Products",
+          "entity": "product",
+          "operation": "count"
+        },
+        {
+          "type": "stat",
+          "label": "Total Suppliers",
+          "entity": "supplier",
+          "operation": "count"
+        },
+        {
+          "type": "stat",
+          "label": "Pending Orders",
+          "entity": "order",
+          "operation": "count"
+        },
+        {
+          "type": "stat",
+          "label": "Avg Product Price",
+          "entity": "product",
+          "operation": "avg",
+          "field": "price"
+        },
+        {
+          "type": "chart",
+          "label": "Products by Category",
+          "entity": "product",
+          "groupBy": "category",
+          "chartType": "pie"
+        },
+        {
+          "type": "chart",
+          "label": "Orders by Status",
+          "entity": "order",
+          "groupBy": "status",
+          "chartType": "bar"
+        },
+        {
+          "type": "list",
+          "label": "Recent Orders",
+          "entity": "order",
+          "limit": 5
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "name": "Products",
+      "path": "/products",
+      "entity": "product",
+      "columns": ["name", "sku", "category", "price", "quantity", "isActive"],
+      "actions": ["create", "edit", "delete"],
+      "filters": ["category", "isActive"],
+      "searchable": true,
+      "pageSize": 10
+    },
+    {
+      "type": "form",
+      "name": "New Product",
+      "path": "/products/new",
+      "entity": "product",
+      "submitAction": "create"
+    },
+    {
+      "type": "table",
+      "name": "Suppliers",
+      "path": "/suppliers",
+      "entity": "supplier",
+      "columns": ["companyName", "contactPerson", "email", "rating", "status"],
+      "actions": ["create", "edit", "delete"],
+      "filters": ["status"],
+      "searchable": true,
+      "pageSize": 10
+    },
+    {
+      "type": "form",
+      "name": "New Supplier",
+      "path": "/suppliers/new",
+      "entity": "supplier",
+      "submitAction": "create"
+    },
+    {
+      "type": "table",
+      "name": "Orders",
+      "path": "/orders",
+      "entity": "order",
+      "columns": ["orderNumber", "quantity", "totalAmount", "status", "orderDate"],
+      "actions": ["create", "edit", "delete"],
+      "filters": ["status"],
+      "searchable": true,
+      "pageSize": 10
+    },
+    {
+      "type": "form",
+      "name": "New Order",
+      "path": "/orders/new",
+      "entity": "order",
+      "submitAction": "create"
+    }
+  ]
+}
