@@ -41,7 +41,7 @@ router.post("/", requireAuth, async (req: AuthRequest, res: Response) => {
     });
 
     // Auto-seed test data for each entity so builder preview shows data immediately
-    for (const [entityName, entityConfig] of Object.entries(validatedConfig.config.entities)) {
+    for (const [entityName, entityConfig] of Object.entries(validatedConfig.entities)) {
       const sampleData: Record<string, any> = {};
       for (const [fieldName, fieldConfig] of Object.entries(entityConfig.fields)) {
         if (fieldConfig.type === 'number') sampleData[fieldName] = 1;

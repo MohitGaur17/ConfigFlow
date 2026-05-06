@@ -1,4 +1,4 @@
-import { AppConfig, EntityConfig } from "../shared/types";
+import { AppConfig, EntityConfig, TablePageConfig, FormPageConfig, DashboardPageConfig, DetailPageConfig } from "../shared/types";
 
 // ============================================================
 // Code Generator Service — Generates a full Next.js + Prisma
@@ -41,9 +41,21 @@ export function generateCodebase(config: AppConfig): VirtualFileSystem {
 
   // 5. Pages
   for (const page of config.pages) {
-    if (page.type === "table" || page.type === "form") {
-      const normalizedPath = page.path.replace(/^\//, "");
-      vfs.set(`src/app/(pages)/${normalizedPath}/page.tsx`, generateEntityPage(page.name, page.entity!));
+    const normalizedPath = page.path.replace(/^\//, "");
+    if (page.type === "table") {
+      vfs.set(`src/app/(pages)/${normalizedPath}/page.tsx`, generateTablePage(page, config.entities[page.entity]));
+    }
+
+    if (page.type === "form") {
+      vfs.set(`src/app/(pages)/${normalizedPath}/page.tsx`, generateFormPage(page, config.entities[page.entity]));
+    }
+
+    if (page.type === "dashboard") {
+      vfs.set(`src/app/(pages)/${normalizedPath}/page.tsx`, generateDashboardPage(page));
+    }
+
+    if (page.type === "detail") {
+      vfs.set(`src/app/(pages)/${normalizedPath}/page.tsx`, generateDetailPage(page));
     }
   }
 
@@ -218,6 +230,238 @@ const config: Config = {
 export default config;`;
 }
 
+function generateTablePage(page: TablePageConfig, entityConfig?: EntityConfig): string {
+  const columns = page.columns.length > 0 ? page.columns : Object.keys(entityConfig?.fields || {});
+  const searchable = page.searchable !== false;
+  const actions = page.actions || [];
+
+  return `"use client";
+import { useEffect, useMemo, useState } from "react";
+import { Search, Plus, MoreHorizontal } from "lucide-react";
+
+const columns = ${JSON.stringify(columns)};
+
+export default function Page() {
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState("");
+
+  useEffect(() => {
+    fetch("/api/${page.entity}")
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success) setData(json.data);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
+
+  const filteredData = useMemo(() => {
+    if (!query) return data;
+    const search = query.toLowerCase();
+    return data.filter((row) =>
+      Object.values(row).some((value) => String(value).toLowerCase().includes(search))
+    );
+  }, [data, query]);
+
+  const canEdit = ${actions.includes("edit")};
+  const canDelete = ${actions.includes("delete")};
+
+  return (
+    <div className="space-y-6">
+      <section className="rounded-3xl border border-white/10 bg-white/5 p-5 shadow-soft backdrop-blur-xl md:p-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.35em] text-indigo-300/70">${page.name}</p>
+            <h1 className="mt-2 text-2xl font-bold text-white md:text-4xl">${page.name}</h1>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            ${searchable ? `<label className="flex min-w-0 items-center gap-2 rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-slate-300">
+              <Search className="h-4 w-4 text-slate-400" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search records"
+                className="w-full bg-transparent outline-none placeholder:text-slate-500"
+              />
+            </label>` : ""}
+            ${actions.includes("create") ? `<button className="inline-flex items-center justify-center gap-2 rounded-2xl bg-indigo-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20 transition hover:bg-indigo-400 active:scale-[0.98]"><Plus className="h-4 w-4" />Add</button>` : ""}
+          </div>
+        </div>
+      </section>
+
+      <div className="rounded-3xl border border-white/10 bg-slate-950/60 shadow-soft overflow-hidden">
+        {loading ? (
+          <div className="p-8 text-center text-slate-400">Loading data...</div>
+        ) : filteredData.length === 0 ? (
+          <div className="p-8 text-center text-slate-400">No records found.</div>
+        ) : (
+          <>
+            <div className="hidden overflow-x-auto md:block">
+              <table className="w-full border-collapse text-left">
+                <thead>
+                  <tr className="border-b border-white/10 bg-white/[0.03]">
+                    {columns.map((key) => (
+                      <th key={key} className="p-4 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">{key}</th>
+                    ))}
+                    {(canEdit || canDelete) && <th className="p-4 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400"><MoreHorizontal className="h-4 w-4" /></th>}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {filteredData.map((row) => (
+                    <tr key={row.id} className="transition hover:bg-white/[0.03]">
+                      {columns.map((key) => (
+                        <td key={key} className="p-4 text-sm text-slate-300">{String(row[key] ?? "—")}</td>
+                      ))}
+                      {(canEdit || canDelete) && (
+                        <td className="p-4 text-slate-500"><MoreHorizontal className="h-4 w-4" /></td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="grid gap-3 p-3 md:hidden">
+              {filteredData.map((row) => (
+                <article key={row.id} className="rounded-2xl border border-white/10 bg-slate-950/70 p-4">
+                  {columns.map((key) => (
+                    <div key={key} className="mb-3 last:mb-0">
+                      <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">{key}</div>
+                      <div className="mt-1 break-words text-sm text-slate-200">{String(row[key] ?? "—")}</div>
+                    </div>
+                  ))}
+                </article>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}`;
+}
+
+function generateFormPage(page: FormPageConfig, entityConfig?: EntityConfig): string {
+  const fieldNames = page.fields && page.fields.length > 0 ? page.fields : Object.keys(entityConfig?.fields || {});
+  const fieldMeta = fieldNames.map((fieldName) => {
+    const field = (entityConfig?.fields[fieldName] || { type: "string" }) as any;
+    return {
+      name: fieldName,
+      type: field.type,
+      required: Boolean(field.required),
+      label: field.label || fieldName,
+      placeholder: field.placeholder || "",
+      options: field.options || [],
+    };
+  });
+
+  return `"use client";
+import { useEffect, useState } from "react";
+import { CheckCircle2, Loader2 } from "lucide-react";
+
+const fields = ${JSON.stringify(fieldMeta, null, 2)};
+
+export default function Page() {
+  const [formData, setFormData] = useState<Record<string, unknown>>({});
+  const [submitting, setSubmitting] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const initial: Record<string, unknown> = {};
+    for (const field of fields) initial[field.name] = "";
+    setFormData(initial);
+  }, []);
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/${page.entity}", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) throw new Error("Failed to create record");
+      setSuccess(true);
+    } catch (err: any) {
+      setError(err?.message || "Failed to submit form");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (success) {
+        <CheckCircle2 className="h-14 w-14 text-emerald-400" />
+        <p className="text-lg text-white/80">Saved successfully.</p>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <section className="rounded-3xl border border-white/10 bg-white/5 p-5 shadow-soft backdrop-blur-xl md:p-6">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.35em] text-indigo-300/70">${page.name}</p>
+        <h1 className="mt-2 text-2xl font-bold text-white md:text-4xl">${page.name}</h1>
+      </section>
+
+      {error && <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300">{error}</div>}
+
+      <div className="grid gap-4 md:grid-cols-2">
+        {fields.map((field) => (
+          <label key={field.name} className="space-y-2 rounded-2xl border border-white/10 bg-slate-950/60 p-4">
+            <span className="block text-sm font-medium text-slate-200">{field.label}{field.required ? " *" : ""}</span>
+            {field.type === "text" ? (
+              <textarea
+                value={String(formData[field.name] ?? "")}
+                onChange={(e) => setFormData((prev) => ({ ...prev, [field.name]: e.target.value }))}
+                placeholder={field.placeholder}
+                rows={4}
+                className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none placeholder:text-slate-500"
+              />
+            ) : field.type === "boolean" ? (
+              <select
+                value={String(formData[field.name] ?? "")}
+                onChange={(e) => setFormData((prev) => ({ ...prev, [field.name]: e.target.value === "true" }))}
+                className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none"
+              >
+                <option value="">Select</option>
+                <option value="true">True</option>
+                <option value="false">False</option>
+              </select>
+            ) : field.type === "enum" ? (
+              <select
+                value={String(formData[field.name] ?? "")}
+                onChange={(e) => setFormData((prev) => ({ ...prev, [field.name]: e.target.value }))}
+                className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none"
+              >
+                <option value="">Select</option>
+                {field.options.map((option) => <option key={option} value={option}>{option}</option>)}
+              </select>
+            ) : (
+              <input
+                value={String(formData[field.name] ?? "")}
+                onChange={(e) => setFormData((prev) => ({ ...prev, [field.name]: e.target.value }))}
+                placeholder={field.placeholder}
+                className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none placeholder:text-slate-500"
+              />
+            )}
+          </label>
+        ))}
+      </div>
+
+      <button disabled={submitting} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-indigo-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20 transition hover:bg-indigo-400 disabled:opacity-60">
+        {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+        {submitting ? "Saving..." : "Save"}
+      </button>
+    </form>
+  );
+}`;
+}
 function generatePostcssConfig(): string {
   return `module.exports = {
   plugins: {
@@ -302,7 +546,7 @@ function generateIconSvg(config: AppConfig): string {
       <stop offset="0%" stop-color="${accent}"/>
       <stop offset="100%" stop-color="#0f172a"/>
     </linearGradient>
-  </defs>
+  function generateDetailPage(page: DetailPageConfig): string {
   <rect width="512" height="512" rx="112" fill="url(#g)"/>
   <rect x="88" y="88" width="336" height="336" rx="84" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.18)"/>
   <text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="160" font-weight="800" fill="#ffffff">${label}</text>
@@ -718,6 +962,148 @@ export default function Page() {
               ))}
             </div>
           </>
+        )}
+      </div>
+    </div>
+  );
+}`;
+}
+
+function generateDashboardPage(page: Extract<AppConfig["pages"][number], { type: "dashboard" }>): string {
+  const widgets = JSON.stringify(page.widgets, null, 2);
+
+  return `"use client";
+
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import { Loader2 } from "lucide-react";
+
+const widgets = ${widgets};
+
+export default function Page() {
+  const [widgetState, setWidgetState] = useState<Record<string, { loading: boolean; value?: number; groups?: Array<{ key: string; value: number }>; records?: Array<{ id: string; data: Record<string, unknown>; createdAt: string }> }>>({});
+  const params = useParams();
+  const appId = params.appId as string;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadWidgets() {
+      const entries = await Promise.all(widgets.map(async (widget: any) => {
+        try {
+          if (widget.type === "stat") {
+            const searchParams = new URLSearchParams({ operation: widget.operation || "count" });
+            if (widget.field) searchParams.set("field", widget.field);
+            const response = await fetch("/api/entities/" + appId + "/${'${'}widget.entity}/stats?" + searchParams.toString());
+            const json = await response.json();
+            return [widget.label, { loading: false, value: json?.data?.value ?? 0, groups: json?.data?.groups }];
+          }
+
+          if (widget.type === "list") {
+            const response = await fetch("/api/entities/" + appId + "/${'${'}widget.entity}/recent?limit=" + (${''}widget.limit || 5));
+            const json = await response.json();
+            return [widget.label, { loading: false, records: json?.data ?? [] }];
+          }
+
+          if (widget.type === "chart") {
+            const searchParams = new URLSearchParams({ operation: widget.operation || "count" });
+            if (widget.field) searchParams.set("field", widget.field);
+            if (widget.groupBy) searchParams.set("groupBy", widget.groupBy);
+            const response = await fetch("/api/entities/" + appId + "/${'${'}widget.entity}/stats?" + searchParams.toString());
+            const json = await response.json();
+            return [widget.label, { loading: false, value: json?.data?.value ?? 0, groups: json?.data?.groups }];
+          }
+
+          return [widget.label, { loading: false }];
+        } catch {
+          return [widget.label, { loading: false, value: 0, records: [], groups: [] }];
+        }
+      }));
+
+      if (!cancelled) {
+        setWidgetState(Object.fromEntries(entries));
+      }
+    }
+
+    loadWidgets();
+    return () => {
+      cancelled = true;
+    };
+  }, [appId]);
+
+  return (
+    <div className="space-y-6">
+      <section className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-soft backdrop-blur-xl md:p-8">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.35em] text-indigo-300/70">${page.name}</p>
+        <h1 className="mt-3 text-3xl font-bold tracking-tight text-white md:text-5xl">${page.name}</h1>
+        <p className="mt-4 text-sm leading-7 text-slate-300 md:text-base">Dashboard generated from your JSON widget configuration.</p>
+      </section>
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        ${page.widgets.map((widget) => {
+          if (widget.type === "stat") {
+            return `<div className=\"rounded-2xl border border-white/10 bg-slate-950/60 p-5\"><p className=\"text-sm text-slate-400\">${widget.label}</p><p className=\"mt-2 text-2xl font-bold text-white\">{widgetState[\"${widget.label}\"]?.loading ? <Loader2 className=\"h-5 w-5 animate-spin text-indigo-400\" /> : (widgetState[\"${widget.label}\"]?.value ?? 0).toLocaleString()}</p></div>`;
+          }
+          if (widget.type === "list") {
+            return `<div className=\"rounded-2xl border border-white/10 bg-slate-950/60 p-5\"><p className=\"text-sm font-medium text-white/70\">${widget.label}</p><div className=\"mt-4 space-y-2\">{(widgetState[\"${widget.label}\"]?.records || []).map((record) => <div key={record.id} className=\"rounded-xl bg-white/5 px-3 py-2 text-sm text-slate-200\">{String(record.data[Object.keys(record.data)[0]] ?? \"Untitled\")}</div>)}</div></div>`;
+          }
+          return `<div className=\"rounded-2xl border border-white/10 bg-slate-950/60 p-5\"><p className=\"text-sm font-medium text-white/70\">${widget.label}</p><p className=\"mt-2 text-sm text-slate-400\">Chart widgets are driven by the same entity stats endpoint and can be expanded further as needed.</p></div>`;
+        }).join("\n        ")}
+      </div>
+    </div>
+  );
+}`;
+}
+
+function generateDetailPage(page: Extract<AppConfig["pages"][number], { type: "detail" }>): string {
+  const fields = page.fields && page.fields.length > 0 ? JSON.stringify(page.fields) : "null";
+
+  return `"use client";
+
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+
+export default function Page() {
+  const params = useParams();
+  const appId = params.appId as string;
+  const recordId = params.id as string;
+  const [record, setRecord] = useState<Record<string, unknown> | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/entities/" + appId + "/${page.entity}/" + recordId)
+      .then((response) => response.json())
+      .then((json) => {
+        if (json.success) setRecord(json.data?.data ?? json.data);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [appId, recordId]);
+
+  const visibleFields = ${fields} ?? Object.keys(record || {});
+
+  return (
+    <div className="space-y-6">
+      <section className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-soft backdrop-blur-xl md:p-8">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.35em] text-indigo-300/70">${page.name}</p>
+        <h1 className="mt-3 text-3xl font-bold tracking-tight text-white md:text-5xl">${page.name}</h1>
+        <p className="mt-4 text-sm leading-7 text-slate-300 md:text-base">Record details generated from the JSON config.</p>
+      </section>
+
+      <div className="rounded-3xl border border-white/10 bg-slate-950/60 p-5 shadow-soft md:p-6">
+        {loading ? (
+          <div className="p-8 text-center text-slate-400">Loading record...</div>
+        ) : !record ? (
+          <div className="p-8 text-center text-slate-400">No record found.</div>
+        ) : (
+          <dl className="grid gap-4 md:grid-cols-2">
+            {visibleFields.map((field: string) => (
+              <div key={field} className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <dt className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">{field}</dt>
+                <dd className="mt-2 break-words text-sm text-slate-200">{String(record[field] ?? "—")}</dd>
+              </div>
+            ))}
+          </dl>
         )}
       </div>
     </div>
