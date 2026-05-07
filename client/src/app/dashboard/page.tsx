@@ -64,19 +64,19 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white">
       {/* Top Nav */}
-      <nav className="border-b border-white/10 bg-black/50 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push("/")}>
-            <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
-              <Blocks className="w-4 h-4 text-white" />
+      <nav className="border-b border-white/10 bg-black/50 backdrop-blur-md sticky top-0 z-50 safe-area-inset-top">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 h-14 md:h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2 cursor-pointer min-w-0" onClick={() => router.push("/")}>
+            <div className="w-7 h-7 md:w-8 md:h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
+              <Blocks className="w-3.5 h-3.5 md:w-4 md:h-4 text-white" />
             </div>
-            <span className="font-bold tracking-tight text-lg">Antigravity AI</span>
+            <span className="font-bold tracking-tight text-base md:text-lg truncate">ConfigFlow</span>
           </div>
-          <div className="flex items-center gap-6">
-            <span className="text-sm text-white/50">{user?.email}</span>
+          <div className="flex items-center gap-3 md:gap-6 flex-shrink-0">
+            <span className="text-xs md:text-sm text-white/50 truncate max-w-xs md:max-w-none">{user?.email}</span>
             <button
               onClick={logout}
-              className="text-sm text-white/70 hover:text-white transition-colors"
+              className="text-xs md:text-sm text-white/70 hover:text-white transition-colors whitespace-nowrap"
             >
               Sign out
             </button>
@@ -84,15 +84,15 @@ export default function DashboardPage() {
         </div>
       </nav>
 
-      <main className="max-w-7xl mx-auto px-6 py-12">
-        <div className="flex items-center justify-between mb-12">
-          <div>
-            <h1 className="text-3xl font-bold mb-2">Your Workspace</h1>
-            <p className="text-white/50">Manage and view your generated applications.</p>
+      <main className="max-w-7xl mx-auto px-4 md:px-6 py-8 md:py-12 safe-area-inset-bottom">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 md:gap-12 mb-8 md:mb-12">
+          <div className="min-w-0">
+            <h1 className="text-2xl md:text-3xl font-bold mb-2">Your Workspace</h1>
+            <p className="text-sm md:text-base text-white/50">Manage and view your generated applications.</p>
           </div>
           <button
             onClick={() => router.push("/")}
-            className="flex items-center gap-2 bg-white text-black px-5 py-2.5 rounded-full font-medium hover:bg-gray-200 transition-colors"
+            className="flex items-center justify-center gap-2 bg-white text-black px-4 md:px-5 py-2 md:py-2.5 rounded-full font-medium hover:bg-gray-200 transition-colors whitespace-nowrap text-sm md:text-base active:scale-95"
           >
             <Plus className="w-4 h-4" />
             New Application

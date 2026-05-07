@@ -99,33 +99,33 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white selection:bg-indigo-500/30 font-sans">
       {/* Navigation */}
-      <nav className="border-b border-white/10 bg-black/50 backdrop-blur-md fixed top-0 w-full z-50">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
-              <Blocks className="w-4 h-4 text-white" />
+      <nav className="border-b border-white/10 bg-black/50 backdrop-blur-md fixed top-0 w-full z-50 safe-area-inset-top">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 h-14 md:h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-7 h-7 md:w-8 md:h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
+              <Blocks className="w-3.5 h-3.5 md:w-4 md:h-4 text-white" />
             </div>
-            <span className="font-bold tracking-tight text-lg">Antigravity AI</span>
+            <span className="font-bold tracking-tight text-base md:text-lg truncate">ConfigFlow</span>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
             {loading ? null : isAuthenticated ? (
               <button
                 onClick={() => router.push("/dashboard")}
-                className="text-sm font-medium hover:text-indigo-400 transition-colors"
+                className="text-xs md:text-sm font-medium hover:text-indigo-400 transition-colors whitespace-nowrap"
               >
-                Go to Dashboard
+                Dashboard
               </button>
             ) : (
               <>
                 <button
                   onClick={() => router.push("/login")}
-                  className="text-sm font-medium text-white/70 hover:text-white transition-colors"
+                  className="text-xs md:text-sm font-medium text-white/70 hover:text-white transition-colors whitespace-nowrap"
                 >
                   Log in
                 </button>
                 <button
                   onClick={() => router.push("/register")}
-                  className="text-sm font-medium bg-white text-black px-4 py-2 rounded-full hover:bg-gray-200 transition-colors"
+                  className="text-xs md:text-sm font-medium bg-white text-black px-3 md:px-4 py-1.5 md:py-2 rounded-full hover:bg-gray-200 transition-colors whitespace-nowrap"
                 >
                   Sign up
                 </button>
@@ -136,26 +136,26 @@ export default function HomePage() {
       </nav>
 
       {/* Hero Section */}
-      <main className="pt-32 pb-16 px-6">
-        <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center">
+      <main className="pt-20 md:pt-32 pb-12 md:pb-16 px-4 md:px-6 safe-area-inset-bottom">
+        <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-8 md:gap-16 items-center">
           
           {/* Left: Copy */}
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-sm text-indigo-300 mb-6">
-              <Zap className="w-4 h-4" />
-              <span>Config-Driven Architecture</span>
+          <div className="order-2 lg:order-1">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs md:text-sm text-indigo-300 mb-4 md:mb-6">
+              <Zap className="w-4 h-4 flex-shrink-0" />
+              <span className="truncate">Config-Driven Architecture</span>
             </div>
-            <h1 className="text-5xl lg:text-7xl font-bold tracking-tight mb-6 leading-tight">
-              Paste JSON.<br />
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-bold tracking-tight mb-4 md:mb-6 leading-tight">
+              Paste JSON.<br className="hidden md:block" />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400">
                 Get a Full-Stack App.
               </span>
             </h1>
-            <p className="text-lg text-white/60 mb-8 leading-relaxed max-w-xl">
-              Antigravity AI converts structured JSON configurations into fully working, deployed web applications. It dynamically generates forms, tables, REST APIs, and database structures instantly.
+            <p className="text-base md:text-lg text-white/60 mb-6 md:mb-8 leading-relaxed max-w-xl">
+              ConfigFlow converts structured JSON configurations into fully working, deployed web applications. It dynamically generates forms, tables, REST APIs, and database structures instantly.
             </p>
             
-            <div className="grid grid-cols-2 gap-6 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
               <Feature icon={<Database />} title="PostgreSQL" desc="Dynamic schemas" />
               <Feature icon={<LayoutTemplate />} title="Next.js" desc="Responsive UI" />
               <Feature icon={<Code2 />} title="Export Code" desc="Download ZIP" />
@@ -164,41 +164,41 @@ export default function HomePage() {
           </div>
 
           {/* Right: The Prompt Box (JSON Editor) */}
-          <div className="relative group">
+          <div className="relative group order-1 lg:order-2 mb-8 lg:mb-0">
             <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-2xl blur opacity-25 group-hover:opacity-40 transition duration-1000"></div>
-            <div className="relative bg-[#111111] border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[600px]">
+            <div className="relative bg-[#111111] border border-white/10 rounded-xl md:rounded-2xl shadow-2xl overflow-hidden flex flex-col h-80 sm:h-96 md:h-[600px]">
               
               {/* Editor Header */}
-              <div className="h-12 bg-black/40 border-b border-white/5 flex items-center justify-between px-4">
+              <div className="h-10 md:h-12 bg-black/40 border-b border-white/5 flex items-center justify-between px-3 md:px-4 flex-shrink-0">
                 <div className="flex gap-2">
-                  <div className="w-3 h-3 rounded-full bg-red-500/50"></div>
-                  <div className="w-3 h-3 rounded-full bg-yellow-500/50"></div>
-                  <div className="w-3 h-3 rounded-full bg-green-500/50"></div>
+                  <div className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-red-500/50"></div>
+                  <div className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-yellow-500/50"></div>
+                  <div className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-green-500/50"></div>
                 </div>
                 <div className="text-xs text-white/40 font-mono">app-config.json</div>
-                <div className="w-10"></div>
+                <div className="w-8 md:w-10"></div>
               </div>
 
               {/* Editor Body */}
-              <div className="flex-1 p-0 relative">
+              <div className="flex-1 p-0 relative overflow-hidden">
                 <textarea
                   value={jsonInput}
                   onChange={(e) => setJsonInput(e.target.value)}
-                  className="w-full h-full bg-transparent text-sm font-mono text-indigo-200 p-6 focus:outline-none resize-none leading-relaxed"
+                  className="w-full h-full bg-transparent text-xs sm:text-sm md:text-sm font-mono text-indigo-200 p-3 md:p-6 focus:outline-none resize-none leading-relaxed"
                   spellCheck={false}
                 />
               </div>
 
               {/* Editor Footer / Action */}
-              <div className="p-4 bg-black/40 border-t border-white/5">
-                {error && <div className="text-red-400 text-sm mb-3 px-2">{error}</div>}
+              <div className="p-3 md:p-4 bg-black/40 border-t border-white/5 flex-shrink-0">
+                {error && <div className="text-red-400 text-xs md:text-sm mb-2 md:mb-3 px-2 truncate">{error}</div>}
                 <button
                   onClick={handleGenerateClick}
                   disabled={isGenerating}
-                  className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-4 px-6 rounded-xl transition-all disabled:opacity-50"
+                  className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-medium py-2.5 md:py-4 px-4 md:px-6 rounded-lg md:rounded-xl transition-all disabled:opacity-50 text-sm md:text-base"
                 >
-                  {isGenerating ? "Generating App..." : "Build Application"}
-                  {!isGenerating && <ArrowRight className="w-5 h-5" />}
+                  {isGenerating ? "Generating..." : "Build Application"}
+                  {!isGenerating && <ArrowRight className="w-4 h-4 md:w-5 md:h-5" />}
                 </button>
               </div>
               
