@@ -59,7 +59,13 @@ interface AppConfig {
     name: string;
     description?: string;
     theme?: { primaryColor?: string; mode?: string };
-    auth: { enabled: boolean };
+    auth: {
+      enabled: boolean;
+      providers?: {
+        google?: boolean;
+        github?: boolean;
+      };
+    };
   };
   entities: Record<string, EntityConfig>;
   pages: PageConfig[];

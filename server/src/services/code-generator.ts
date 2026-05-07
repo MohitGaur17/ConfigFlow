@@ -25,6 +25,8 @@ export function generateCodebase(config: AppConfig): VirtualFileSystem {
   vfs.set("src/app/globals.css", generateGlobalsCss());
   vfs.set("src/app/layout.tsx", generateRootLayout(config));
   vfs.set("src/app/page.tsx", generateHomePage(config));
+  vfs.set("src/app/auth/page.tsx", generateAuthPage(config));
+  vfs.set("src/app/api/auth/providers/route.ts", generateAuthProvidersRoute(config));
     vfs.set("src/components/PwaRegister.tsx", generatePwaRegister());
 
     // 3b. PWA assets
@@ -75,6 +77,10 @@ function generateEnvExample(): string {
     '# Copy to .env and fill in your values',
     'DATABASE_URL="postgresql://user:password@localhost:5432/your_database"',
     'NEXTAUTH_SECRET="change-me"',
+    'GOOGLE_CLIENT_ID="your-google-client-id"',
+    'GOOGLE_CLIENT_SECRET="your-google-client-secret"',
+    'GITHUB_CLIENT_ID="your-github-client-id"',
+    'GITHUB_CLIENT_SECRET="your-github-client-secret"',
   ];
   return lines.join('\n') + '\n';
 }
@@ -749,6 +755,7 @@ ${mobileLinks}
 
 function generateHomePage(config: AppConfig): string {
   return `export default function Home() {
+  const authEnabled = ${JSON.stringify(Boolean(config.app.auth?.enabled))};
   return (
     <div className="space-y-6">
       <section className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-soft backdrop-blur-xl md:p-8">
@@ -770,6 +777,19 @@ function generateHomePage(config: AppConfig): string {
           </div>
         </div>
       </section>
+      {authEnabled && (
+        <section className="rounded-3xl border border-white/10 bg-slate-950/60 p-5 shadow-soft md:p-6">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.35em] text-indigo-300/70">Authentication</p>
+          <h2 className="mt-2 text-xl font-semibold text-white">Secure sign-in is enabled for this app</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-7 text-slate-300">Use the generated auth page to sign in, create accounts, and switch OAuth providers based on the app configuration.</p>
+          <div className="mt-5">
+            <a href="/auth" className="inline-flex items-center gap-2 rounded-full bg-indigo-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-400">
+              Open auth screen
+              <ArrowRight className="h-4 w-4" />
+            </a>
+          </div>
+        </section>
+      )}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-5">
           <p className="text-sm text-slate-400">Fast setup</p>
@@ -789,6 +809,210 @@ function generateHomePage(config: AppConfig): string {
         </div>
       </div>
     </div>
+  );
+}`;
+}
+
+function generateAuthProvidersRoute(config: AppConfig): string {
+  return `import { NextResponse } from "next/server";
+
+function isUnsetOrPlaceholder(value: string | undefined) {
+  if (!value) return true;
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) return true;
+  return normalized.includes("placeholder") || normalized.includes("your-google") || normalized.includes("your-github") || normalized.includes("replace");
+}
+
+export async function GET() {
+  const enabled = ${JSON.stringify(Boolean(config.app.auth?.enabled))};
+  const configProviders = ${JSON.stringify(config.app.auth?.providers || {})};
+  const googleConfigured = !isUnsetOrPlaceholder(process.env.GOOGLE_CLIENT_ID) && !isUnsetOrPlaceholder(process.env.GOOGLE_CLIENT_SECRET);
+  const githubConfigured = !isUnsetOrPlaceholder(process.env.GITHUB_CLIENT_ID) && !isUnsetOrPlaceholder(process.env.GITHUB_CLIENT_SECRET);
+
+  return NextResponse.json({
+    success: true,
+    data: {
+      enabled,
+      google: enabled && configProviders.google !== false && googleConfigured,
+      github: enabled && configProviders.github !== false && githubConfigured,
+    },
+  });
+}`;
+}
+
+function generateAuthPage(config: AppConfig): string {
+  const authEnabled = Boolean(config.app.auth?.enabled);
+  const providers = config.app.auth?.providers || {};
+
+  return `"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { AlertCircle, ArrowRight, Loader2, ShieldCheck } from "lucide-react";
+
+type ProviderState = {
+  enabled: boolean;
+  google: boolean;
+  github: boolean;
+};
+
+function GoogleLogo({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <path fill="#EA4335" d="M12 10.2v3.9h5.4c-.2 1.2-.9 2.2-1.9 2.9l3 2.3c1.8-1.6 2.8-3.9 2.8-6.7 0-.7-.1-1.4-.2-2H12z" />
+      <path fill="#34A853" d="M12 22c2.6 0 4.8-.9 6.4-2.4l-3-2.3c-.8.6-2 .9-3.4.9-2.6 0-4.8-1.8-5.6-4.2H3.3v2.6C4.9 19.8 8.2 22 12 22z" />
+      <path fill="#4A90E2" d="M6.4 14c-.2-.6-.3-1.3-.3-2s.1-1.4.3-2V7.4H3.3A10 10 0 002 12c0 1.7.4 3.4 1.3 4.6L6.4 14z" />
+      <path fill="#FBBC05" d="M12 5.8c1.5 0 2.8.5 3.8 1.5l2.8-2.8C16.8 2.8 14.6 2 12 2 8.2 2 4.9 4.2 3.3 7.4L6.4 10c.8-2.4 3-4.2 5.6-4.2z" />
+    </svg>
+  );
+}
+
+function GitHubLogo({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M12 .5C5.6.5.5 5.7.5 12.1c0 5.1 3.3 9.5 7.9 11.1.6.1.8-.2.8-.6v-2.2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.4-1.3-1.7-1.3-1.7-1.1-.7.1-.7.1-.7 1.2.1 1.9 1.3 1.9 1.3 1.1 1.9 2.9 1.3 3.6 1 .1-.8.4-1.3.8-1.6-2.5-.3-5.2-1.3-5.2-5.8 0-1.3.5-2.4 1.2-3.3-.1-.3-.5-1.6.1-3.2 0 0 1-.3 3.3 1.2a11.5 11.5 0 016 0c2.3-1.5 3.3-1.2 3.3-1.2.6 1.6.2 2.9.1 3.2.8.9 1.2 2 1.2 3.3 0 4.6-2.7 5.5-5.2 5.8.4.3.8 1 .8 2v3c0 .4.2.7.8.6a11.6 11.6 0 007.9-11.1C23.5 5.7 18.4.5 12 .5z"
+      />
+    </svg>
+  );
+}
+
+const AUTH_ENABLED = ${JSON.stringify(authEnabled)};
+const CONFIG_PROVIDERS = ${JSON.stringify(providers)};
+
+export default function AuthPage() {
+  const [mode, setMode] = useState<"login" | "register">("login");
+  const [providers, setProviders] = useState<ProviderState | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    fetch("/api/auth/providers")
+      .then((res) => res.json())
+      .then((json) => {
+        if (!mounted) return;
+        if (json?.success) {
+          setProviders(json.data as ProviderState);
+        }
+      })
+      .catch(() => {
+        if (mounted) setProviders({ enabled: AUTH_ENABLED, google: false, github: false });
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const providerState = useMemo(() => {
+    const base = providers || { enabled: AUTH_ENABLED, google: false, github: false };
+    return {
+      enabled: base.enabled && AUTH_ENABLED,
+      google: base.google && CONFIG_PROVIDERS.google !== false,
+      github: base.github && CONFIG_PROVIDERS.github !== false,
+    };
+  }, [providers]);
+
+  if (!AUTH_ENABLED) {
+    return (
+      <main className="min-h-screen bg-slate-950 px-6 py-16 text-white">
+        <div className="mx-auto flex w-full max-w-3xl flex-col items-center rounded-[2rem] border border-white/10 bg-white/5 p-8 text-center shadow-2xl shadow-black/30 backdrop-blur-xl">
+          <ShieldCheck className="h-12 w-12 text-emerald-400" />
+          <h1 className="mt-4 text-3xl font-bold">Authentication is disabled</h1>
+          <p className="mt-3 max-w-xl text-sm leading-7 text-slate-300">This app was generated with auth turned off in the config, so users can go straight to the application experience.</p>
+          <Link href="/" className="mt-8 inline-flex items-center gap-2 rounded-full bg-indigo-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-400">
+            Continue to app
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
+  const showRegister = mode === "register";
+
+  return (
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(99,102,241,0.22),_transparent_35%),linear-gradient(180deg,#020617_0%,#030712_100%)] px-4 py-6 text-white sm:px-6 lg:px-8">
+      <div className="mx-auto grid min-h-[calc(100vh-3rem)] w-full max-w-6xl items-center gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+        <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-white/5 p-8 shadow-2xl shadow-black/30 backdrop-blur-xl lg:p-10">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(56,189,248,0.18),_transparent_28%),radial-gradient(circle_at_bottom_left,_rgba(168,85,247,0.2),_transparent_32%)]" />
+          <div className="relative">
+            <h1 className="mt-6 max-w-xl text-4xl font-black tracking-tight sm:text-5xl">${config.app.name}</h1>
+            <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300 sm:text-base">${config.app.description || "Welcome to your generated app."}</p>
+          </div>
+        </section>
+
+        <section className="rounded-[2rem] border border-white/10 bg-slate-950/80 p-6 shadow-2xl shadow-black/30 backdrop-blur-xl sm:p-8">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-2xl font-bold">{showRegister ? "Create your account" : "Sign in to continue"}</h2>
+          </div>
+
+          <div className="mt-6 flex rounded-2xl border border-white/10 bg-white/5 p-1">
+            <button onClick={() => setMode("login")} className={"flex-1 rounded-xl px-4 py-3 text-sm font-semibold transition " + (mode === "login" ? "bg-white text-black" : "text-white/60 hover:text-white")}>Login</button>
+            <button onClick={() => setMode("register")} className={"flex-1 rounded-xl px-4 py-3 text-sm font-semibold transition " + (mode === "register" ? "bg-white text-black" : "text-white/60 hover:text-white")}>Register</button>
+          </div>
+
+          <div className="mt-6 space-y-4">
+            <label className="block">
+              <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Email</span>
+              <input className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none ring-0 placeholder:text-slate-500 focus:border-indigo-400" placeholder="you@example.com" />
+            </label>
+            <label className="block">
+              <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Password</span>
+              <input type="password" className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none ring-0 placeholder:text-slate-500 focus:border-indigo-400" placeholder="••••••••" />
+            </label>
+
+            {showRegister && (
+              <label className="block">
+                <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Name</span>
+                <input className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none ring-0 placeholder:text-slate-500 focus:border-indigo-400" placeholder="Your name" />
+              </label>
+            )}
+
+            <button className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-indigo-500 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-indigo-400">
+              {showRegister ? "Create account" : "Sign in"}
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          </div>
+
+          {providerState.google || providerState.github ? (
+            <div className="mt-8">
+              <div className="flex items-center gap-3">
+                <div className="h-px flex-1 bg-white/10" />
+                <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-500">Or continue with</span>
+                <div className="h-px flex-1 bg-white/10" />
+              </div>
+
+              <div className="mt-4 grid gap-3">
+                {providerState.google && (
+                  <button className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10">
+                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleLogo className="h-4 w-4" />}
+                    Continue with Google
+                  </button>
+                )}
+                {providerState.github && (
+                  <button className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10">
+                    <GitHubLogo className="h-4 w-4" />
+                    Continue with GitHub
+                  </button>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="mt-8 rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-200">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                <p>OAuth buttons are hidden until the app config and environment both enable a provider.</p>
+              </div>
+            </div>
+          )}
+        </section>
+      </div>
+    </main>
   );
 }`;
 }

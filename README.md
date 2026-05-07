@@ -55,6 +55,20 @@ DATABASE_URL=postgresql://USER:PASSWORD@HOST:PORT/DB_NAME
 JWT_SECRET=replace-with-a-strong-secret
 PORT=4000
 CLIENT_URL=http://localhost:3000
+SERVER_URL=http://localhost:4000
+
+# OAuth (Google)
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+GOOGLE_REDIRECT_URI=http://localhost:4000/api/auth/google/callback
+
+# OAuth (GitHub)
+GITHUB_CLIENT_ID=your-github-client-id
+GITHUB_CLIENT_SECRET=your-github-client-secret
+GITHUB_REDIRECT_URI=http://localhost:4000/api/auth/github/callback
+
+# Optional: where server redirects after successful OAuth callback
+CLIENT_AUTH_CALLBACK_URL=http://localhost:3000/auth/callback
 ```
 
 Optional for frontend (`client/.env.local`):
@@ -95,6 +109,10 @@ Auth:
 
 - `POST /api/auth/register`
 - `POST /api/auth/login`
+- `GET /api/auth/google/start`
+- `GET /api/auth/google/callback`
+- `GET /api/auth/github/start`
+- `GET /api/auth/github/callback`
 
 Apps:
 

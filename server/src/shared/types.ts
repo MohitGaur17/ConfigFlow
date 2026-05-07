@@ -107,6 +107,10 @@ export interface ThemeConfig {
 
 export interface AuthConfig {
   enabled: boolean;
+  providers?: {
+    google?: boolean;
+    github?: boolean;
+  };
 }
 
 export interface AppMeta {

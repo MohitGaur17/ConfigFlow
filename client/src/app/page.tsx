@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { Blocks, ArrowRight, Code2, Database, LayoutTemplate, Zap, FileJson } from "lucide-react";
@@ -64,25 +64,7 @@ export default function HomePage() {
   const [error, setError] = useState("");
 
   const { t } = useTranslation();
-  useEffect(() => {
-    // If returning from login with a pending config, generate it
-    const pendingConfig = localStorage.getItem("pending_app_config");
-    if (isAuthenticated && pendingConfig) {
-      localStorage.removeItem("pending_app_config");
-      handleGenerate(pendingConfig);
-    }
-  }, [isAuthenticated]);
-
-  const handleGenerateClick = () => {
-    if (!isAuthenticated) {
-      localStorage.setItem("pending_app_config", jsonInput);
-      router.push("/login?redirect=generate");
-      return;
-    }
-    handleGenerate(jsonInput);
-  };
-
-  const handleGenerate = async (configString: string) => {
+  const handleGenerate = useCallback(async (configString: string) => {
     try {
       setIsGenerating(true);
       setError("");
@@ -92,11 +74,41 @@ export default function HomePage() {
       if (response.data.success) {
         router.push(`/builder/${response.data.data.id}`);
       }
-    } catch (err: any) {
-      setError(err.response?.data?.error || err.message || "Invalid JSON or server error");
+    } catch (err: unknown) {
+      let message = "Invalid JSON or server error";
+      if (typeof err === "object" && err !== null) {
+        const e = err as { response?: { data?: { error?: unknown } }; message?: unknown };
+        if (typeof e.response?.data?.error === "string") {
+          message = e.response!.data!.error as string;
+        } else if (typeof e.message === "string") {
+          message = e.message;
+        }
+      } else if (typeof err === "string") {
+        message = err;
+      }
+      setError(message);
     } finally {
       setIsGenerating(false);
     }
+  }, [router]);
+
+  useEffect(() => {
+    // If returning from login with a pending config, generate it
+    const pendingConfig = localStorage.getItem("pending_app_config");
+    if (isAuthenticated && pendingConfig) {
+      localStorage.removeItem("pending_app_config");
+      // defer to avoid calling setState synchronously during rendering
+      setTimeout(() => handleGenerate(pendingConfig), 0);
+    }
+  }, [isAuthenticated, handleGenerate]);
+
+  const handleGenerateClick = () => {
+    if (!isAuthenticated) {
+      localStorage.setItem("pending_app_config", jsonInput);
+      router.push("/login?redirect=generate");
+      return;
+    }
+    handleGenerate(jsonInput);
   };
 
   return (

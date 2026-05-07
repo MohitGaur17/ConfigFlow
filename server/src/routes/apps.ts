@@ -1,12 +1,32 @@
 import { Router, Request, Response } from "express";
 import { requireAuth, optionalAuth, AuthRequest } from "../middleware/auth";
 import { PrismaClient } from "@prisma/client";
-import { parseAndValidateConfig, ConfigError } from "../services/config-engine";
+import { getAppConfig, parseAndValidateConfig, ConfigError } from "../services/config-engine";
 import { generateCodebase } from "../services/code-generator";
 import JSZip from "jszip";
 
 const router = Router();
 const prisma = new PrismaClient();
+
+function isUnsetOrPlaceholder(value: string | undefined) {
+  if (!value) return true;
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) return true;
+  return (
+    normalized.includes("placeholder") ||
+    normalized.includes("your-google") ||
+    normalized.includes("your-github") ||
+    normalized.includes("replace")
+  );
+}
+
+function isProviderConfigured(provider: "google" | "github") {
+  if (provider === "google") {
+    return !isUnsetOrPlaceholder(process.env.GOOGLE_CLIENT_ID) && !isUnsetOrPlaceholder(process.env.GOOGLE_CLIENT_SECRET);
+  }
+
+  return !isUnsetOrPlaceholder(process.env.GITHUB_CLIENT_ID) && !isUnsetOrPlaceholder(process.env.GITHUB_CLIENT_SECRET);
+}
 
 // ============================================================
 // Apps Routes — Create, list, delete user apps
@@ -127,6 +147,37 @@ router.get("/:id", optionalAuth, async (req: AuthRequest, res: Response) => {
     res.json({ success: true, data: app });
   } catch (error: any) {
     console.error("[Apps] Get error:", error);
+    res.status(500).json({ success: false, error: "Internal server error" });
+  }
+});
+
+/**
+ * GET /api/apps/:id/auth/providers
+ * Returns the effective OAuth provider availability for a specific app.
+ */
+router.get("/:id/auth/providers", async (req: Request, res: Response) => {
+  try {
+    const config = await getAppConfig(req.params.id);
+
+    if (!config) {
+      res.status(404).json({ success: false, error: "App not found" });
+      return;
+    }
+
+    const appAuth = config.app?.auth;
+    const enabled = Boolean(appAuth?.enabled);
+    const providerFlags = appAuth?.providers || {};
+
+    res.json({
+      success: true,
+      data: {
+        enabled,
+        google: enabled && providerFlags.google !== false && isProviderConfigured("google"),
+        github: enabled && providerFlags.github !== false && isProviderConfigured("github"),
+      },
+    });
+  } catch (error: any) {
+    console.error("[Apps] Auth providers error:", error);
     res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
