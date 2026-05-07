@@ -25,7 +25,6 @@ Users submit JSON app configs, then preview, manage, and export generated apps f
 - Multi-app, per-user app management
 - Dynamic CRUD API routes scoped by `appId` and `entityName`
 - Dashboard widgets (stats/charts/recent data)
-- CSV preview and import with mapping suggestions
 - Code export endpoint that returns a generated ZIP
 
 ## Repository Structure
@@ -131,11 +130,6 @@ Entities (dynamic):
 - `DELETE /api/entities/:appId/:entityName/:id`
 - `GET /api/entities/:appId/:entityName/stats`
 - `GET /api/entities/:appId/:entityName/recent`
-
-CSV:
-
-- `POST /api/csv/:appId/:entityName/preview`
-- `POST /api/csv/:appId/:entityName/import`
 
 ## Build
 

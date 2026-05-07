@@ -154,13 +154,6 @@ export interface StatsResult {
   groups?: Array<{ key: string; value: number }>;
 }
 
-export interface CsvImportResult {
-  totalRows: number;
-  imported: number;
-  skipped: number;
-  errors: Array<{ row: number; field: string; message: string }>;
-}
-
 // ---- Auth Types ----
 
 export interface LoginRequest {

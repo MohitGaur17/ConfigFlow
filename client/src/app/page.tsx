@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { Blocks, ArrowRight, Code2, Database, LayoutTemplate, Zap, FileJson } from "lucide-react";
+import { Blocks, ArrowRight, Code2, Database, LayoutTemplate, Zap } from "lucide-react";
 import api from "@/lib/api";
 
 import { useTranslation } from "@/i18n/useTranslation";
@@ -175,7 +175,6 @@ export default function HomePage() {
               <Feature icon={<Database />} title="PostgreSQL" desc="Dynamic schemas" />
               <Feature icon={<LayoutTemplate />} title="Next.js" desc="Responsive UI" />
               <Feature icon={<Code2 />} title="Export Code" desc="Download ZIP" />
-              <Feature icon={<FileJson />} title="CSV Import" desc="Built-in mapping" />
             </div>
           </div>
 

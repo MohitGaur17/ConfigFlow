@@ -309,15 +309,6 @@ function PageRenderer({ pageConfig }) {
 - `chart` → bar/pie/line chart (using Recharts)
 - `list` → recent records list
 
-### CSV Import Flow
-1. User clicks "Import CSV" on a table page
-2. Modal opens → user uploads `.csv` file
-3. Client parses CSV with `papaparse` → extracts headers
-4. Column mapper UI: map CSV columns → entity fields
-5. Preview table shows first 5 rows with mapped data
-6. Submit → backend validates + stores each row
-7. Results summary: X imported, Y skipped (with reasons)
-
 ---
 
 ## Edge Case Handling Strategy
@@ -348,13 +339,6 @@ function PageRenderer({ pageConfig }) {
 - User-scoped data: `userScoped: true` entities filter by `userId`
 - Protected routes on frontend via `AuthContext` + redirect
 
-### 2. CSV Import System
-- `papaparse` for client-side CSV parsing
-- Interactive column mapping UI
-- Server-side validation against entity schema
-- Batch insert with per-row error tracking
-- Handles: empty rows, type coercion, missing columns
-
 ### 3. Responsive UI (Tailwind CSS)
 - Mobile-first responsive design across all pages
 - Sidebar collapses to hamburger menu on mobile
@@ -370,7 +354,6 @@ function PageRenderer({ pageConfig }) {
 |-------|-----------|
 | Frontend | Next.js 14 (App Router), TypeScript, Tailwind CSS |
 | Charts | Recharts |
-| CSV Parsing | PapaParse |
 | Backend | Express.js, TypeScript |
 | Auth | jsonwebtoken, bcryptjs |
 | Database | PostgreSQL |
@@ -402,9 +385,6 @@ Config upload + activation + entity sync
 
 #### [NEW] server/src/routes/entity.ts
 Dynamic CRUD router with validation
-
-#### [NEW] server/src/routes/csv.ts
-CSV upload + validation + batch import
 
 #### [NEW] server/src/middleware/auth.ts
 JWT verification middleware
@@ -443,9 +423,6 @@ Dynamic table with sort/filter/paginate/search
 #### [NEW] client/src/components/renderers/DashboardRenderer.tsx
 Dynamic dashboard with stat/chart/list widgets
 
-#### [NEW] client/src/components/csv/CSVImporter.tsx
-CSV upload, column mapping, preview, submit
-
 #### [NEW] client/src/app/ pages
 Login, Register, dynamic app pages
 
@@ -465,7 +442,6 @@ Login, Register, dynamic app pages
 1. **Config modification test**: Change the JSON config (add/remove fields, rename entities) → system should adapt without breaking
 2. **Edge case test**: Submit incomplete data, unknown field types, empty config → system handles gracefully
 3. **API tests**: Hit all CRUD endpoints with valid and invalid data
-4. **CSV test**: Upload CSVs with missing columns, wrong types, extra columns
 
 ### Manual Verification
 1. Load a Task Manager config → verify forms, tables, dashboard all render

@@ -8,7 +8,7 @@ import FormRenderer from "./FormRenderer";
 import {
   Search, Plus, Pencil, Trash2, ChevronLeft, ChevronRight,
   ArrowUpDown, ArrowUp, ArrowDown, Loader2, AlertCircle,
-  FileSpreadsheet, X, Upload
+  X
 } from "lucide-react";
 
 interface TableRendererProps {
@@ -41,7 +41,6 @@ export default function TableRenderer({ pageConfig, entityConfig, entityName }: 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingRecord, setEditingRecord] = useState<RecordData | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [showCsvModal, setShowCsvModal] = useState(false);
 
   const pageSize = pageConfig.pageSize || 10;
   const entityFields = entityConfig?.fields || {};
@@ -214,15 +213,6 @@ export default function TableRenderer({ pageConfig, entityConfig, entityName }: 
         </div>
 
         <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:justify-end">
-          {/* CSV Import Button */}
-          <button
-            onClick={() => setShowCsvModal(true)}
-            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white/70 text-sm font-medium transition-colors"
-          >
-            <FileSpreadsheet className="w-4 h-4" />
-            <span>Import CSV</span>
-          </button>
-
           {/* Create Button */}
           {actions.includes("create") && (
             <button
@@ -483,18 +473,6 @@ export default function TableRenderer({ pageConfig, entityConfig, entityName }: 
           />
         </Modal>
       )}
-
-      {/* CSV Import Modal */}
-      {showCsvModal && (
-        <Modal title={`Import CSV — ${entityName}`} onClose={() => setShowCsvModal(false)} wide>
-          <CsvImporter
-            entityName={entityName}
-            entityConfig={entityConfig}
-            onSuccess={() => { setShowCsvModal(false); fetchRecords(); }}
-            onCancel={() => setShowCsvModal(false)}
-          />
-        </Modal>
-      )}
     </div>
   );
 }
@@ -516,224 +494,6 @@ function Modal({ title, onClose, children, wide }: { title: string; onClose: () 
         </div>
         <div className="p-4 sm:p-5">{children}</div>
       </div>
-    </div>
-  );
-}
-
-// ---- CSV Importer Component ----
-
-function CsvImporter({
-  entityName,
-  entityConfig,
-  onSuccess,
-  onCancel,
-}: {
-  entityName: string;
-  entityConfig: EntityConfig;
-  onSuccess: () => void;
-  onCancel: () => void;
-}) {
-  const [step, setStep] = useState<"upload" | "map" | "result">("upload");
-  const [file, setFile] = useState<File | null>(null);
-  const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
-  const [previewRows, setPreviewRows] = useState<Record<string, string>[]>([]);
-  const [entityFields, setEntityFields] = useState<Array<{ name: string; label: string; type: string; required: boolean }>>([]);
-  const [mapping, setMapping] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<{ totalRows: number; imported: number; skipped: number; errors: Array<{ row: number; field: string; message: string }> } | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (!selectedFile) return;
-    setFile(selectedFile);
-    setError(null);
-
-    try {
-      setLoading(true);
-      const formData = new FormData();
-      formData.append("file", selectedFile);
-
-      const res = await api.post(`/csv/${entityName}/preview`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-
-      if (res.data.success) {
-        setCsvHeaders(res.data.data.csvHeaders);
-        setPreviewRows(res.data.data.previewRows);
-        setEntityFields(res.data.data.entityFields);
-        setMapping(res.data.data.suggestedMapping || {});
-        setStep("map");
-      }
-    } catch (err: any) {
-      setError(err.response?.data?.error || "Failed to parse CSV");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleImport = async () => {
-    if (!file) return;
-
-    try {
-      setLoading(true);
-      setError(null);
-
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("mapping", JSON.stringify(mapping));
-
-      const res = await api.post(`/csv/${entityName}/import`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-
-      if (res.data.success) {
-        setResult(res.data.data);
-        setStep("result");
-      }
-    } catch (err: any) {
-      setError(err.response?.data?.error || "Import failed");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (step === "upload") {
-    return (
-      <div className="space-y-4">
-        <div className="border-2 border-dashed border-white/20 rounded-xl p-8 text-center hover:border-indigo-500/50 transition-colors">
-          <Upload className="w-10 h-10 text-white/30 mx-auto mb-3" />
-          <p className="text-white/60 mb-2">Drop a CSV file here or click to browse</p>
-          <input
-            type="file"
-            accept=".csv"
-            onChange={handleFileSelect}
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-            style={{ position: "relative" }}
-          />
-        </div>
-        {loading && (
-          <div className="flex items-center justify-center gap-2 text-white/60">
-            <Loader2 className="w-4 h-4 animate-spin" />
-            Parsing CSV...
-          </div>
-        )}
-        {error && (
-          <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm">{error}</div>
-        )}
-      </div>
-    );
-  }
-
-  if (step === "map") {
-    return (
-      <div className="space-y-4">
-        <p className="text-sm text-white/60">Map CSV columns to entity fields:</p>
-
-        <div className="space-y-2 max-h-60 overflow-y-auto">
-          {csvHeaders.map((header) => (
-            <div key={header} className="flex items-center gap-3">
-              <span className="text-sm text-white/70 w-1/3 truncate" title={header}>{header}</span>
-              <span className="text-white/30">→</span>
-              <select
-                value={mapping[header] || ""}
-                onChange={(e) => setMapping((prev) => ({ ...prev, [header]: e.target.value }))}
-                className="flex-1 px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-white text-sm appearance-none cursor-pointer"
-              >
-                <option value="" className="bg-gray-900">Skip this column</option>
-                {entityFields.map((f) => (
-                  <option key={f.name} value={f.name} className="bg-gray-900">
-                    {f.label} ({f.type}){f.required ? " *" : ""}
-                  </option>
-                ))}
-              </select>
-            </div>
-          ))}
-        </div>
-
-        {/* Preview */}
-        {previewRows.length > 0 && (
-          <div className="overflow-x-auto border border-white/10 rounded-lg">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="bg-white/5">
-                  {csvHeaders.map((h) => (
-                    <th key={h} className="px-2 py-1.5 text-left text-white/40 font-medium">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {previewRows.slice(0, 3).map((row, i) => (
-                  <tr key={i} className="border-t border-white/5">
-                    {csvHeaders.map((h) => (
-                      <td key={h} className="px-2 py-1.5 text-white/60 truncate max-w-[120px]">{row[h] || "—"}</td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {error && (
-          <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm">{error}</div>
-        )}
-
-        <div className="flex gap-3 pt-2">
-          <button
-            onClick={handleImport}
-            disabled={loading || Object.values(mapping).filter(Boolean).length === 0}
-            className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-lg text-white text-sm font-medium transition-colors flex items-center gap-2"
-          >
-            {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-            Import {previewRows.length > 0 ? `(${file?.name})` : ""}
-          </button>
-          <button onClick={onCancel} className="px-5 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-white/70 text-sm font-medium transition-colors">
-            Cancel
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Result step
-  return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-3 gap-3">
-        <div className="bg-white/5 rounded-lg p-4 text-center">
-          <p className="text-2xl font-bold text-white">{result?.totalRows || 0}</p>
-          <p className="text-xs text-white/50 mt-1">Total Rows</p>
-        </div>
-        <div className="bg-emerald-500/10 rounded-lg p-4 text-center">
-          <p className="text-2xl font-bold text-emerald-400">{result?.imported || 0}</p>
-          <p className="text-xs text-white/50 mt-1">Imported</p>
-        </div>
-        <div className="bg-red-500/10 rounded-lg p-4 text-center">
-          <p className="text-2xl font-bold text-red-400">{result?.skipped || 0}</p>
-          <p className="text-xs text-white/50 mt-1">Skipped</p>
-        </div>
-      </div>
-
-      {result?.errors && result.errors.length > 0 && (
-        <div className="bg-white/5 rounded-lg p-3 max-h-40 overflow-y-auto">
-          <p className="text-xs font-medium text-white/50 mb-2">Errors:</p>
-          {result.errors.slice(0, 20).map((err, i) => (
-            <p key={i} className="text-xs text-red-400/80">
-              Row {err.row}: {err.field && `[${err.field}] `}{err.message}
-            </p>
-          ))}
-          {result.errors.length > 20 && (
-            <p className="text-xs text-white/30 mt-1">...and {result.errors.length - 20} more</p>
-          )}
-        </div>
-      )}
-
-      <button
-        onClick={onSuccess}
-        className="w-full px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-white font-medium transition-colors"
-      >
-        Done
-      </button>
     </div>
   );
 }
