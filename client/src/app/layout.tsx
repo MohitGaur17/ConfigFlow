@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers";
-import PwaRegister from "@/components/PwaRegister";
+import PwaRegister from "../components/PwaRegister";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
@@ -12,6 +12,7 @@ export const metadata: Metadata = {
   applicationName: "ConfigFlow",
   authors: [{ name: "ConfigFlow" }],
   keywords: ["app generator", "no-code", "low-code", "config-driven", "full-stack"],
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -42,7 +43,6 @@ export const metadata: Metadata = {
     description: "Generate full-stack web applications from JSON configuration.",
     images: ["/og-image.png"],
   },
-  themeColor: "#0a0a0a",
 };
 
 export const viewport: Viewport = {
@@ -52,6 +52,7 @@ export const viewport: Viewport = {
   maximumScale: 5,
   userScalable: true,
   viewportFit: "cover",
+  themeColor: "#0a0a0a",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -65,8 +66,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="msapplication-config" content="/browserconfig.xml" />
       </head>
       <body className={`${inter.variable} font-sans antialiased bg-gray-950 text-white`}>
-        <PwaRegister />
-        <Providers>{children}</Providers>
+        <Providers>
+          <PwaRegister />
+          {children}
+        </Providers>
       </body>
     </html>
   );

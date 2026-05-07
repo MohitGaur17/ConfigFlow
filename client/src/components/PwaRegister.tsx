@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { Download, X } from "lucide-react";
+import { useTranslation } from "@/i18n";
 
 export default function PwaRegister() {
+  const { t } = useTranslation();
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
 
@@ -60,13 +62,13 @@ export default function PwaRegister() {
             <Download className="w-5 h-5 text-white" />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-sm mb-1">Install ConfigFlow</h3>
-            <p className="text-xs text-gray-600">Access your apps offline and from your home screen.</p>
+            <h3 className="font-semibold text-sm mb-1">{t('pwa.installTitle')}</h3>
+            <p className="text-xs text-gray-600">{t('pwa.installDescription')}</p>
             <button
               onClick={handleInstall}
               className="mt-3 w-full bg-indigo-600 text-white text-sm font-medium py-2 px-3 rounded-lg hover:bg-indigo-700 transition-colors"
             >
-              Install Now
+              {t('pwa.installButton')}
             </button>
           </div>
           <button

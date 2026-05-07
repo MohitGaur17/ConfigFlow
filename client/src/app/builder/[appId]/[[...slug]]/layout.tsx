@@ -3,7 +3,6 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import AppShell from "@/components/layout/AppShell";
 import { Loader2 } from "lucide-react";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -26,5 +25,5 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   if (!isAuthenticated) return null;
 
-  return <AppShell>{children}</AppShell>;
+  return <>{children}</>;
 }

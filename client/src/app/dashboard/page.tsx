@@ -6,6 +6,8 @@ import { useAuth } from "@/lib/auth-context";
 import api from "@/lib/api";
 import { Blocks, ArrowRight, Trash2, Clock, AppWindow, Plus } from "lucide-react";
 
+import { useTranslation } from "@/i18n/useTranslation";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 interface AppRecord {
   id: string;
   name: string;
@@ -19,6 +21,20 @@ export default function DashboardPage() {
   const [apps, setApps] = useState<AppRecord[]>([]);
   const [isLoadingApps, setIsLoadingApps] = useState(true);
 
+  const { t } = useTranslation();
+
+  const deleteApp = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm(t('common.confirm'))) return;
+    
+    try {
+      await api.delete(`/apps/${id}`);
+      setApps(prev => prev.filter(app => app.id !== id));
+    } catch {
+      alert(t('common.error'));
+    }
+  };
+
   useEffect(() => {
     if (!loading && !isAuthenticated) {
       router.push("/login");
@@ -27,35 +43,21 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (isAuthenticated) {
+      const loadApps = async () => {
+        try {
+          const res = await api.get("/apps");
+          if (res.data.success) {
+            setApps(res.data.data);
+          }
+        } catch {
+          console.error("Failed to load apps");
+        } finally {
+          setIsLoadingApps(false);
+        }
+      };
       loadApps();
     }
   }, [isAuthenticated]);
-
-  const loadApps = async () => {
-    try {
-      setIsLoadingApps(true);
-      const res = await api.get("/apps");
-      if (res.data.success) {
-        setApps(res.data.data);
-      }
-    } catch (error) {
-      console.error("Failed to load apps", error);
-    } finally {
-      setIsLoadingApps(false);
-    }
-  };
-
-  const deleteApp = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!confirm("Are you sure you want to delete this app and all its data?")) return;
-    
-    try {
-      await api.delete(`/apps/${id}`);
-      loadApps();
-    } catch (error) {
-      alert("Failed to delete app");
-    }
-  };
 
   if (loading || !isAuthenticated) {
     return <div className="min-h-screen bg-[#0A0A0A]"></div>;
@@ -74,11 +76,12 @@ export default function DashboardPage() {
           </div>
           <div className="flex items-center gap-3 md:gap-6 flex-shrink-0">
             <span className="text-xs md:text-sm text-white/50 truncate max-w-xs md:max-w-none">{user?.email}</span>
+            <LanguageSwitcher />
             <button
               onClick={logout}
-              className="text-xs md:text-sm text-white/70 hover:text-white transition-colors whitespace-nowrap"
+              className="text-xs md:text-sm text-white/70 hover:text-white transition-colors whitespace-nowrap hidden sm:inline"
             >
-              Sign out
+              {t('nav.logout')}
             </button>
           </div>
         </div>
@@ -87,15 +90,15 @@ export default function DashboardPage() {
       <main className="max-w-7xl mx-auto px-4 md:px-6 py-8 md:py-12 safe-area-inset-bottom">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 md:gap-12 mb-8 md:mb-12">
           <div className="min-w-0">
-            <h1 className="text-2xl md:text-3xl font-bold mb-2">Your Workspace</h1>
-            <p className="text-sm md:text-base text-white/50">Manage and view your generated applications.</p>
+            <h1 className="text-2xl md:text-3xl font-bold mb-2">{t('dashboard.title')}</h1>
+            <p className="text-sm md:text-base text-white/50">{t('dashboard.welcome')}</p>
           </div>
           <button
             onClick={() => router.push("/")}
             className="flex items-center justify-center gap-2 bg-white text-black px-4 md:px-5 py-2 md:py-2.5 rounded-full font-medium hover:bg-gray-200 transition-colors whitespace-nowrap text-sm md:text-base active:scale-95"
           >
             <Plus className="w-4 h-4" />
-            New Application
+            {t('home.newApplication')}
           </button>
         </div>
 
@@ -110,13 +113,13 @@ export default function DashboardPage() {
             <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
               <AppWindow className="w-8 h-8 text-white/40" />
             </div>
-            <h2 className="text-xl font-medium mb-2">No apps generated yet</h2>
-            <p className="text-white/40 mb-6">Create your first application using JSON config.</p>
+            <h2 className="text-xl font-medium mb-2">{t('common.noData')}</h2>
+            <p className="text-white/40 mb-6">{t('dashboard.recentTasks')}</p>
             <button
               onClick={() => router.push("/")}
               className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-full font-medium transition-colors"
             >
-              Generate App
+              {t('home.newApplication')}
             </button>
           </div>
         ) : (
@@ -145,7 +148,7 @@ export default function DashboardPage() {
                 
                 <div className="flex items-center gap-2 text-xs text-white/40 mt-6">
                   <Clock className="w-3 h-3" />
-                  <span>Created {new Date(app.createdAt).toLocaleDateString()}</span>
+                  <span>{t('common.created', 'Created')} {new Date(app.createdAt).toLocaleDateString()}</span>
                 </div>
                 
                 <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity translate-x-4 group-hover:translate-x-0">

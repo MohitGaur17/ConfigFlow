@@ -50,7 +50,7 @@ export default function DynamicPage() {
 
   if (!pageConfig) {
     return (
-      <AppShell hideSidebar>
+      <AppShell showLanguageSwitcher={false}>
         <div className="flex flex-col items-center justify-center py-20 gap-4">
           <FileQuestion className="w-12 h-12 text-white/20" />
           <p className="text-white/40">Page not found: {path}</p>
@@ -65,7 +65,7 @@ export default function DynamicPage() {
   const entityConfig = pageConfig.entity ? config.entities[pageConfig.entity] : undefined;
 
   return (
-    <AppShell hideSidebar>
+    <AppShell showLanguageSwitcher={false}>
       <div className="animate-in">
         {/* Page header */}
         <div className="mb-6">

@@ -6,6 +6,8 @@ import { useAuth } from "@/lib/auth-context";
 import { Blocks, ArrowRight, Code2, Database, LayoutTemplate, Zap, FileJson } from "lucide-react";
 import api from "@/lib/api";
 
+import { useTranslation } from "@/i18n/useTranslation";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 const SAMPLE_CONFIG = {
   "app": {
     "name": "Task Manager",
@@ -61,6 +63,7 @@ export default function HomePage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState("");
 
+  const { t } = useTranslation();
   useEffect(() => {
     // If returning from login with a pending config, generate it
     const pendingConfig = localStorage.getItem("pending_app_config");
@@ -113,7 +116,7 @@ export default function HomePage() {
                 onClick={() => router.push("/dashboard")}
                 className="text-xs md:text-sm font-medium hover:text-indigo-400 transition-colors whitespace-nowrap"
               >
-                Dashboard
+                {t('nav.dashboard')}
               </button>
             ) : (
               <>
@@ -121,16 +124,17 @@ export default function HomePage() {
                   onClick={() => router.push("/login")}
                   className="text-xs md:text-sm font-medium text-white/70 hover:text-white transition-colors whitespace-nowrap"
                 >
-                  Log in
+                  {t('auth.login')}
                 </button>
                 <button
                   onClick={() => router.push("/register")}
                   className="text-xs md:text-sm font-medium bg-white text-black px-3 md:px-4 py-1.5 md:py-2 rounded-full hover:bg-gray-200 transition-colors whitespace-nowrap"
                 >
-                  Sign up
+                  {t('auth.signup')}
                 </button>
               </>
             )}
+                      <LanguageSwitcher />
           </div>
         </div>
       </nav>
@@ -143,16 +147,16 @@ export default function HomePage() {
           <div className="order-2 lg:order-1">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs md:text-sm text-indigo-300 mb-4 md:mb-6">
               <Zap className="w-4 h-4 flex-shrink-0" />
-              <span className="truncate">Config-Driven Architecture</span>
+              <span className="truncate">{t('header.tagline')}</span>
             </div>
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-bold tracking-tight mb-4 md:mb-6 leading-tight">
-              Paste JSON.<br className="hidden md:block" />
+              {t('home.title')}<br className="hidden md:block" />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400">
-                Get a Full-Stack App.
+                {t('home.subtitle')}
               </span>
             </h1>
             <p className="text-base md:text-lg text-white/60 mb-6 md:mb-8 leading-relaxed max-w-xl">
-              ConfigFlow converts structured JSON configurations into fully working, deployed web applications. It dynamically generates forms, tables, REST APIs, and database structures instantly.
+              {t('header.description')}
             </p>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
@@ -197,7 +201,7 @@ export default function HomePage() {
                   disabled={isGenerating}
                   className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-medium py-2.5 md:py-4 px-4 md:px-6 rounded-lg md:rounded-xl transition-all disabled:opacity-50 text-sm md:text-base"
                 >
-                  {isGenerating ? "Generating..." : "Build Application"}
+                  {isGenerating ? t('common.loading') : t('home.newApplication')}
                   {!isGenerating && <ArrowRight className="w-4 h-4 md:w-5 md:h-5" />}
                 </button>
               </div>

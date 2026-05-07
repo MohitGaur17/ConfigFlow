@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { Blocks, Loader2, AlertCircle } from "lucide-react";
 
+import { useTranslation } from "@/i18n/useTranslation";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 export default function RegisterPage() {
   const { register } = useAuth();
   const router = useRouter();
@@ -16,19 +18,14 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const { t } = useTranslation();
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
-      setLoading(false);
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setError("Passwords do not match");
+      setError(t('auth.passwordMismatch'));
       setLoading(false);
       return;
     }
@@ -50,8 +47,11 @@ export default function RegisterPage() {
           <div className="w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-indigo-500/20 flex-shrink-0">
             <Blocks className="w-6 h-6 md:w-7 md:h-7 text-white" />
           </div>
-          <h1 className="text-xl md:text-2xl font-bold text-white">Create account</h1>
-          <p className="text-white/40 text-xs md:text-sm mt-1">Get started with AI App Generator</p>
+          <h1 className="text-xl md:text-2xl font-bold text-white">{t('auth.signup')}</h1>
+          <p className="text-white/40 text-xs md:text-sm mt-1">{t('header.tagline')}</p>
+          <div className="mt-4 flex justify-center">
+            <LanguageSwitcher />
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3 md:space-y-4">
@@ -63,18 +63,18 @@ export default function RegisterPage() {
           )}
 
           <div>
-            <label className="block text-xs md:text-sm font-medium text-white/60 mb-1 md:mb-1.5">Name</label>
+            <label className="block text-xs md:text-sm font-medium text-white/60 mb-1 md:mb-1.5">{t('auth.name')}</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="w-full bg-white/5 border border-white/10 rounded-lg px-3 md:px-4 py-2 md:py-2.5 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-sm md:text-base"
-              placeholder="Your name (optional)"
+              placeholder={t('auth.fullName')}
             />
           </div>
 
           <div>
-            <label className="block text-xs md:text-sm font-medium text-white/60 mb-1 md:mb-1.5">Email</label>
+            <label className="block text-xs md:text-sm font-medium text-white/60 mb-1 md:mb-1.5">{t('auth.email')}</label>
             <input
               type="email"
               value={email}
@@ -86,7 +86,7 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label className="block text-xs md:text-sm font-medium text-white/60 mb-1 md:mb-1.5">Password</label>
+            <label className="block text-xs md:text-sm font-medium text-white/60 mb-1 md:mb-1.5">{t('auth.password')}</label>
             <input
               type="password"
               value={password}
@@ -94,12 +94,12 @@ export default function RegisterPage() {
               required
               minLength={6}
               className="w-full bg-white/5 border border-white/10 rounded-lg px-3 md:px-4 py-2 md:py-2.5 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-sm md:text-base"
-              placeholder="••••••••  (min 6 characters)"
+              placeholder="••••••••"
             />
           </div>
 
           <div>
-            <label className="block text-xs md:text-sm font-medium text-white/60 mb-1 md:mb-1.5">Confirm Password</label>
+            <label className="block text-xs md:text-sm font-medium text-white/60 mb-1 md:mb-1.5">{t('auth.confirmPassword')}</label>
             <input
               type="password"
               value={confirmPassword}
@@ -116,14 +116,14 @@ export default function RegisterPage() {
             className="w-full py-2 md:py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-lg text-white font-medium transition-colors flex items-center justify-center gap-2 text-sm md:text-base active:scale-95"
           >
             {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-            Create Account
+            {t('auth.signup')}
           </button>
         </form>
 
         <p className="text-center text-xs md:text-sm text-white/40 mt-6 md:mt-8">
-          Already have an account?{" "}
+          {t('auth.haveAccount')}{" "}
           <Link href="/login" className="text-indigo-400 hover:text-indigo-300 font-medium">
-            Sign in
+            {t('auth.login')}
           </Link>
         </p>
       </div>
