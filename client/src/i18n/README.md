@@ -1,43 +1,19 @@
 # Multi-Language Support (i18n)
 
-ConfigFlow includes comprehensive multi-language support with 8 languages out of the box and extensible architecture for adding more.
+ConfigFlow includes built-in localization support with a language context, runtime switching, browser detection, and RTL handling.
 
 ## Features
 
-✅ **8 Languages Supported**
-- English (en)
-- Spanish (es)
-- French (fr)
-- German (de)
-- Japanese (ja)
-- Chinese (zh)
-- Portuguese (pt)
-- Arabic (ar)
-
-✅ **RTL Language Support**
-- Automatic direction switching for Arabic
-- DOM dir attribute automatically updated
-
-✅ **Automatic Language Detection**
+- 8 supported languages: `en`, `es`, `fr`, `de`, `ja`, `zh`, `pt`, `ar`
+- RTL language support for Arabic
 - Browser language detection on first visit
-- Respects user's system language preference
-
-✅ **Language Persistence**
-- Selected language saved to localStorage
-- Persists across sessions and page reloads
-
-✅ **URL-Based Language Switching**
-- Use `?lang=es` to set language via URL parameter
-- Perfect for sharing links with specific languages
-
-✅ **Dynamic Switching**
-- Switch languages on-the-fly with LanguageSwitcher component
-- No page reload required
-- Instant UI update
+- Local persistence via `localStorage`
+- URL-based override with `?lang=<code>`
+- Runtime language switch with no page reload
 
 ## Installation
 
-The i18n system is pre-configured in your app. No additional setup required!
+The i18n system is pre-configured in the client app. No additional setup is required.
 
 ## Usage
 
@@ -65,9 +41,9 @@ export default function MyComponent() {
 ```typescript
 const { t, language, setLanguage, direction } = useTranslation();
 
-// language: current language code ('en', 'es', 'fr', etc.)
-// direction: 'ltr' or 'rtl' (for CSS styling)
-// setLanguage(): change the language programmatically
+// language: current language code
+// direction: 'ltr' or 'rtl'
+// setLanguage(): change language programmatically
 ```
 
 ### Adding the Language Switcher
@@ -84,6 +60,13 @@ export default function Header() {
   );
 }
 ```
+
+## Core Files
+
+- `src/i18n/translations.ts` - dictionary and language metadata
+- `src/i18n/LanguageContext.tsx` - provider and language state
+- `src/i18n/useTranslation.ts` - translation hook
+- `src/i18n/useLanguageConfig.ts` - URL/config helpers
 
 ## Translation Keys
 
@@ -119,38 +102,26 @@ export default function Header() {
 - `common.noData` - No data available
 - `common.back` - Back
 
-### Pages
-- `home.title` - Page title
-- `home.subtitle` - Page subtitle
-- `dashboard.title` - Dashboard
-- `dashboard.welcome` - Welcome message
-- `tasks.allTasks` - All Tasks
-- `tasks.search` - Search records
-- `tasks.add` - Add
-
 ## Adding New Translations
 
 ### Step 1: Update translations.ts
 
-Edit `src/i18n/translations.ts` and add your key to all language objects:
+Edit `src/i18n/translations.ts` and add the key to all language objects:
 
 ```typescript
 export const translations: Record<Language, Record<string, string>> = {
   en: {
     'myFeature.heading': 'My Feature',
     'myFeature.description': 'This is my feature',
-    // ... other keys
   },
   es: {
-    'myFeature.heading': 'Mi Característica',
-    'myFeature.description': 'Esta es mi característica',
-    // ... other keys
+    'myFeature.heading': 'Mi Caracteristica',
+    'myFeature.description': 'Esta es mi caracteristica',
   },
-  // ... other languages
 };
 ```
 
-### Step 2: Use in Your Component
+### Step 2: Use in a Component
 
 ```typescript
 const { t } = useTranslation();
@@ -165,176 +136,103 @@ return (
 
 ## Adding New Languages
 
-### Step 1: Add Language Code
-
-Edit `src/i18n/translations.ts`:
+### Step 1: Extend the Language Type
 
 ```typescript
-export type Language = 'en' | 'es' | 'fr' | 'de' | 'ja' | 'zh' | 'pt' | 'ar' | 'ko'; // Add 'ko'
-
-export const languages = [
-  // ... existing languages
-  { code: 'ko', name: 'Korean', nativeName: '한국어' },
-];
+export type Language = 'en' | 'es' | 'fr' | 'de' | 'ja' | 'zh' | 'pt' | 'ar' | 'ko';
 ```
 
-### Step 2: Add Translation Object
+### Step 2: Add Language Metadata and Translations
 
 ```typescript
+export const languages = [
+  { code: 'ko', name: 'Korean', nativeName: 'Korean' },
+];
+
 export const translations: Record<Language, Record<string, string>> = {
-  // ... existing translations
   ko: {
-    'nav.allTasks': '모든 작업',
-    'nav.newTask': '새 작업',
-    // ... all other keys
+    'nav.allTasks': 'All tasks',
   },
 };
 ```
 
-### Step 3: (Optional) Add RTL Support
-
-If the language is RTL (right-to-left), update the RTL_LANGUAGES array:
+### Step 3: Optional RTL Support
 
 ```typescript
-const RTL_LANGUAGES: Language[] = ['ar', 'he']; // Add 'he' for Hebrew
+const RTL_LANGUAGES: Language[] = ['ar', 'he'];
 ```
 
-## Advanced Features
+## URL-Based Language Setting
 
-### Language Configuration (Config-Based)
+Use URL query:
 
-Use the `useLanguageConfig` hook to configure language settings:
-
-```typescript
-import { useLanguageConfig, createLanguageConfig } from '@/i18n/useLanguageConfig';
-
-const config = createLanguageConfig('es', ['en', 'es', 'fr']);
-useLanguageConfig(config);
+```text
+https://your-app.com/?lang=fr
 ```
 
-### URL-Based Language Setting
-
-Append `?lang=CODE` to set language via URL:
-
-```
-https://your-app.com/?lang=fr  // Sets French
-https://your-app.com/?lang=ja  // Sets Japanese
-```
-
-### Accessing Language from URL
-
-```typescript
-import { getLanguageFromUrl } from '@/i18n/useLanguageConfig';
-
-const langFromUrl = getLanguageFromUrl(); // Returns 'fr' if ?lang=fr
-```
-
-## Styling with Language Direction
-
-For RTL language support, use the `direction` from `useTranslation`:
+## Styling with Direction
 
 ```typescript
 const { direction } = useTranslation();
 
-return (
-  <div className={direction === 'rtl' ? 'mr-4' : 'ml-4'}>
-    Content
-  </div>
-);
+return <div className={direction === 'rtl' ? 'mr-4' : 'ml-4'}>Content</div>;
 ```
 
-Or use CSS media queries:
-
 ```css
-html[dir="rtl"] .my-element {
+html[dir='rtl'] .my-element {
   margin-right: 1rem;
 }
 
-html[dir="ltr"] .my-element {
+html[dir='ltr'] .my-element {
   margin-left: 1rem;
 }
 ```
 
-## Default Fallbacks
+## Fallback Behavior
 
-If a translation key is missing, the system will:
+If a key is missing:
 
-1. Return the key itself as fallback
-2. Log a console warning (in development)
-3. Optionally accept a default value:
+1. The key is returned.
+2. A warning is logged in development.
+3. Optional fallback value can be used.
 
 ```typescript
-t('missing.key', 'Default Value') // Returns "Default Value"
+t('missing.key', 'Default Value');
 ```
-
-## Browser Detection
-
-On first visit, ConfigFlow automatically detects the user's browser language:
-
-- Reads from `navigator.language`
-- Matches against supported languages
-- Falls back to English if no match
-- User can override by manually selecting language
-
-## Performance Considerations
-
-- Language data is loaded once and cached in memory
-- localStorage is used for persistence (lightweight)
-- No external API calls for language switching
-- DOM updates are minimal and batched
-
-## Accessibility
-
-- `lang` attribute automatically set on `<html>` element
-- `dir` attribute automatically set for RTL languages
-- LanguageSwitcher includes proper ARIA labels
-- Keyboard accessible dropdown menu
 
 ## Troubleshooting
 
-### Language not persisting
-- Check that localStorage is enabled in browser
-- Clear browser cache and try again
-- Check browser console for errors
+### Language Not Persisting
+- Ensure localStorage is available.
+- Clear cache and reload.
+- Check console errors.
 
-### Translations not appearing
-- Ensure you're using correct key format: `'namespace.key'`
-- Check that key exists in all language objects in translations.ts
-- Use browser DevTools to verify t() function receives correct key
+### Translations Not Appearing
+- Use key format `namespace.key`.
+- Ensure key exists in all languages in `translations.ts`.
+- Verify `t()` receives the expected key.
 
-### RTL not working
-- Ensure language is added to RTL_LANGUAGES array
-- Verify CSS uses `[dir="rtl"]` selectors
-- Clear cache and reload page
+### RTL Not Working
+- Ensure language is listed in `RTL_LANGUAGES`.
+- Verify CSS selectors use `[dir='rtl']`.
 
 ## API Reference
 
 ### useTranslation()
-Returns object with:
-- `t(key, defaultValue?)` - Get translation
-- `language` - Current language code
-- `setLanguage(code)` - Change language
-- `direction` - 'ltr' or 'rtl'
-
-### useLanguage()
-Raw context hook (use useTranslation instead):
-- Same as useTranslation()
+Returns:
+- `t(key, defaultValue?)` - get translation string
+- `language` - current language code
+- `setLanguage(code)` - update language
+- `direction` - `ltr` or `rtl`
 
 ### LanguageSwitcher
-Component: Pre-built language selector dropdown
-- Auto-detects RTL
-- Styled with Tailwind CSS
-- Responsive design
+Prebuilt language selector component with RTL support.
 
 ### LanguageProvider
-Wraps app and provides context
-- Automatic localStorage sync
-- Browser language detection
-- Already included in Providers.tsx
+Wraps app and provides language context with persistence and detection.
 
 ## Examples
 
-See these files for implementation examples:
-- `src/app/dashboard/page.tsx` - Dashboard with translations
-- `src/app/login/page.tsx` - Auth page with LanguageSwitcher
-- `src/components/LanguageSwitcher.tsx` - Component implementation
+- `src/app/dashboard/page.tsx`
+- `src/app/login/page.tsx`
+- `src/components/LanguageSwitcher.tsx`
