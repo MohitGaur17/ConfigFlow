@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import api from "@/lib/api";
 import { ArrowLeft, Play, Code2, Download, FileJson, Loader2 } from "lucide-react";
+import { toast } from "react-hot-toast";
 
 import { useConfig } from "@/lib/config-context";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
@@ -49,7 +50,7 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
       link.click();
       link.parentNode?.removeChild(link);
     } catch (error) {
-      alert("Failed to export codebase");
+      toast.error("Failed to export codebase");
     } finally {
       setIsExporting(false);
     }

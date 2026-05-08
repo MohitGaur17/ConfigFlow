@@ -8,14 +8,16 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  apps      App[]
-  records   Record[]
+  id                String             @id @default(uuid())
+  email             String             @unique
+  password          String
+  name              String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  apps              App[]
+  records           Record[]
+  notifications     Notification[]
+  emailDeliveries   EmailDelivery[]
 }
 
 model App {
@@ -25,6 +27,8 @@ model App {
   name      String
   config    Json
   records   Record[]
+  notifications Notification[]
+  emailDeliveries EmailDelivery[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -46,3 +50,52 @@ model Record {
   @@index([appId, entityName])
   @@index([userId])
 }
+
+model Notification {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  appId      String?
+  app        App?     @relation(fields: [appId], references: [id], onDelete: SetNull)
+  entityName String?
+  type       String
+  title      String
+  message    String
+  isRead     Boolean  @default(false)
+  readAt     DateTime?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  emailDeliveries EmailDelivery[]
+
+  @@index([userId])
+  @@index([appId])
+  @@index([type])
+}
+
+model EmailDelivery {
+  id               String   @id @default(uuid())
+  userId           String?
+  user             User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  appId            String?
+  app              App?     @relation(fields: [appId], references: [id], onDelete: SetNull)
+  notificationId   String?
+  notification     Notification? @relation(fields: [notificationId], references: [id], onDelete: SetNull)
+  to               String
+  subject          String
+  body             String
+  provider         String
+  status           String
+  eventType        String
+  providerMessageId String?
+  error            String?
+  sentAt           DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([userId])
+  @@index([appId])
+  @@index([notificationId])
+  @@index([status])
+}
+

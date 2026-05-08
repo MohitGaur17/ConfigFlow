@@ -8,6 +8,8 @@ import api from "@/lib/api";
 
 import { useTranslation } from "@/i18n/useTranslation";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import PwaRegister from "@/components/PwaRegister";
+import { toast } from "react-hot-toast";
 const SAMPLE_CONFIG = {
   "app": {
     "name": "Task Manager",
@@ -63,7 +65,7 @@ export default function HomePage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState("");
 
-  const { t } = useTranslation();
+  const { t, direction } = useTranslation();
   const handleGenerate = useCallback(async (configString: string) => {
     try {
       setIsGenerating(true);
@@ -72,6 +74,7 @@ export default function HomePage() {
 
       const response = await api.post("/apps", configJson);
       if (response.data.success) {
+        toast.success("Application created");
         router.push(`/builder/${response.data.data.id}`);
       }
     } catch (err: unknown) {
@@ -112,7 +115,8 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white selection:bg-indigo-500/30 font-sans">
+    <div className="min-h-screen bg-[#0A0A0A] text-white selection:bg-indigo-500/30 font-sans" dir={direction === "rtl" ? "ltr" : undefined}>
+      <PwaRegister />
       {/* Navigation */}
       <nav className="border-b border-white/10 bg-black/50 backdrop-blur-md fixed top-0 w-full z-50 safe-area-inset-top">
         <div className="max-w-7xl mx-auto px-4 md:px-6 h-14 md:h-16 flex items-center justify-between">
@@ -157,24 +161,24 @@ export default function HomePage() {
           
           {/* Left: Copy */}
           <div className="order-2 lg:order-1">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs md:text-sm text-indigo-300 mb-4 md:mb-6">
+            <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs md:text-sm text-indigo-300 mb-4 md:mb-6 ${direction === "rtl" ? "justify-end text-right self-start" : ""}`}>
               <Zap className="w-4 h-4 flex-shrink-0" />
               <span className="truncate">{t('header.tagline')}</span>
             </div>
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-bold tracking-tight mb-4 md:mb-6 leading-tight">
-              {t('home.title')}<br className="hidden md:block" />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400">
+            <h1 className={`max-w-2xl text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight leading-[0.95] mb-4 md:mb-6 ${direction === "rtl" ? "text-right" : ""}`}>
+              <span className="block text-white">{t('home.title')}</span>
+              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 mt-2">
                 {t('home.subtitle')}
               </span>
             </h1>
-            <p className="text-base md:text-lg text-white/60 mb-6 md:mb-8 leading-relaxed max-w-xl">
+            <p className={`max-w-xl text-base sm:text-lg md:text-xl text-white/60 mb-6 md:mb-8 leading-relaxed ${direction === "rtl" ? "text-right" : ""}`}>
               {t('header.description')}
             </p>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
-              <Feature icon={<Database />} title="PostgreSQL" desc="Dynamic schemas" />
-              <Feature icon={<LayoutTemplate />} title="Next.js" desc="Responsive UI" />
-              <Feature icon={<Code2 />} title="Export Code" desc="Download ZIP" />
+              <Feature rtl={direction === "rtl"} icon={<Database />} title={t('home.featureDatabase')} desc={t('home.featureDatabaseDesc')} />
+              <Feature rtl={direction === "rtl"} icon={<LayoutTemplate />} title={t('home.featureNext')} desc={t('home.featureNextDesc')} />
+              <Feature rtl={direction === "rtl"} icon={<Code2 />} title={t('home.featureExport')} desc={t('home.featureExportDesc')} />
             </div>
           </div>
 
@@ -226,15 +230,15 @@ export default function HomePage() {
   );
 }
 
-function Feature({ icon, title, desc }: { icon: React.ReactNode, title: string, desc: string }) {
+function Feature({ rtl, icon, title, desc }: { rtl?: boolean; icon: React.ReactNode; title: string; desc: string }) {
   return (
     <div className="flex items-start gap-3">
       <div className="p-2 rounded-lg bg-white/5 text-indigo-400">
         {icon}
       </div>
       <div>
-        <h3 className="font-medium text-white">{title}</h3>
-        <p className="text-sm text-white/50">{desc}</p>
+        <h3 className={`font-medium text-white ${rtl ? "text-right" : ""}`}>{title}</h3>
+        <p className={`text-sm text-white/50 ${rtl ? "text-right" : ""}`}>{desc}</p>
       </div>
     </div>
   );

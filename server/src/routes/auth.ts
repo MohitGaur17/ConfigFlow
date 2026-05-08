@@ -5,6 +5,7 @@ import axios from "axios";
 import crypto from "crypto";
 import { OAuth2Client } from "google-auth-library";
 import { generateToken, requireAuth, AuthRequest } from "../middleware/auth";
+import { recordNotification } from "../services/notification-service";
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -184,6 +185,15 @@ router.post("/register", async (req: Request, res: Response) => {
     // Generate token
     const token = generateToken(user.id, user.email);
 
+    await recordNotification({
+      userId: user.id,
+      type: "auth",
+      title: "Welcome to ConfigFlow",
+      message: "Your account has been created successfully.",
+      sendEmail: true,
+      metadata: { action: "register" },
+    });
+
     res.status(201).json({
       success: true,
       data: {
@@ -294,6 +304,15 @@ router.get("/google/callback", async (req: Request, res: Response) => {
     const user = await findOrCreateOAuthUser(email, payload?.name || null);
     const token = generateToken(user.id, user.email);
 
+    await recordNotification({
+      userId: user.id,
+      type: "auth",
+      title: "Google sign-in complete",
+      message: "You signed in with Google.",
+      sendEmail: true,
+      metadata: { action: "google_oauth" },
+    });
+
     redirectToClientAuthSuccess(res, token, { id: user.id, email: user.email, name: user.name });
   } catch (error: any) {
     console.error("[Auth] Google callback error:", error?.response?.data || error);
@@ -400,6 +419,16 @@ router.get("/github/callback", async (req: Request, res: Response) => {
 
     const user = await findOrCreateOAuthUser(primaryEmail.email, profileRes.data?.name || profileRes.data?.login || null);
     const token = generateToken(user.id, user.email);
+
+    await recordNotification({
+      userId: user.id,
+      type: "auth",
+      title: "GitHub sign-in complete",
+      message: "You signed in with GitHub.",
+      sendEmail: true,
+      metadata: { action: "github_oauth" },
+    });
+
     redirectToClientAuthSuccess(res, token, { id: user.id, email: user.email, name: user.name });
   } catch (error: any) {
     console.error("[Auth] GitHub callback error:", error?.response?.data || error);
@@ -445,6 +474,15 @@ router.post("/login", async (req: Request, res: Response) => {
 
     // Generate token
     const token = generateToken(user.id, user.email);
+
+    await recordNotification({
+      userId: user.id,
+      type: "auth",
+      title: "Signed in successfully",
+      message: "Your email and password login was successful.",
+      sendEmail: true,
+      metadata: { action: "login" },
+    });
 
     res.json({
       success: true,

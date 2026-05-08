@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import authRoutes from "./routes/auth";
 import appsRoutes from "./routes/apps";
 import entityRoutes from "./routes/entity";
+import notificationsRoutes from "./routes/notifications";
 
 dotenv.config();
 
@@ -26,6 +27,7 @@ app.use(express.json({ limit: "10mb" }));
 app.use("/api/auth", authRoutes);
 app.use("/api/apps", appsRoutes);
 app.use("/api/entities", entityRoutes);
+app.use("/api/notifications", notificationsRoutes);
 
 // Health check
 app.get("/api/health", (_req, res) => {

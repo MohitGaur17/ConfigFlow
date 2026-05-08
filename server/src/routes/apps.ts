@@ -3,6 +3,7 @@ import { requireAuth, optionalAuth, AuthRequest } from "../middleware/auth";
 import { PrismaClient } from "@prisma/client";
 import { getAppConfig, parseAndValidateConfig, ConfigError } from "../services/config-engine";
 import { generateCodebase } from "../services/code-generator";
+import { recordNotification } from "../services/notification-service";
 import JSZip from "jszip";
 
 const router = Router();
@@ -60,25 +61,15 @@ router.post("/", requireAuth, async (req: AuthRequest, res: Response) => {
       },
     });
 
-    // Auto-seed test data for each entity so builder preview shows data immediately
-    for (const [entityName, entityConfig] of Object.entries(validatedConfig.entities)) {
-      const sampleData: Record<string, any> = {};
-      for (const [fieldName, fieldConfig] of Object.entries(entityConfig.fields)) {
-        if (fieldConfig.type === 'number') sampleData[fieldName] = 1;
-        else if (fieldConfig.type === 'boolean') sampleData[fieldName] = false;
-        else if (fieldConfig.type === 'date') sampleData[fieldName] = new Date().toISOString();
-        else sampleData[fieldName] = `${fieldName} example`;
-      }
-
-      await prisma.record.create({
-        data: {
-          appId: app.id,
-          entityName: entityName,
-          userId: entityConfig.userScoped ? req.userId : null,
-          data: sampleData as any,
-        },
-      });
-    }
+    await recordNotification({
+      userId: req.userId!,
+      appId: app.id,
+      type: "app",
+      title: "Application created",
+      message: `${validatedConfig.app.name} is ready with empty entities and config-driven pages.`,
+      sendEmail: true,
+      metadata: { action: "create_app" },
+    });
 
     res.status(201).json({
       success: true,
@@ -199,6 +190,16 @@ router.delete("/:id", requireAuth, async (req: AuthRequest, res: Response) => {
       res.status(404).json({ success: false, error: "App not found" });
       return;
     }
+
+    await recordNotification({
+      userId: req.userId!,
+      appId: app.id,
+      type: "app",
+      title: "Application deleted",
+      message: `${app.name} was removed from your workspace.`,
+      sendEmail: true,
+      metadata: { action: "delete_app" },
+    });
 
     await prisma.app.delete({
       where: { id: app.id },

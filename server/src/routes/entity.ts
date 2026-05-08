@@ -12,6 +12,7 @@ import {
   ValidationError,
   NotFoundError,
 } from "../services/entity-service";
+import { recordNotification } from "../services/notification-service";
 
 const router = Router();
 
@@ -157,6 +158,17 @@ router.post("/:appId/:entityName", requireAuth, validateEntity, async (req: Auth
     const { appId, entityName } = req.params;
     const record = await createRecord(appId, entityName, req.body, req.userId);
 
+    await recordNotification({
+      userId: req.userId!,
+      appId,
+      entityName,
+      type: "entity",
+      title: `${entityName} created`,
+      message: "A new record was created successfully.",
+      sendEmail: true,
+      metadata: { action: "create", recordId: record.id },
+    });
+
     res.status(201).json({ success: true, data: record });
   } catch (error: any) {
     if (error instanceof ValidationError) {
@@ -182,6 +194,18 @@ router.put("/:appId/:entityName/:id", requireAuth, validateEntity, async (req: A
     const entityConfig = await getEntityConfig(appId, entityName);
 
     const record = await updateRecord(appId, entityName, id, req.body, req.userId, entityConfig?.userScoped);
+
+    await recordNotification({
+      userId: req.userId!,
+      appId,
+      entityName,
+      type: "entity",
+      title: `${entityName} updated`,
+      message: "A record was updated successfully.",
+      sendEmail: true,
+      metadata: { action: "update", recordId: record.id },
+    });
+
     res.json({ success: true, data: record });
   } catch (error: any) {
     if (error instanceof ValidationError) {
@@ -211,6 +235,18 @@ router.delete("/:appId/:entityName/:id", requireAuth, validateEntity, async (req
     const entityConfig = await getEntityConfig(appId, entityName);
 
     await deleteRecord(appId, entityName, id, req.userId, entityConfig?.userScoped);
+
+    await recordNotification({
+      userId: req.userId!,
+      appId,
+      entityName,
+      type: "entity",
+      title: `${entityName} deleted`,
+      message: "A record was deleted successfully.",
+      sendEmail: true,
+      metadata: { action: "delete", recordId: id },
+    });
+
     res.json({ success: true, data: { message: "Record deleted" } });
   } catch (error: any) {
     if (error instanceof NotFoundError) {

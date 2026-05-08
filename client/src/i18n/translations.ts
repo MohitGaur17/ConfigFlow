@@ -11,16 +11,16 @@ export const translations: Record<Language, Record<string, string>> = {
     'nav.generatedApp': 'Generated App',
 
     // Headers
-    'header.title': 'Task Manager',
-    'header.description': 'Personal task tracking app',
+    'header.title': 'ConfigFlow',
+    'header.description': 'Generate full-stack applications with dynamic UI, APIs, authentication, and extensible data models.',
     'header.status': 'PWA ready',
     'header.brand': 'ConfigFlow',
     'header.tagline': 'Config driven AI App Generator',
 
     // Home Page
     'home.overview': 'Overview',
-    'home.title': 'Task Manager',
-    'home.subtitle': 'Personal task tracking app',
+    'home.title': 'ConfigFlow',
+    'home.subtitle': 'Get a Full-Stack App.',
     'home.responsive': 'Responsive',
     'home.responsiveDesc': 'Mobile first',
     'home.installable': 'Installable',
@@ -33,6 +33,12 @@ export const translations: Record<Language, Record<string, string>> = {
     'home.offlineDesc': 'Manifest + service worker',
     'home.dataDriven': 'Data driven',
     'home.dataDrivenDesc': 'Entity pages scale to your config',
+    'home.featureDatabase': 'PostgreSQL',
+    'home.featureDatabaseDesc': 'Dynamic schemas',
+    'home.featureNext': 'Next.js',
+    'home.featureNextDesc': 'Responsive UI',
+    'home.featureExport': 'Export Code',
+    'home.featureExportDesc': 'Download ZIP',
 
     // All Tasks Page
     'tasks.allTasks': 'All Tasks',
@@ -100,16 +106,16 @@ export const translations: Record<Language, Record<string, string>> = {
     'nav.generatedApp': 'Aplicación Generada',
 
     // Headers
-    'header.title': 'Gestor de Tareas',
-    'header.description': 'Aplicación personal de seguimiento de tareas',
+    'header.title': 'ConfigFlow',
+    'header.description': 'Genera aplicaciones full-stack con UI dinámica, APIs, autenticación y modelos de datos extensibles.',
     'header.status': 'Lista para PWA',
     'header.brand': 'ConfigFlow',
     'header.tagline': 'Generador de Aplicaciones de IA Impulsado por Configuración',
 
     // Home Page
     'home.overview': 'Descripción General',
-    'home.title': 'Gestor de Tareas',
-    'home.subtitle': 'Aplicación personal de seguimiento de tareas',
+    'home.title': 'ConfigFlow',
+    'home.subtitle': 'Obtén una aplicación web completa.',
     'home.responsive': 'Responsive',
     'home.responsiveDesc': 'Primero móvil',
     'home.installable': 'Instalable',
@@ -122,6 +128,12 @@ export const translations: Record<Language, Record<string, string>> = {
     'home.offlineDesc': 'Manifest + service worker',
     'home.dataDriven': 'Impulsado por Datos',
     'home.dataDrivenDesc': 'Las páginas de entidad se escalan a su configuración',
+    'home.featureDatabase': 'PostgreSQL',
+    'home.featureDatabaseDesc': 'Esquemas dinámicos',
+    'home.featureNext': 'Next.js',
+    'home.featureNextDesc': 'Interfaz adaptable',
+    'home.featureExport': 'Exportar código',
+    'home.featureExportDesc': 'Descargar ZIP',
 
     // All Tasks Page
     'tasks.allTasks': 'Todas las Tareas',
@@ -189,16 +201,16 @@ export const translations: Record<Language, Record<string, string>> = {
     'nav.generatedApp': 'Application Générée',
 
     // Headers
-    'header.title': 'Gestionnaire de Tâches',
-    'header.description': 'Application personnelle de suivi des tâches',
+    'header.title': 'ConfigFlow',
+    'header.description': 'Générez des applications full-stack avec UI dynamique, API, authentification et modèles de données extensibles.',
     'header.status': 'Prêt pour PWA',
     'header.brand': 'ConfigFlow',
     'header.tagline': 'Générateur d\'Applications IA Piloté par Configuration',
 
     // Home Page
     'home.overview': 'Aperçu',
-    'home.title': 'Gestionnaire de Tâches',
-    'home.subtitle': 'Application personnelle de suivi des tâches',
+    'home.title': 'ConfigFlow',
+    'home.subtitle': 'Obtenez une application complète.',
     'home.responsive': 'Réactif',
     'home.responsiveDesc': 'Mobile d\'abord',
     'home.installable': 'Installable',
@@ -211,6 +223,12 @@ export const translations: Record<Language, Record<string, string>> = {
     'home.offlineDesc': 'Manifest + service worker',
     'home.dataDriven': 'Piloté par les Données',
     'home.dataDrivenDesc': 'Les pages d\'entité s\'adaptent à votre configuration',
+    'home.featureDatabase': 'PostgreSQL',
+    'home.featureDatabaseDesc': 'Schémas dynamiques',
+    'home.featureNext': 'Next.js',
+    'home.featureNextDesc': 'Interface responsive',
+    'home.featureExport': 'Exporter le code',
+    'home.featureExportDesc': 'Télécharger le ZIP',
 
     // All Tasks Page
     'tasks.allTasks': 'Toutes les Tâches',
@@ -278,16 +296,16 @@ export const translations: Record<Language, Record<string, string>> = {
     'nav.generatedApp': 'Generierte App',
 
     // Headers
-    'header.title': 'Task Manager',
-    'header.description': 'Persönliche Aufgabenverfolgungs-App',
+    'header.title': 'ConfigFlow',
+    'header.description': 'Erstellen Sie Full-Stack-Anwendungen mit dynamischer UI, APIs, Authentifizierung und erweiterbaren Datenmodellen.',
     'header.status': 'PWA bereit',
     'header.brand': 'ConfigFlow',
     'header.tagline': 'Konfigurationsgesteuerte KI-App-Generator',
 
     // Home Page
     'home.overview': 'Übersicht',
-    'home.title': 'Task Manager',
-    'home.subtitle': 'Persönliche Aufgabenverfolgungs-App',
+    'home.title': 'ConfigFlow',
+    'home.subtitle': 'Erstellen Sie eine komplette Webanwendung.',
     'home.responsive': 'Responsiv',
     'home.responsiveDesc': 'Mobil zuerst',
     'home.installable': 'Installierbar',
@@ -300,6 +318,12 @@ export const translations: Record<Language, Record<string, string>> = {
     'home.offlineDesc': 'Manifest + Service Worker',
     'home.dataDriven': 'Datengesteuert',
     'home.dataDrivenDesc': 'Entity-Seiten skalieren mit Ihrer Konfiguration',
+    'home.featureDatabase': 'PostgreSQL',
+    'home.featureDatabaseDesc': 'Dynamische Schemata',
+    'home.featureNext': 'Next.js',
+    'home.featureNextDesc': 'Responsive Oberfläche',
+    'home.featureExport': 'Code exportieren',
+    'home.featureExportDesc': 'ZIP herunterladen',
 
     // All Tasks Page
     'tasks.allTasks': 'Alle Aufgaben',
@@ -367,16 +391,16 @@ export const translations: Record<Language, Record<string, string>> = {
     'nav.generatedApp': '生成されたアプリ',
 
     // Headers
-    'header.title': 'タスクマネージャー',
-    'header.description': 'パーソナルタスク追跡アプリ',
+    'header.title': 'ConfigFlow',
+    'header.description': '動的な UI、API、認証、拡張可能なデータモデルを備えたフルスタックアプリを生成します。',
     'header.status': 'PWA対応',
     'header.brand': 'ConfigFlow',
     'header.tagline': '設定駆動型AIアプリジェネレーター',
 
     // Home Page
     'home.overview': '概要',
-    'home.title': 'タスクマネージャー',
-    'home.subtitle': 'パーソナルタスク追跡アプリ',
+    'home.title': 'ConfigFlow',
+    'home.subtitle': '完全なWebアプリを作成できます。',
     'home.responsive': 'レスポンシブ',
     'home.responsiveDesc': 'モバイルファースト',
     'home.installable': 'インストール可能',
@@ -389,6 +413,12 @@ export const translations: Record<Language, Record<string, string>> = {
     'home.offlineDesc': 'Manifest + Service Worker',
     'home.dataDriven': 'データドリブン',
     'home.dataDrivenDesc': 'エンティティページが設定に応じてスケーリング',
+    'home.featureDatabase': 'PostgreSQL',
+    'home.featureDatabaseDesc': '動的スキーマ',
+    'home.featureNext': 'Next.js',
+    'home.featureNextDesc': 'レスポンシブ UI',
+    'home.featureExport': 'コードを書き出す',
+    'home.featureExportDesc': 'ZIP をダウンロード',
 
     // All Tasks Page
     'tasks.allTasks': 'すべてのタスク',
@@ -452,18 +482,20 @@ export const translations: Record<Language, Record<string, string>> = {
     'nav.newTask': '新任务',
     'nav.dashboard': '仪表板',
     'nav.language': '语言',
-    'nav.logout': '登出',    'nav.generatedApp': '生成应用',
+    'nav.logout': '登出',
+    'nav.generatedApp': '生成的应用',
+
     // Headers
-    'header.title': '任务管理器',
-    'header.description': '个人任务跟踪应用',
+    'header.title': 'ConfigFlow',
+    'header.description': '生成具有动态 UI、API、身份验证和可扩展数据模型的全栈应用程序。',
     'header.status': 'PWA就绪',
     'header.brand': 'ConfigFlow',
     'header.tagline': '配置驱动型AI应用生成器',
 
     // Home Page
     'home.overview': '概览',
-    'home.title': '任务管理器',
-    'home.subtitle': '个人任务跟踪应用',
+    'home.title': 'ConfigFlow',
+    'home.subtitle': '创建一个完整的 Web 应用。',
     'home.responsive': '响应式',
     'home.responsiveDesc': '移动优先',
     'home.installable': '可安装',
@@ -476,6 +508,12 @@ export const translations: Record<Language, Record<string, string>> = {
     'home.offlineDesc': 'Manifest + Service Worker',
     'home.dataDriven': '数据驱动',
     'home.dataDrivenDesc': '实体页面根据您的配置进行扩展',
+    'home.featureDatabase': 'PostgreSQL',
+    'home.featureDatabaseDesc': '动态架构',
+    'home.featureNext': 'Next.js',
+    'home.featureNextDesc': '响应式界面',
+    'home.featureExport': '导出代码',
+    'home.featureExportDesc': '下载 ZIP',
 
     // All Tasks Page
     'tasks.allTasks': '所有任务',
@@ -543,16 +581,16 @@ export const translations: Record<Language, Record<string, string>> = {
     'nav.generatedApp': 'Aplicativo Gerado',
 
     // Headers
-    'header.title': 'Gerenciador de Tarefas',
-    'header.description': 'Aplicativo pessoal de rastreamento de tarefas',
+    'header.title': 'ConfigFlow',
+    'header.description': 'Gere aplicações full-stack com UI dinâmica, APIs, autenticação e modelos de dados extensíveis.',
     'header.status': 'PWA pronto',
     'header.brand': 'ConfigFlow',
     'header.tagline': 'Gerador de Aplicativos de IA Orientado por Configuração',
 
     // Home Page
     'home.overview': 'Visão Geral',
-    'home.title': 'Gerenciador de Tarefas',
-    'home.subtitle': 'Aplicativo pessoal de rastreamento de tarefas',
+    'home.title': 'ConfigFlow',
+    'home.subtitle': 'Obtenha uma aplicação web completa.',
     'home.responsive': 'Responsivo',
     'home.responsiveDesc': 'Móvel em primeiro lugar',
     'home.installable': 'Instalável',
@@ -565,6 +603,12 @@ export const translations: Record<Language, Record<string, string>> = {
     'home.offlineDesc': 'Manifest + Service Worker',
     'home.dataDriven': 'Orientado por Dados',
     'home.dataDrivenDesc': 'As páginas de entidade dimensionam de acordo com sua configuração',
+    'home.featureDatabase': 'PostgreSQL',
+    'home.featureDatabaseDesc': 'Esquemas dinâmicos',
+    'home.featureNext': 'Next.js',
+    'home.featureNextDesc': 'Interface responsiva',
+    'home.featureExport': 'Exportar código',
+    'home.featureExportDesc': 'Baixar ZIP',
 
     // All Tasks Page
     'tasks.allTasks': 'Todas as Tarefas',
@@ -632,16 +676,16 @@ export const translations: Record<Language, Record<string, string>> = {
     'nav.generatedApp': 'التطبيق المنتج',
 
     // Headers
-    'header.title': 'مدير المهام',
-    'header.description': 'تطبيق تتبع المهام الشخصي',
+    'header.title': 'ConfigFlow',
+    'header.description': 'أنشئ تطبيقات ويب كاملة بواجهات ديناميكية وواجهات برمجة تطبيقات ومصادقة ونماذج بيانات قابلة للتوسعة.',
     'header.status': 'PWA جاهز',
     'header.brand': 'ConfigFlow',
     'header.tagline': 'مولد تطبيقات الذكاء الاصطناعي المدفوع بالإعدادات',
 
     // Home Page
     'home.overview': 'نظرة عامة',
-    'home.title': 'مدير المهام',
-    'home.subtitle': 'تطبيق تتبع المهام الشخصي',
+    'home.title': 'ConfigFlow',
+    'home.subtitle': 'أنشئ تطبيق ويب كامل ومتكامل.',
     'home.responsive': 'سريع الاستجابة',
     'home.responsiveDesc': 'الهاتف أولاً',
     'home.installable': 'قابل للتثبيت',
@@ -654,6 +698,12 @@ export const translations: Record<Language, Record<string, string>> = {
     'home.offlineDesc': 'Manifest + خادم الخدمة',
     'home.dataDriven': 'تحكمه البيانات',
     'home.dataDrivenDesc': 'تتكيف صفحات الكيان مع إعدادك',
+    'home.featureDatabase': 'PostgreSQL',
+    'home.featureDatabaseDesc': 'مخططات ديناميكية',
+    'home.featureNext': 'Next.js',
+    'home.featureNextDesc': 'واجهة متجاوبة',
+    'home.featureExport': 'تصدير الكود',
+    'home.featureExportDesc': 'تنزيل ZIP',
 
     // All Tasks Page
     'tasks.allTasks': 'جميع المهام',

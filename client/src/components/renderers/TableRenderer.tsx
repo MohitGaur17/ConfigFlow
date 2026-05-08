@@ -10,6 +10,8 @@ import {
   ArrowUpDown, ArrowUp, ArrowDown, Loader2, AlertCircle,
   X
 } from "lucide-react";
+import { toast } from "react-hot-toast";
+import ConfirmDialog from "../ConfirmDialog";
 
 interface TableRendererProps {
   pageConfig: PageConfig;
@@ -41,6 +43,7 @@ export default function TableRenderer({ pageConfig, entityConfig, entityName }: 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingRecord, setEditingRecord] = useState<RecordData | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const pageSize = pageConfig.pageSize || 10;
   const entityFields = entityConfig?.fields || {};
@@ -104,13 +107,19 @@ export default function TableRenderer({ pageConfig, entityConfig, entityName }: 
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this record?")) return;
+    setConfirmDeleteId(id);
+  };
+
+  const confirmDelete = async (id: string) => {
     try {
       setDeletingId(id);
       await api.delete(`/entities/${appId}/${entityName}/${id}`);
+      toast.success("Record deleted");
+      setConfirmDeleteId(null);
       fetchRecords();
     } catch (err: any) {
-      alert(err.response?.data?.error || "Failed to delete");
+      toast.error(err.response?.data?.error || "Failed to delete");
+      setConfirmDeleteId(null);
     } finally {
       setDeletingId(null);
     }
@@ -473,6 +482,19 @@ export default function TableRenderer({ pageConfig, entityConfig, entityName }: 
           />
         </Modal>
       )}
+
+      {/* Delete Record Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDeleteId !== null}
+        title="Delete Record"
+        message="This action cannot be undone. The record will be permanently deleted."
+        confirmText="Delete"
+        cancelText="Cancel"
+        isDangerous={true}
+        onConfirm={() => confirmDeleteId && confirmDelete(confirmDeleteId)}
+        onCancel={() => setConfirmDeleteId(null)}
+        isLoading={deletingId !== null}
+      />
     </div>
   );
 }
