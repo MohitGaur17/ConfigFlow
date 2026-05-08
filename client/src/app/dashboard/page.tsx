@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import api from "@/lib/api";
-import { Blocks, ArrowRight, Trash2, Clock, AppWindow, Plus, Bell } from "lucide-react";
+import { ArrowRight, Trash2, Clock, AppWindow, Plus, Bell } from "lucide-react";
+import Image from "next/image";
 
 import { useTranslation } from "@/i18n/useTranslation";
 import { toast } from "react-hot-toast";
@@ -171,9 +172,7 @@ export default function DashboardPage() {
       <nav className="border-b border-white/10 bg-black/50 backdrop-blur-md sticky top-0 z-50 safe-area-inset-top">
         <div className="max-w-7xl mx-auto px-4 md:px-6 h-14 md:h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 cursor-pointer min-w-0" onClick={() => router.push("/")}>
-            <div className="w-7 h-7 md:w-8 md:h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
-              <Blocks className="w-3.5 h-3.5 md:w-4 md:h-4 text-white" />
-            </div>
+            <Image src="/favicon.svg" alt="ConfigFlow" width={32} height={32} className="w-7 h-7 md:w-8 md:h-8 rounded-lg flex-shrink-0 object-contain" />
             <span className="font-bold tracking-tight text-base md:text-lg truncate">ConfigFlow</span>
           </div>
           <div className="flex items-center gap-3 md:gap-6 flex-shrink-0">

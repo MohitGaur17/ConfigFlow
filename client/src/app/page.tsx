@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { useAuth } from "@/lib/auth-context";
-import { Blocks, ArrowRight, Code2, Database, LayoutTemplate, Zap } from "lucide-react";
+import { ArrowRight, Code2, Database, LayoutTemplate, Zap } from "lucide-react";
 import api from "@/lib/api";
 
 import { useTranslation } from "@/i18n/useTranslation";
@@ -121,9 +122,7 @@ export default function HomePage() {
       <nav className="border-b border-white/10 bg-black/50 backdrop-blur-md fixed top-0 w-full z-50 safe-area-inset-top">
         <div className="max-w-7xl mx-auto px-4 md:px-6 h-14 md:h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 min-w-0">
-            <div className="w-7 h-7 md:w-8 md:h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
-              <Blocks className="w-3.5 h-3.5 md:w-4 md:h-4 text-white" />
-            </div>
+            <Image src="/favicon.svg" alt="ConfigFlow" width={32} height={32} className="w-7 h-7 md:w-8 md:h-8 rounded-lg flex-shrink-0 object-contain" />
             <span className="font-bold tracking-tight text-base md:text-lg truncate">ConfigFlow</span>
           </div>
           <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">

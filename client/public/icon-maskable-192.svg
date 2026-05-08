@@ -1,10 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" fill="none">
   <defs>
-    <linearGradient id="gradMask192" x1="0%" y1="0%" x2="100%" y2="100%">
+    <linearGradient id="configflowMask192Grad" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
       <stop offset="100%" style="stop-color:#a855f7;stop-opacity:1" />
     </linearGradient>
   </defs>
-  <circle cx="96" cy="96" r="96" fill="url(#gradMask192)"/>
-  <text x="96" y="110" font-family="Arial, sans-serif" font-size="80" font-weight="bold" fill="white" text-anchor="middle">AA</text>
+  <rect width="192" height="192" fill="url(#configflowMask192Grad)" rx="56"/>
+  <g fill="#ffffff">
+    <rect x="56" y="56" width="34" height="34" rx="10"/>
+    <rect x="98" y="56" width="24" height="24" rx="7" opacity="0.92"/>
+    <rect x="56" y="98" width="24" height="24" rx="7" opacity="0.92"/>
+    <rect x="88" y="88" width="36" height="36" rx="10"/>
+  </g>
 </svg>

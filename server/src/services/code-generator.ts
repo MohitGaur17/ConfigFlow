@@ -544,19 +544,10 @@ self.addEventListener("fetch", (event) => {
 }
 
 function generateIconSvg(config: AppConfig): string {
-  const label = config.app.name.slice(0, 2).toUpperCase();
-  const accent = config.app.theme?.primaryColor || "#6366f1";
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="${config.app.name}">
-  <defs>
-    <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
-      <stop offset="0%" stop-color="${accent}"/>
-      <stop offset="100%" stop-color="#0f172a"/>
-    </linearGradient>
-  function generateDetailPage(page: DetailPageConfig): string {
-  <rect width="512" height="512" rx="112" fill="url(#g)"/>
-  <rect x="88" y="88" width="336" height="336" rx="84" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.18)"/>
-  <text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="160" font-weight="800" fill="#ffffff">${label}</text>
-</svg>`;
+  // Use the shared favicon artwork so generated apps match the main brand SVG.
+  // This returns a compact square SVG (180x180 viewBox) and sets aria-label to the app name.
+  const safeLabel = String(config.app.name || "App").replace(/"/g, "'");
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" fill="none" role="img" aria-label="${safeLabel}">\n  <defs>\n    <linearGradient id="configflowFaviconGrad" x1="0%" y1="0%" x2="100%" y2="100%">\n      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />\n      <stop offset="100%" style="stop-color:#a855f7;stop-opacity:1" />\n    </linearGradient>\n  </defs>\n  <rect width="180" height="180" fill="url(#configflowFaviconGrad)" rx="40"/>\n  <g fill="#ffffff">\n    <rect x="43" y="43" width="36" height="36" rx="10"/>\n    <rect x="92" y="43" width="26" height="26" rx="8" opacity="0.92"/>\n    <rect x="43" y="92" width="26" height="26" rx="8" opacity="0.92"/>\n    <rect x="81" y="81" width="39" height="39" rx="11"/>\n  </g>\n</svg>`;
 }
 
 function generatePwaRegister(): string {

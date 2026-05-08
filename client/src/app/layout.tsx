@@ -58,11 +58,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className="dark">
       <head>
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#6366f1" />
-        <meta name="msapplication-TileColor" content="#0a0a0a" />
-        <meta name="msapplication-config" content="/browserconfig.xml" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.svg" />
       </head>
       <body className={`${inter.variable} font-sans antialiased bg-gray-950 text-white`}>
         <Providers>
