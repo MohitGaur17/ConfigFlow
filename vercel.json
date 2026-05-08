@@ -1,0 +1,15 @@
+{
+  "buildCommand": "npm run build --workspace=client",
+  "installCommand": "npm install",
+  "outputDirectory": "client/.next",
+  "framework": "nextjs",
+  "env": {
+    "NEXT_PUBLIC_API_URL": "@neon_api_url"
+  },
+  "git": {
+    "deploymentEnabled": {
+      "main": true,
+      "develop": false
+    }
+  }
+}

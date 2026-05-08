@@ -1,0 +1,17 @@
+{
+  "$schema": "https://railway.app/schema.json",
+  "build": {
+    "builder": "nixpacks",
+    "buildpacks": ["nodejs-npm", "typescript", "node"]
+  },
+  "deploy": {
+    "startCommand": "npm run start --workspace=server",
+    "restartPolicyType": "on_failure",
+    "restartPolicyMaxRetries": 5
+  },
+  "plugins": [
+    {
+      "source": "https://github.com/railwayapp/nixpacks-plugin-postgres.git"
+    }
+  ]
+}

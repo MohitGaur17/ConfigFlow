@@ -28,6 +28,45 @@ Users submit JSON app configs, preview apps, manage generated projects, and expo
 - Dashboard widgets (stats/charts/recent data)
 - Code export endpoint that returns a generated ZIP
 - i18n support (including RTL)
+
+## Deployment
+
+### Quick Start
+
+For the fastest deployment setup, see [DEPLOYMENT_QUICKSTART.md](./DEPLOYMENT_QUICKSTART.md).
+
+**Recommended Stack:**
+- **Frontend**: [Vercel](https://vercel.com) (Next.js optimized)
+- **Backend**: [Railway](https://railway.app) or [Render](https://render.com)
+- **Database**: [Neon](https://neon.tech) PostgreSQL
+
+### Full Documentation
+
+- [DEPLOYMENT.md](./DEPLOYMENT.md) — Complete deployment guide with all platforms
+- [CI_CD_DEPLOYMENT.md](./CI_CD_DEPLOYMENT.md) — GitHub Actions + automated deployments
+- [DEPLOYMENT_QUICKSTART.md](./DEPLOYMENT_QUICKSTART.md) — 5-minute setup guide
+
+### Environment Setup
+
+```bash
+# Copy example files
+cp client/.env.example client/.env.local
+cp server/.env.example server/.env
+
+# Fill in your values
+# DATABASE_URL, JWT_SECRET, API_URL, OAuth credentials, etc.
+```
+
+### Local Docker Deployment
+
+```bash
+# Start full stack locally with Docker
+docker-compose up
+
+# Database: localhost:5432
+# Backend: localhost:4000
+# Frontend: localhost:3000
+```
 - Notification and email delivery support
 
 ## Implementation Status
