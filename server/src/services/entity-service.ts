@@ -61,7 +61,7 @@ export async function listRecords(appId: string, entityName: string, options: Li
   if (options.filters) {
     for (const [field, value] of Object.entries(options.filters)) {
       if (value !== undefined && value !== "" && value !== null) {
-        filtered = filtered.filter((r) => {
+        filtered = filtered.filter((r: any) => {
           const data = r.data as Record<string, unknown>;
           return String(data[field]) === String(value);
         });
@@ -74,7 +74,7 @@ export async function listRecords(appId: string, entityName: string, options: Li
     const searchLower = options.search.toLowerCase().trim();
     const searchFields = options.searchFields || (entityConfig ? Object.keys(entityConfig.fields) : []);
 
-    filtered = filtered.filter((r) => {
+    filtered = filtered.filter((r: any) => {
       const data = r.data as Record<string, unknown>;
       return searchFields.some((field) => {
         const val = data[field];
@@ -87,7 +87,7 @@ export async function listRecords(appId: string, entityName: string, options: Li
   if (options.sortBy) {
     const sortField = options.sortBy;
     const sortOrder = options.sortOrder || "asc";
-    filtered.sort((a, b) => {
+    filtered.sort((a: any, b: any) => {
       const dataA = a.data as Record<string, unknown>;
       const dataB = b.data as Record<string, unknown>;
       const valA = dataA[sortField];
@@ -114,7 +114,7 @@ export async function listRecords(appId: string, entityName: string, options: Li
   const paginatedRecords = filtered.slice(start, start + pageSize);
 
   return {
-    data: paginatedRecords.map((r) => ({
+    data: paginatedRecords.map((r: any) => ({
       id: r.id,
       data: r.data as Record<string, unknown>,
       createdAt: r.createdAt,
@@ -280,13 +280,13 @@ export async function getEntityStats(
   // Sum / Avg
   if ((operation === "sum" || operation === "avg") && field) {
     const values = records
-      .map((r) => {
+      .map((r: any) => {
         const data = r.data as Record<string, unknown>;
         return Number(data[field]);
       })
-      .filter((v) => !isNaN(v));
+      .filter((v: number) => !isNaN(v));
 
-    const sum = values.reduce((acc, v) => acc + v, 0);
+    const sum = values.reduce((acc: number, v: number) => acc + v, 0);
 
     if (operation === "sum") {
       if (groupBy) {
@@ -328,7 +328,7 @@ export async function getRecentRecords(
     take: limit,
   });
 
-  return records.map((r) => ({
+  return records.map((r: any) => ({
     id: r.id,
     data: r.data as Record<string, unknown>,
     createdAt: r.createdAt,
