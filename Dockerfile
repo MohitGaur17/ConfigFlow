@@ -7,6 +7,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 COPY server ./server
 COPY shared ./shared
+COPY tsconfig.base.json ./
 
 # Install dependencies
 RUN npm ci
