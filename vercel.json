@@ -1,7 +1,7 @@
 {
-  "buildCommand": "npm run build --workspace=client",
+  "buildCommand": "npm run build",
   "installCommand": "npm install",
-  "outputDirectory": "client/.next",
+  "outputDirectory": ".next",
   "framework": "nextjs",
   "env": {
     "NEXT_PUBLIC_API_URL": "https://configflow-9r1q.onrender.com"
