@@ -14,6 +14,9 @@ RUN npm ci
 # Build server
 RUN npm run build --workspace=server
 
+# Generate Prisma client during build (requires dev deps available in builder)
+RUN npm run prisma:generate --workspace=server
+
 # Runtime stage
 FROM node:20-alpine
 
@@ -24,12 +27,15 @@ COPY package.json package-lock.json ./
 COPY server ./server
 COPY shared ./shared
 
-RUN npm ci --omit=dev && \
-    npm run build --workspace=server && \
-    npm run prisma:generate --workspace=server
+# Install production dependencies only
+RUN npm ci --omit=dev
 
 # Copy built application from builder
 COPY --from=builder /app/server/dist ./server/dist
+
+# Copy generated Prisma client from builder stage into runtime image
+COPY --from=builder /app/server/node_modules/@prisma ./server/node_modules/@prisma
+COPY --from=builder /app/server/node_modules/.prisma ./server/node_modules/.prisma
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
