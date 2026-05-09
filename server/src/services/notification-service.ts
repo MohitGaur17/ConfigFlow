@@ -307,24 +307,28 @@ export async function recordNotification(input: NotificationInput) {
   });
 
   if (input.sendEmail) {
-    try {
-      const email = await getUserEmail(input.userId);
-      if (email) {
-        const notificationItem = notification as NotificationItem;
-        await sendTransactionalEmail({
-          to: email,
-          subject: buildEmailSubject(notificationItem),
-          body: buildEmailBody(notificationItem),
-          htmlBody: buildEmailHtml(notificationItem),
-          eventType: input.type,
-          userId: input.userId,
-          appId: input.appId || null,
-          notificationId: notification.id,
-        });
+    // Fire-and-forget email sending (async, non-blocking)
+    // This prevents email delays from blocking auth/login responses
+    (async () => {
+      try {
+        const email = await getUserEmail(input.userId);
+        if (email) {
+          const notificationItem = notification as NotificationItem;
+          await sendTransactionalEmail({
+            to: email,
+            subject: buildEmailSubject(notificationItem),
+            body: buildEmailBody(notificationItem),
+            htmlBody: buildEmailHtml(notificationItem),
+            eventType: input.type,
+            userId: input.userId,
+            appId: input.appId || null,
+            notificationId: notification.id,
+          });
+        }
+      } catch (error) {
+        console.error("[Mail] Failed to send transactional email:", error);
       }
-    } catch (error) {
-      console.error("[Mail] Failed to send transactional email:", error);
-    }
+    })();
   }
 
   const mapped = mapNotification(notification);
