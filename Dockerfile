@@ -35,8 +35,7 @@ RUN npm ci --omit=dev
 COPY --from=builder /app/server/dist ./server/dist
 
 # Copy generated Prisma client from builder stage into runtime image
-COPY --from=builder /app/server/node_modules/@prisma ./server/node_modules/@prisma
-COPY --from=builder /app/server/node_modules/.prisma ./server/node_modules/.prisma
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
