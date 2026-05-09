@@ -25,7 +25,7 @@ export const translations: Record<Language, Record<string, string>> = {
     'home.responsiveDesc': 'Mobile first',
     'home.installable': 'Installable',
     'home.installableDesc': 'PWA ready',
-    'home.newApplication': 'New Application',
+    'home.newApplication': 'Generate App',
     'home.newApplicationDesc': 'Generate, deploy, install',
     'home.layout': 'Responsive layout',
     'home.layoutDesc': 'Sidebar on desktop, bottom nav on mobile',

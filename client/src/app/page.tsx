@@ -159,7 +159,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-8 md:gap-16 items-center">
           
           {/* Left: Copy */}
-          <div className="order-2 lg:order-1">
+          <div className="order-1 lg:order-1">
             <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs md:text-sm text-indigo-300 mb-4 md:mb-6 ${direction === "rtl" ? "justify-end text-right self-start" : ""}`}>
               <Zap className="w-4 h-4 flex-shrink-0" />
               <span className="truncate">{t('header.tagline')}</span>
@@ -182,7 +182,7 @@ export default function HomePage() {
           </div>
 
           {/* Right: The Prompt Box (JSON Editor) */}
-          <div className="relative group order-1 lg:order-2 mb-8 lg:mb-0">
+          <div className="relative group order-2 lg:order-2 mb-8 lg:mb-0">
             <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-2xl blur opacity-25 group-hover:opacity-40 transition duration-1000"></div>
             <div className="relative bg-[#111111] border border-white/10 rounded-xl md:rounded-2xl shadow-2xl overflow-hidden flex flex-col h-80 sm:h-96 md:h-[600px]">
               
