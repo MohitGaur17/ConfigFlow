@@ -4,7 +4,7 @@
   "outputDirectory": "client/.next",
   "framework": "nextjs",
   "env": {
-    "NEXT_PUBLIC_API_URL": "@neon_api_url"
+    "NEXT_PUBLIC_API_URL": "https://configflow-9r1q.onrender.com"
   },
   "git": {
     "deploymentEnabled": {
