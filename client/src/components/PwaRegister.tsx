@@ -10,8 +10,9 @@ export default function PwaRegister() {
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
 
   useEffect(() => {
-    // Register service worker
-    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+    // Register service worker in production only.
+    // Next dev + service workers can fight over page assets and trigger reload loops.
+    if (process.env.NODE_ENV === "production" && typeof window !== "undefined" && "serviceWorker" in navigator) {
       navigator.serviceWorker.register("/sw.js").catch((error) => {
         console.log("Service Worker registration failed:", error);
       });
@@ -26,6 +27,16 @@ export default function PwaRegister() {
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
 
+    const fallbackTimer =
+      process.env.NODE_ENV === "production"
+        ? window.setTimeout(() => {
+            const isStandalone = window.matchMedia?.("(display-mode: standalone)")?.matches || (window.navigator as any).standalone;
+            if (!isStandalone) {
+              setShowInstallPrompt(true);
+            }
+          }, 2000)
+        : undefined;
+
     // Hide install prompt if app is installed
     const handleAppInstalled = () => {
       setShowInstallPrompt(false);
@@ -35,6 +46,9 @@ export default function PwaRegister() {
     window.addEventListener("appinstalled", handleAppInstalled);
 
     return () => {
+      if (fallbackTimer) {
+        window.clearTimeout(fallbackTimer);
+      }
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
       window.removeEventListener("appinstalled", handleAppInstalled);
     };
@@ -47,6 +61,12 @@ export default function PwaRegister() {
       console.log(`User response: ${outcome}`);
       setDeferredPrompt(null);
       setShowInstallPrompt(false);
+      return;
+    }
+
+    const isStandalone = window.matchMedia?.("(display-mode: standalone)")?.matches || (window.navigator as any).standalone;
+    if (!isStandalone) {
+      setShowInstallPrompt(true);
     }
   };
 
@@ -66,10 +86,16 @@ export default function PwaRegister() {
             <p className="text-xs text-gray-600">{t('pwa.installDescription')}</p>
             <button
               onClick={handleInstall}
+              disabled={!deferredPrompt}
               className="mt-3 w-full bg-indigo-600 text-white text-sm font-medium py-2 px-3 rounded-lg hover:bg-indigo-700 transition-colors"
             >
-              {t('pwa.installButton')}
+              {deferredPrompt ? t('pwa.installButton') : t('pwa.installButton', 'Install app')}
             </button>
+            {!deferredPrompt && (
+              <p className="mt-2 text-xs text-gray-500">
+                Open your browser menu and choose install if the popup does not appear.
+              </p>
+            )}
           </div>
           <button
             onClick={() => setShowInstallPrompt(false)}

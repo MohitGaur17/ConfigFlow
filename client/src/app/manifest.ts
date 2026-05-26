@@ -38,20 +38,7 @@ export default function manifest(): MetadataRoute.Manifest {
         purpose: "maskable",
       },
     ],
-    screenshots: [
-      {
-        src: "/screenshot-1.svg",
-        sizes: "540x720",
-        type: "image/svg+xml",
-        form_factor: "narrow",
-      },
-      {
-        src: "/screenshot-2.svg",
-        sizes: "1920x1080",
-        type: "image/svg+xml",
-        form_factor: "wide",
-      },
-    ],
+    // screenshots removed
     shortcuts: [
       {
         name: "Create App",

@@ -3,7 +3,7 @@ const RUNTIME_CACHE = "antigravity-ai-runtime-v1";
 const ASSETS_TO_CACHE = [
   "/",
   "/offline.html",
-  "/manifest.json",
+  "/manifest.webmanifest",
   "/favicon.ico",
 ];
 

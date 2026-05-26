@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   authors: [{ name: "ConfigFlow" }],
   keywords: ["app generator", "no-code", "low-code", "config-driven", "full-stack"],
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
-  manifest: "/manifest.json",
+  manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
