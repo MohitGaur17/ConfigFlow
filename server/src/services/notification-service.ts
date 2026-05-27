@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import nodemailer from "nodemailer";
-import { PrismaClient, Prisma } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 import { publishToUser } from "./notification-bus";
 
 const prisma = new PrismaClient();
@@ -44,7 +44,7 @@ interface NotificationInput {
   type: NotificationType;
   title: string;
   message: string;
-  metadata?: Prisma.JsonObject;
+  metadata?: Record<string, unknown> | null;
   sendEmail?: boolean;
 }
 
@@ -302,7 +302,7 @@ export async function recordNotification(input: NotificationInput) {
       type: input.type,
       title: input.title,
       message: input.message,
-      metadata: input.metadata || undefined,
+      metadata: input.metadata ? (input.metadata as any) : undefined,
     },
   });
 
