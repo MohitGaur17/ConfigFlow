@@ -32,13 +32,35 @@ function GitHubLogo({ className = "w-4 h-4" }: { className?: string }) {
 }
 
 function getErrorMessage(error: unknown, fallback: string) {
-  if (error instanceof Error) {
-    return error.message || fallback;
+  // Prefer structured server response (axios-like)
+  if (typeof error === "object" && error !== null) {
+    const maybe = error as {
+      response?: { status?: number; data?: { error?: string } };
+      message?: string;
+    };
+
+    const serverError = maybe.response?.data?.error;
+    const status = maybe.response?.status;
+
+    if (status === 409) {
+      // Conflict — common case: email already exists / needs verification
+      if (serverError && /verify/i.test(serverError)) {
+        return "An account with that email already exists. Check your inbox for the verification link or click 'Resend verification' to request a new one.";
+      }
+
+      if (serverError && /already registered/i.test(serverError)) {
+        return "This email is already registered. Try signing in or request a verification link if you haven't verified your address.";
+      }
+
+      return serverError || "This email is already in use. Try signing in or request a new verification link.";
+    }
+
+    if (serverError) return serverError;
+    if (maybe.message) return maybe.message;
   }
 
-  if (typeof error === "object" && error !== null) {
-    const maybeResponse = error as { response?: { data?: { error?: string } }; message?: string };
-    return maybeResponse.response?.data?.error || maybeResponse.message || fallback;
+  if (error instanceof Error) {
+    return error.message || fallback;
   }
 
   return fallback;
