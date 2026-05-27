@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import nodemailer from "nodemailer";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 import { publishToUser } from "./notification-bus";
 
 const prisma = new PrismaClient();
@@ -220,7 +220,7 @@ async function createEmailDelivery(input: {
   return delivery;
 }
 
-async function sendTransactionalEmail(params: {
+export async function sendTransactionalEmail(params: {
   to: string;
   subject: string;
   body: string;
@@ -302,7 +302,7 @@ export async function recordNotification(input: NotificationInput) {
       type: input.type,
       title: input.title,
       message: input.message,
-      metadata: input.metadata || undefined,
+      metadata: input.metadata ? (input.metadata as Prisma.InputJsonValue) : undefined,
     },
   });
 
@@ -313,7 +313,7 @@ export async function recordNotification(input: NotificationInput) {
       try {
         const email = await getUserEmail(input.userId);
         if (email) {
-          const notificationItem = notification as NotificationItem;
+          const notificationItem = mapNotification(notification);
           await sendTransactionalEmail({
             to: email,
             subject: buildEmailSubject(notificationItem),

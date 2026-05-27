@@ -5,7 +5,7 @@ import axios from "axios";
 import crypto from "crypto";
 import { OAuth2Client } from "google-auth-library";
 import { generateToken, requireAuth, AuthRequest } from "../middleware/auth";
-import { recordNotification } from "../services/notification-service";
+import { recordNotification, sendTransactionalEmail } from "../services/notification-service";
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -16,6 +16,7 @@ const CLIENT_AUTH_CALLBACK_URL = process.env.CLIENT_AUTH_CALLBACK_URL || `${CLIE
 
 const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || `${SERVER_URL}/api/auth/google/callback`;
 const GITHUB_REDIRECT_URI = process.env.GITHUB_REDIRECT_URI || `${SERVER_URL}/api/auth/github/callback`;
+const VERIFICATION_TOKEN_TTL_MS = 30 * 60 * 1000;
 
 const oauthStates = new Map<string, { provider: "google" | "github"; expiresAt: number }>();
 
@@ -68,10 +69,95 @@ function verifyOAuthState(state: string | undefined, provider: "google" | "githu
   return payload.provider === provider && payload.expiresAt > Date.now();
 }
 
+function normalizeEmail(email: string) {
+  return email.trim().toLowerCase();
+}
+
+function createVerificationToken() {
+  const rawToken = crypto.randomBytes(32).toString("base64url");
+  const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+
+  return { rawToken, tokenHash };
+}
+
+function buildVerificationLink(rawToken: string) {
+  return `${SERVER_URL}/api/auth/verify-email?token=${encodeURIComponent(rawToken)}`;
+}
+
+async function createAndSendVerificationEmail(user: { id: string; email: string; name: string | null }) {
+  const { rawToken, tokenHash } = createVerificationToken();
+  const expiresAt = new Date(Date.now() + VERIFICATION_TOKEN_TTL_MS);
+
+  await prisma.emailVerificationToken.create({
+    data: {
+      userId: user.id,
+      tokenHash,
+      expiresAt,
+    },
+  });
+
+  const verificationLink = buildVerificationLink(rawToken);
+  const subject = "Verify your ConfigFlow email address";
+  const body = [
+    "Welcome to ConfigFlow.",
+    "",
+    `Verify your email address by opening this link: ${verificationLink}`,
+    "",
+    "This link expires in 30 minutes and can only be used once.",
+    "If you did not create this account, you can ignore this message.",
+  ].join("\n");
+  const htmlBody = `
+    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827;">
+      <h2 style="margin: 0 0 16px;">Verify your ConfigFlow email address</h2>
+      <p style="margin: 0 0 16px;">Welcome to ConfigFlow${user.name ? `, ${user.name}` : ""}. Confirm this email address to finish creating your account.</p>
+      <p style="margin: 0 0 24px;">
+        <a href="${verificationLink}" style="display:inline-block;background:#4f46e5;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:8px;font-weight:600;">Verify email</a>
+      </p>
+      <p style="margin: 0 0 8px;">Or copy and paste this link into your browser:</p>
+      <p style="word-break: break-all; color: #4f46e5; margin: 0 0 16px;">${verificationLink}</p>
+      <p style="margin: 0; color: #6b7280;">This link expires in 30 minutes and can only be used once.</p>
+    </div>
+  `;
+
+  const delivery = await sendTransactionalEmail({
+    to: user.email,
+    subject,
+    body,
+    htmlBody,
+    eventType: "auth",
+    userId: user.id,
+  });
+
+  return delivery.status !== "failed";
+}
+
+async function issueVerifiedSession(userId: string) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, email: true, name: true },
+  });
+
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  const token = generateToken(user.id, user.email);
+  return { token, user };
+}
+
 async function findOrCreateOAuthUser(email: string, name?: string | null) {
-  const normalizedEmail = email.trim().toLowerCase();
+  const normalizedEmail = normalizeEmail(email);
   const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
-  if (existing) return existing;
+  if (existing) {
+    if (!existing.emailVerifiedAt) {
+      return prisma.user.update({
+        where: { id: existing.id },
+        data: { emailVerifiedAt: new Date() },
+      });
+    }
+
+    return existing;
+  }
 
   const randomPassword = crypto.randomBytes(32).toString("hex");
   const hashedPassword = await bcrypt.hash(randomPassword, 12);
@@ -80,6 +166,7 @@ async function findOrCreateOAuthUser(email: string, name?: string | null) {
       email: normalizedEmail,
       name: name || null,
       password: hashedPassword,
+      emailVerifiedAt: new Date(),
     },
   });
 }
@@ -139,9 +226,10 @@ function buildGithubAuthUrl(state: string) {
 router.post("/register", async (req: Request, res: Response) => {
   try {
     const { email, password, name } = req.body;
+    const normalizedEmail = typeof email === "string" ? normalizeEmail(email) : "";
 
     // Validate input
-    if (!email || !password) {
+    if (!normalizedEmail || !password) {
       res.status(400).json({
         success: false,
         error: "Email and password are required",
@@ -158,7 +246,7 @@ router.post("/register", async (req: Request, res: Response) => {
     }
 
     // Check email format
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
       res.status(400).json({
         success: false,
         error: "Invalid email format",
@@ -167,43 +255,92 @@ router.post("/register", async (req: Request, res: Response) => {
     }
 
     // Check if user exists
-    const existingUser = await prisma.user.findUnique({ where: { email } });
+    const existingUser = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (existingUser) {
       res.status(409).json({
         success: false,
-        error: "Email already registered",
+        error: existingUser.emailVerifiedAt ? "Email already registered" : "Email already registered. Please verify your inbox or request a new verification link.",
       });
       return;
     }
 
-    // Hash password and create user
+    // Hash password and create an unverified user
     const hashedPassword = await bcrypt.hash(password, 12);
     const user = await prisma.user.create({
-      data: { email, password: hashedPassword, name: name || null },
+      data: { email: normalizedEmail, password: hashedPassword, name: name || null, emailVerifiedAt: null },
     });
 
-    // Generate token
-    const token = generateToken(user.id, user.email);
-
-    await recordNotification({
-      userId: user.id,
-      type: "auth",
-      title: "Welcome to ConfigFlow",
-      message: "Your account has been created successfully.",
-      sendEmail: true,
-      metadata: { action: "register" },
-    });
+    const verificationEmailSent = await createAndSendVerificationEmail(user);
 
     res.status(201).json({
       success: true,
       data: {
-        token,
+        verificationEmailSent,
         user: { id: user.id, email: user.email, name: user.name },
       },
+      message: "Check your email to verify your account.",
     });
   } catch (error: any) {
     console.error("[Auth] Register error:", error);
     res.status(500).json({ success: false, error: "Internal server error" });
+  }
+});
+
+/**
+ * GET /api/auth/verify-email
+ * Verify a newly created email/password account using a one-time link.
+ */
+router.get("/verify-email", async (req: Request, res: Response) => {
+  try {
+    const token = typeof req.query.token === "string" ? req.query.token : "";
+
+    if (!token) {
+      res.status(400).json({ success: false, error: "Verification token is required" });
+      return;
+    }
+
+    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+    const now = new Date();
+
+    const verificationToken = await prisma.emailVerificationToken.findUnique({
+      where: { tokenHash },
+      include: {
+        user: {
+          select: { id: true, email: true, name: true, emailVerifiedAt: true },
+        },
+      },
+    });
+
+    if (!verificationToken || verificationToken.usedAt || verificationToken.expiresAt <= now) {
+      res.status(400).json({ success: false, error: "Verification link is invalid or expired" });
+      return;
+    }
+
+    const user = await prisma.$transaction(async (tx) => {
+      const consumed = await tx.emailVerificationToken.updateMany({
+        where: { id: verificationToken.id, usedAt: null, expiresAt: { gt: now } },
+        data: { usedAt: now },
+      });
+
+      if (consumed.count !== 1) {
+        throw new Error("Verification link is invalid or expired");
+      }
+
+      return tx.user.update({
+        where: { id: verificationToken.userId },
+        data: { emailVerifiedAt: verificationToken.user.emailVerifiedAt || now },
+        select: { id: true, email: true, name: true },
+      });
+    });
+
+    const session = await issueVerifiedSession(user.id);
+
+    res.redirect(
+      `${CLIENT_AUTH_CALLBACK_URL}?token=${encodeURIComponent(session.token)}&user=${encodeURIComponent(JSON.stringify(session.user))}`
+    );
+  } catch (error: any) {
+    console.error("[Auth] Email verification error:", error);
+    redirectToClientAuthError(res, error?.message || "Verification failed");
   }
 });
 
@@ -443,8 +580,9 @@ router.get("/github/callback", async (req: Request, res: Response) => {
 router.post("/login", async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
+    const normalizedEmail = typeof email === "string" ? normalizeEmail(email) : "";
 
-    if (!email || !password) {
+    if (!normalizedEmail || !password) {
       res.status(400).json({
         success: false,
         error: "Email and password are required",
@@ -453,11 +591,19 @@ router.post("/login", async (req: Request, res: Response) => {
     }
 
     // Find user
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (!user) {
       res.status(401).json({
         success: false,
         error: "Invalid email or password",
+      });
+      return;
+    }
+
+    if (!user.emailVerifiedAt) {
+      res.status(403).json({
+        success: false,
+        error: "Please verify your email address before signing in",
       });
       return;
     }
@@ -497,6 +643,39 @@ router.post("/login", async (req: Request, res: Response) => {
   }
 });
 
+
+/**
+ * POST /api/auth/resend-verification
+ * Re-issue a verification link for an unverified account.
+ */
+router.post("/resend-verification", async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+    const normalizedEmail = typeof email === "string" ? normalizeEmail(email) : "";
+
+    if (!normalizedEmail) {
+      res.status(400).json({ success: false, error: "Email is required" });
+      return;
+    }
+
+    const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+
+    if (!user || user.emailVerifiedAt) {
+      res.json({ success: true, data: { sent: true } });
+      return;
+    }
+
+    const verificationEmailSent = await createAndSendVerificationEmail(user);
+
+    res.json({
+      success: true,
+      data: { sent: true, verificationEmailSent },
+    });
+  } catch (error: any) {
+    console.error("[Auth] Resend verification error:", error);
+    res.status(500).json({ success: false, error: "Internal server error" });
+  }
+});
 /**
  * GET /api/auth/me
  * Get the current authenticated user.

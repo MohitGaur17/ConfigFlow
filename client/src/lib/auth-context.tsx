@@ -14,7 +14,7 @@ interface AuthContextType {
   token: string | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, name?: string) => Promise<void>;
+  register: (email: string, password: string, name?: string) => Promise<{ verificationEmailSent?: boolean }>;
   setAuthSession: (token: string, user: User) => void;
   logout: () => void;
   isAuthenticated: boolean;
@@ -76,14 +76,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const register = useCallback(async (email: string, password: string, name?: string) => {
     const res = await api.post("/auth/register", { email, password, name });
     if (res.data.success) {
-      const { token: newToken, user: newUser } = res.data.data;
-      setToken(newToken);
-      setUser(newUser);
-      localStorage.setItem("token", newToken);
-      localStorage.setItem("user", JSON.stringify(newUser));
-    } else {
-      throw new Error(res.data.error || "Registration failed");
+      return res.data.data || {};
     }
+
+    throw new Error(res.data.error || "Registration failed");
   }, []);
 
   const setAuthSession = useCallback((newToken: string, newUser: User) => {

@@ -40,6 +40,9 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [verificationSent, setVerificationSent] = useState(false);
+  const [verificationDeliveryProblem, setVerificationDeliveryProblem] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<"google" | "github" | null>(null);
 
   const { t } = useTranslation();
@@ -88,6 +91,8 @@ export default function RegisterPage() {
     e.preventDefault();
     setError(null);
     setLoading(true);
+    setVerificationSent(false);
+    setVerificationDeliveryProblem(false);
 
     if (password !== confirmPassword) {
       setError(t('auth.passwordMismatch'));
@@ -96,12 +101,39 @@ export default function RegisterPage() {
     }
 
     try {
-      await register(email, password, name || undefined);
-      router.push("/dashboard");
+      const result = await register(email, password, name || undefined);
+      setVerificationSent(true);
+      setVerificationDeliveryProblem(result.verificationEmailSent === false);
+      setPassword("");
+      setConfirmPassword("");
     } catch (err: any) {
       setError(err.response?.data?.error || err.message || "Registration failed");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const resendVerification = async () => {
+    setError(null);
+    setResendLoading(true);
+
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/resend-verification`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.error || "Unable to resend verification email");
+      }
+
+      setVerificationDeliveryProblem(false);
+    } catch (err: any) {
+      setError(err?.message || "Unable to resend verification email");
+    } finally {
+      setResendLoading(false);
     }
   };
 
@@ -119,6 +151,34 @@ export default function RegisterPage() {
           </div>
         </div>
 
+        {verificationSent ? (
+          <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-5 text-center">
+            <h2 className="text-lg font-semibold text-white">Check your email</h2>
+            <p className="mt-2 text-sm text-white/70">
+              We sent a verification link to {email}. Open it to finish creating your account and sign in automatically.
+            </p>
+            {verificationDeliveryProblem && (
+              <p className="mt-3 text-sm text-amber-300">
+                The email could not be delivered automatically. You can request a fresh verification link below.
+              </p>
+            )}
+            <button
+              type="button"
+              onClick={resendVerification}
+              disabled={resendLoading}
+              className="mt-4 inline-flex items-center justify-center rounded-lg bg-white/10 px-4 py-2 text-sm font-medium text-white hover:bg-white/15 disabled:opacity-50 transition-colors"
+            >
+              {resendLoading ? "Sending..." : "Resend verification email"}
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push("/login")}
+              className="mt-3 inline-flex items-center justify-center rounded-lg bg-white/10 px-4 py-2 text-sm font-medium text-white hover:bg-white/15 transition-colors"
+            >
+              Back to login
+            </button>
+          </div>
+        ) : (
         <form onSubmit={handleSubmit} className="space-y-3 md:space-y-4">
           {error && (
             <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-xs md:text-sm">
@@ -184,6 +244,7 @@ export default function RegisterPage() {
             {t('auth.signup')}
           </button>
         </form>
+        )}
 
         <div className="my-4 flex items-center gap-3">
           <div className="h-px flex-1 bg-white/10" />
