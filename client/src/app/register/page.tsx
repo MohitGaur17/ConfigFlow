@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { Blocks, Loader2, AlertCircle } from "lucide-react";
+import { Blocks, Loader2, AlertCircle, CheckCircle2, Mail, ArrowLeft } from "lucide-react";
 
 import { useTranslation } from "@/i18n/useTranslation";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
@@ -29,6 +29,19 @@ function GitHubLogo({ className = "w-4 h-4" }: { className?: string }) {
       />
     </svg>
   );
+}
+
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error) {
+    return error.message || fallback;
+  }
+
+  if (typeof error === "object" && error !== null) {
+    const maybeResponse = error as { response?: { data?: { error?: string } }; message?: string };
+    return maybeResponse.response?.data?.error || maybeResponse.message || fallback;
+  }
+
+  return fallback;
 }
 
 export default function RegisterPage() {
@@ -61,8 +74,8 @@ export default function RegisterPage() {
       }
 
       window.location.href = data.data.url as string;
-    } catch (err: any) {
-      setError(err?.message || `${provider} sign in failed`);
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, `${provider} sign in failed`));
       setOauthLoading(null);
     }
   };
@@ -106,8 +119,8 @@ export default function RegisterPage() {
       setVerificationDeliveryProblem(result.verificationEmailSent === false);
       setPassword("");
       setConfirmPassword("");
-    } catch (err: any) {
-      setError(err.response?.data?.error || err.message || "Registration failed");
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, "Registration failed"));
     } finally {
       setLoading(false);
     }
@@ -129,9 +142,12 @@ export default function RegisterPage() {
         throw new Error(data?.error || "Unable to resend verification email");
       }
 
-      setVerificationDeliveryProblem(false);
-    } catch (err: any) {
-      setError(err?.message || "Unable to resend verification email");
+      // Show the verification panel so the user has clear next steps
+      setVerificationSent(true);
+      // If the server indicates delivery failed, surface that state
+      setVerificationDeliveryProblem(data?.data?.verificationEmailSent === false);
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, "Unable to resend verification email"));
     } finally {
       setResendLoading(false);
     }
@@ -152,28 +168,59 @@ export default function RegisterPage() {
         </div>
 
         {verificationSent ? (
-          <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-5 text-center">
-            <h2 className="text-lg font-semibold text-white">Check your email</h2>
-            <p className="mt-2 text-sm text-white/70">
-              We sent a verification link to {email}. Open it to finish creating your account and sign in automatically.
+          <div className="relative overflow-hidden rounded-3xl border border-emerald-500/20 bg-gradient-to-b from-emerald-500/12 via-emerald-500/8 to-white/5 p-6 md:p-7 text-center shadow-2xl shadow-emerald-950/10">
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-300/50 to-transparent" />
+
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/15 ring-1 ring-emerald-400/20">
+              <CheckCircle2 className="h-7 w-7 text-emerald-300" />
+            </div>
+
+            <h2 className="text-2xl font-semibold tracking-tight text-white">Check your inbox</h2>
+
+            <p className="mt-3 text-sm leading-6 text-white/70">
+              We sent a verification link to
+              <span className="mx-1 inline-flex items-center gap-1 rounded-full border border-white/10 bg-black/20 px-2 py-0.5 font-medium text-white">
+                <Mail className="h-3.5 w-3.5 text-emerald-300" />
+                {email}
+              </span>
+              Open it to finish creating your account and sign in automatically.
             </p>
+
+            <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white/65">
+              Didn’t receive it? Check spam or resend a fresh verification link below.
+            </div>
+
             {verificationDeliveryProblem && (
-              <p className="mt-3 text-sm text-amber-300">
-                The email could not be delivered automatically. You can request a fresh verification link below.
-              </p>
+              <div className="mt-3 rounded-2xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
+                The email could not be delivered automatically. Use resend to try again.
+              </div>
             )}
-            <button
-              type="button"
-              onClick={resendVerification}
-              disabled={resendLoading}
-              className="mt-4 inline-flex items-center justify-center rounded-lg bg-white/10 px-4 py-2 text-sm font-medium text-white hover:bg-white/15 disabled:opacity-50 transition-colors"
-            >
-              {resendLoading ? "Sending..." : "Resend verification email"}
-            </button>
+
+            <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={resendVerification}
+                disabled={resendLoading}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-semibold text-gray-900 transition-colors hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Mail className="h-4 w-4" />
+                {resendLoading ? "Sending..." : "Resend email"}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setVerificationSent(false)}
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/10"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Change email
+              </button>
+            </div>
+
             <button
               type="button"
               onClick={() => router.push("/login")}
-              className="mt-3 inline-flex items-center justify-center rounded-lg bg-white/10 px-4 py-2 text-sm font-medium text-white hover:bg-white/15 transition-colors"
+              className="mt-4 inline-flex items-center justify-center text-sm font-medium text-white/55 underline-offset-4 transition-colors hover:text-white hover:underline"
             >
               Back to login
             </button>
@@ -184,6 +231,28 @@ export default function RegisterPage() {
             <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-xs md:text-sm">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
               {error}
+            </div>
+          )}
+
+          {error?.toLowerCase().includes("verify") && email && (
+            <div className="mt-3 flex gap-2">
+              <button
+                type="button"
+                onClick={resendVerification}
+                disabled={resendLoading}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-gray-900 transition-colors hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Mail className="h-4 w-4" />
+                {resendLoading ? "Sending..." : "Resend verification"}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => router.push("/login")}
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-white/10"
+              >
+                Back to login
+              </button>
             </div>
           )}
 
