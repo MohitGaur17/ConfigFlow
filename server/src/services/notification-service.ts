@@ -44,7 +44,7 @@ interface NotificationInput {
   type: NotificationType;
   title: string;
   message: string;
-  metadata?: Record<string, unknown>;
+  metadata?: Prisma.JsonObject;
   sendEmail?: boolean;
 }
 
@@ -302,7 +302,7 @@ export async function recordNotification(input: NotificationInput) {
       type: input.type,
       title: input.title,
       message: input.message,
-      metadata: input.metadata ? (input.metadata as Prisma.InputJsonValue) : undefined,
+      metadata: input.metadata || undefined,
     },
   });
 

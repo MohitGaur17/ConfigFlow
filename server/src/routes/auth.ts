@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import axios from "axios";
 import crypto from "crypto";
 import { OAuth2Client } from "google-auth-library";
+import { Prisma } from "@prisma/client";
 import { generateToken, requireAuth, AuthRequest } from "../middleware/auth";
 import { recordNotification, sendTransactionalEmail } from "../services/notification-service";
 
@@ -316,7 +317,7 @@ router.get("/verify-email", async (req: Request, res: Response) => {
       return;
     }
 
-    const user = await prisma.$transaction(async (tx) => {
+    const user = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const consumed = await tx.emailVerificationToken.updateMany({
         where: { id: verificationToken.id, usedAt: null, expiresAt: { gt: now } },
         data: { usedAt: now },
