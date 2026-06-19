@@ -296,7 +296,7 @@ router.get("/verify-email", async (req: Request, res: Response) => {
     const token = typeof req.query.token === "string" ? req.query.token : "";
 
     if (!token) {
-      res.status(400).json({ success: false, error: "Verification token is required" });
+      res.redirect(`${CLIENT_AUTH_CALLBACK_URL}?verifyError=invalid`);
       return;
     }
 
@@ -312,8 +312,31 @@ router.get("/verify-email", async (req: Request, res: Response) => {
       },
     });
 
-    if (!verificationToken || verificationToken.usedAt || verificationToken.expiresAt <= now) {
-      res.status(400).json({ success: false, error: "Verification link is invalid or expired" });
+    if (!verificationToken) {
+      res.redirect(`${CLIENT_AUTH_CALLBACK_URL}?verifyError=invalid`);
+      return;
+    }
+
+    // Already verified — just issue a session (idempotent)
+    if (verificationToken.user.emailVerifiedAt) {
+      const session = await issueVerifiedSession(verificationToken.userId);
+      res.redirect(
+        `${CLIENT_AUTH_CALLBACK_URL}?token=${encodeURIComponent(session.token)}&user=${encodeURIComponent(JSON.stringify(session.user))}`
+      );
+      return;
+    }
+
+    if (verificationToken.usedAt) {
+      res.redirect(
+        `${CLIENT_AUTH_CALLBACK_URL}?verifyError=used&email=${encodeURIComponent(verificationToken.user.email)}`
+      );
+      return;
+    }
+
+    if (verificationToken.expiresAt <= now) {
+      res.redirect(
+        `${CLIENT_AUTH_CALLBACK_URL}?verifyError=expired&email=${encodeURIComponent(verificationToken.user.email)}`
+      );
       return;
     }
 
@@ -324,12 +347,12 @@ router.get("/verify-email", async (req: Request, res: Response) => {
       });
 
       if (consumed.count !== 1) {
-        throw new Error("Verification link is invalid or expired");
+        throw new Error("link-race");
       }
 
       return tx.user.update({
         where: { id: verificationToken.userId },
-        data: { emailVerifiedAt: verificationToken.user.emailVerifiedAt || now },
+        data: { emailVerifiedAt: now },
         select: { id: true, email: true, name: true },
       });
     });
