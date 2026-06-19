@@ -256,7 +256,7 @@ export default function RegisterPage() {
             </div>
           )}
 
-          {error?.toLowerCase().includes("verify") && email && (
+          {email && error && /already|verify|verification|resend/i.test(error) && (
             <div className="mt-3 flex gap-2">
               <button
                 type="button"

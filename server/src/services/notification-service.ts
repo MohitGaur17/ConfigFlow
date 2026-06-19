@@ -68,6 +68,24 @@ function getSmtpConfig() {
   };
 }
 
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      reject(new Error(`${label} timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+
+    promise
+      .then((value) => {
+        clearTimeout(timeout);
+        resolve(value);
+      })
+      .catch((error) => {
+        clearTimeout(timeout);
+        reject(error);
+      });
+  });
+}
+
 function buildEmailSubject(notification: NotificationItem) {
   return notification.title;
 }
@@ -253,16 +271,23 @@ export async function sendTransactionalEmail(params: {
     port: smtp.port,
     secure: smtp.secure,
     auth: smtp.auth,
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 10000,
   });
 
   try {
-    const result = await transporter.sendMail({
+    const result = await withTimeout(
+      transporter.sendMail({
       from: smtp.from,
       to: params.to,
       subject: params.subject,
       text: params.body,
       html: params.htmlBody || params.body.replace(/\n/g, "<br />"),
-    });
+      }),
+      15000,
+      "SMTP send"
+    );
 
     return createEmailDelivery({
       userId: params.userId,
@@ -278,6 +303,7 @@ export async function sendTransactionalEmail(params: {
       sentAt: new Date(),
     });
   } catch (error: any) {
+    console.error("[Mail] SMTP send failed:", error);
     return createEmailDelivery({
       userId: params.userId,
       appId: params.appId,

@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { Blocks, Loader2, AlertCircle } from "lucide-react";
+import { Blocks, Loader2, AlertCircle, Mail } from "lucide-react";
 
 import { useTranslation } from "@/i18n/useTranslation";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
@@ -39,6 +39,9 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<"google" | "github" | null>(null);
+  const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
 
   const { t } = useTranslation();
   const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
@@ -85,15 +88,48 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setUnverifiedEmail(null);
+    setResendSuccess(false);
     setLoading(true);
 
     try {
       await login(email, password);
       router.push("/dashboard");
     } catch (err: any) {
-      setError(err.response?.data?.error || err.message || "Login failed");
+      const serverError: string = err.response?.data?.error || err.message || "Login failed";
+      setError(serverError);
+      // Detect unverified-account error (server returns 403)
+      if (
+        err.response?.status === 403 ||
+        /verify/i.test(serverError)
+      ) {
+        setUnverifiedEmail(email);
+      }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const resendVerification = async () => {
+    if (!unverifiedEmail) return;
+    setResendLoading(true);
+    setResendSuccess(false);
+    setError(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/resend-verification`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: unverifiedEmail }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.error || "Unable to resend verification email");
+      }
+      setResendSuccess(true);
+    } catch (err: any) {
+      setError(err?.message || "Unable to resend verification email");
+    } finally {
+      setResendLoading(false);
     }
   };
 
@@ -114,9 +150,32 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} className="space-y-3 md:space-y-4">
           {error && (
-            <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-xs md:text-sm">
-              <AlertCircle className="w-4 h-4 flex-shrink-0" />
-              {error}
+            <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs md:text-sm">
+              <div className="flex items-center gap-2 text-red-400">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                {error}
+              </div>
+
+              {/* Unverified account — offer resend inline */}
+              {unverifiedEmail && !resendSuccess && (
+                <button
+                  type="button"
+                  onClick={resendVerification}
+                  disabled={resendLoading}
+                  className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-gray-900 transition-colors hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <Mail className="h-4 w-4" />
+                  {resendLoading ? "Sending…" : "Resend verification email"}
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Resend success confirmation */}
+          {resendSuccess && (
+            <div className="flex items-start gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs md:text-sm text-emerald-300">
+              <Mail className="mt-0.5 h-4 w-4 flex-shrink-0" />
+              <span>Verification email sent to <strong>{unverifiedEmail}</strong>. Check your inbox and click the link to activate your account.</span>
             </div>
           )}
 
