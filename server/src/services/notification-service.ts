@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import nodemailer from "nodemailer";
+import axios from "axios";
 import { PrismaClient } from "@prisma/client";
 import { publishToUser } from "./notification-bus";
 
@@ -66,6 +67,13 @@ function getSmtpConfig() {
     auth: { user, pass },
     from,
   };
+}
+
+function getBrevoConfig() {
+  const apiKey = process.env.BREVO_API_KEY;
+  const from = process.env.SMTP_FROM || process.env.EMAIL_FROM;
+  if (!apiKey || !from) return null;
+  return { apiKey, from };
 }
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
@@ -248,9 +256,60 @@ export async function sendTransactionalEmail(params: {
   appId?: string | null;
   notificationId?: string | null;
 }) {
+  // ── 1. Try Brevo HTTP API (works on Render / any cloud — no SMTP port needed) ──
+  const brevo = getBrevoConfig();
+  if (brevo) {
+    try {
+      // Parse "Display Name <email@domain.com>" or plain "email@domain.com"
+      const fromMatch = brevo.from.match(/^(.+)<(.+)>$/);
+      const senderEmail = fromMatch ? fromMatch[2].trim() : brevo.from.trim();
+      const senderName = fromMatch ? fromMatch[1].trim() : "ConfigFlow";
+
+      await withTimeout(
+        axios.post(
+          "https://api.brevo.com/v3/smtp/email",
+          {
+            sender: { name: senderName, email: senderEmail },
+            to: [{ email: params.to }],
+            subject: params.subject,
+            textContent: params.body,
+            htmlContent: params.htmlBody || params.body.replace(/\n/g, "<br />"),
+          },
+          {
+            headers: {
+              "api-key": brevo.apiKey,
+              "Content-Type": "application/json",
+            },
+          }
+        ),
+        15000,
+        "Brevo API send"
+      );
+
+      return createEmailDelivery({
+        userId: params.userId,
+        appId: params.appId,
+        notificationId: params.notificationId,
+        to: params.to,
+        subject: params.subject,
+        body: params.body,
+        eventType: params.eventType,
+        provider: "brevo-api",
+        status: "sent",
+        providerMessageId: crypto.randomUUID(),
+        sentAt: new Date(),
+      });
+    } catch (error: any) {
+      console.error("[Mail] Brevo API send failed:", error?.response?.data || error?.message || error);
+      // fall through to SMTP
+    }
+  }
+
+  // ── 2. Try SMTP (works locally; blocked on some cloud hosts) ──
   const smtp = getSmtpConfig();
 
   if (!smtp) {
+    // ── 3. Mock mode (no email config at all) ──
     return createEmailDelivery({
       userId: params.userId,
       appId: params.appId,
