@@ -1,6 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import { EntityConfig, FieldConfig } from "../shared/types";
-import { validateRecordData } from "../shared/config-validator";
+import { EntityConfig, FieldConfig, validateRecordData } from "shared";
 import { getEntityConfig } from "./config-engine";
 
 const prisma = new PrismaClient();
@@ -50,9 +49,11 @@ export async function listRecords(appId: string, entityName: string, options: Li
   }
 
   // Get all records first for filtering (JSONB filtering in app layer)
+  // Capped to prevent unbounded memory usage (Bug #8)
   const allRecords = await prisma.record.findMany({
     where,
     orderBy: { createdAt: "desc" },
+    take: 10000,
   });
 
   // Apply JSONB filters in application layer

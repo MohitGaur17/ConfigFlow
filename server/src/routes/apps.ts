@@ -285,4 +285,78 @@ router.get("/:id/files", optionalAuth, async (req: AuthRequest, res: Response) =
   }
 });
 
+/**
+ * PUT /api/apps/:id
+ * Update an existing app's configuration.
+ */
+router.put("/:id", requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const configData = req.body;
+
+    if (!configData || typeof configData !== "object") {
+      res.status(400).json({
+        success: false,
+        error: "Request body must be a valid JSON config",
+      });
+      return;
+    }
+
+    // Verify ownership
+    const existingApp = await prisma.app.findFirst({
+      where: {
+        id: req.params.id,
+        userId: req.userId!,
+      },
+    });
+
+    if (!existingApp) {
+      res.status(404).json({ success: false, error: "App not found" });
+      return;
+    }
+
+    // Validate config format
+    const validatedConfig = parseAndValidateConfig(configData);
+
+    // Update app in DB
+    const updatedApp = await prisma.app.update({
+      where: { id: existingApp.id },
+      data: {
+        name: validatedConfig.app.name,
+        config: configData as any,
+      },
+    });
+
+    await recordNotification({
+      userId: req.userId!,
+      appId: updatedApp.id,
+      type: "app",
+      title: "Application updated",
+      message: `${validatedConfig.app.name} config has been updated.`,
+      sendEmail: true,
+      metadata: { action: "update_app" },
+    });
+
+    res.json({
+      success: true,
+      data: {
+        id: updatedApp.id,
+        name: updatedApp.name,
+        updatedAt: updatedApp.updatedAt,
+        warnings: [],
+      },
+    });
+  } catch (error: any) {
+    if (error instanceof ConfigError) {
+      res.status(400).json({
+        success: false,
+        error: error.message,
+        errors: error.errors,
+      });
+      return;
+    }
+    console.error("[Apps] Update error:", error);
+    res.status(500).json({ success: false, error: "Internal server error" });
+  }
+});
+
 export default router;

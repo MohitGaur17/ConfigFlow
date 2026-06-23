@@ -1,6 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import { AppConfig, EntityConfig } from "../shared/types";
-import { validateConfig } from "../shared/config-validator";
+import { AppConfig, EntityConfig, validateConfig } from "shared";
 
 const prisma = new PrismaClient();
 

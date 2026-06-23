@@ -1,4 +1,4 @@
-import { AppConfig, EntityConfig, TablePageConfig, FormPageConfig, DashboardPageConfig, DetailPageConfig } from "../shared/types";
+import { AppConfig, EntityConfig, TablePageConfig, FormPageConfig, DashboardPageConfig, DetailPageConfig } from "shared";
 
 // ============================================================
 // Code Generator Service — Generates a full Next.js + Prisma
@@ -402,6 +402,8 @@ export default function Page() {
   };
 
   if (success) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-20">
         <CheckCircle2 className="h-14 w-14 text-emerald-400" />
         <p className="text-lg text-white/80">Saved successfully.</p>
       </div>
@@ -589,7 +591,7 @@ datasource db {
       let type = "String";
       if (field.type === "number") type = "Int";
       if (field.type === "boolean") type = "Boolean";
-      if (field.type === "date") type = "DateTime";
+      if (field.type === "date" || field.type === "datetime") type = "DateTime";
       
       const optional = field.required ? "" : "?";
       schema += `  ${fieldName} ${type}${optional}\n`;
@@ -745,7 +747,10 @@ ${mobileLinks}
 }
 
 function generateHomePage(config: AppConfig): string {
-  return `export default function Home() {
+  return `"use client";
+import { ArrowRight } from "lucide-react";
+
+export default function Home() {
   const authEnabled = ${JSON.stringify(Boolean(config.app.auth?.enabled))};
   return (
     <div className="space-y-6">

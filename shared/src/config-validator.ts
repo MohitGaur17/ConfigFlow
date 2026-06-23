@@ -108,6 +108,10 @@ const appMetaSchema = z.object({
   }).optional(),
   auth: z.object({
     enabled: z.boolean(),
+    providers: z.object({
+      google: z.boolean().optional(),
+      github: z.boolean().optional(),
+    }).optional(),
   }),
 });
 

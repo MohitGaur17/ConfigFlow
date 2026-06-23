@@ -21,6 +21,7 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
   const [activeTab, setActiveTab] = useState<"preview" | "code">("preview");
   const [appData, setAppData] = useState<any>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
@@ -30,9 +31,13 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
 
   useEffect(() => {
     if (appId) {
+      setLoadError(null);
       api.get(`/apps/${appId}`)
         .then(res => setAppData(res.data.data))
-        .catch(err => console.error("Failed to fetch app data", err));
+        .catch(err => {
+          console.error("Failed to fetch app data", err);
+          setLoadError(err.response?.data?.error || "Failed to load app config");
+        });
     }
   }, [appId]);
 
@@ -55,6 +60,22 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
       setIsExporting(false);
     }
   };
+
+  if (loadError) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#0A0A0A] text-white p-4 gap-4">
+        <ArrowLeft className="w-12 h-12 text-amber-400" />
+        <p className="text-white/60 text-center max-w-md">{loadError}</p>
+        <button
+          onClick={() => router.push("/dashboard")}
+          className="flex items-center gap-2 bg-white text-black px-4 py-2 rounded-lg text-sm font-semibold hover:bg-gray-200 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Dashboard
+        </button>
+      </div>
+    );
+  }
 
   if (loading || !isAuthenticated || !appData) {
     return <div className="min-h-screen bg-[#0A0A0A]"></div>;

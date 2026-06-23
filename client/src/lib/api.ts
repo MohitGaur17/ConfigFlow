@@ -16,6 +16,9 @@ function isPublicPath(pathname: string) {
 // Attach JWT token to every request
 api.interceptors.request.use((config) => {
   if (typeof window !== "undefined") {
+    if (isPublicPath(window.location.pathname)) {
+      sessionStorage.removeItem("auth-redirect-in-flight");
+    }
     const token = localStorage.getItem("token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;

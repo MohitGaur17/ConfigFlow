@@ -30,7 +30,7 @@ interface NotificationRecord {
 }
 
 export default function DashboardPage() {
-  const { isAuthenticated, loading, logout, user } = useAuth();
+  const { isAuthenticated, loading, logout, user, token } = useAuth();
   const router = useRouter();
   const [apps, setApps] = useState<AppRecord[]>([]);
   const [isLoadingApps, setIsLoadingApps] = useState(true);
@@ -105,12 +105,9 @@ export default function DashboardPage() {
 
   // Real-time updates via Server-Sent Events (SSE)
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || !token) return;
 
     const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-    if (!token) return;
-
     const sseUrl = `${API_BASE}/api/notifications/stream?token=${encodeURIComponent(token)}`;
 
     const es = new EventSource(sseUrl);
@@ -138,7 +135,7 @@ export default function DashboardPage() {
     return () => {
       es.close();
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, token]);
 
   const markNotificationRead = async (notificationId: string) => {
     try {

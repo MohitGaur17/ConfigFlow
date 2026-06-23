@@ -126,13 +126,14 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
   }, [fetchConfig]);
 
   const uploadConfig = useCallback(async (configData: unknown) => {
-    const res = await api.post("/config", configData);
+    if (!appId) throw new Error("No active appId");
+    const res = await api.put(`/apps/${appId}`, configData);
     if (res.data.success) {
       await fetchConfig();
       return { warnings: res.data.data.warnings || [] };
     }
     throw new Error(res.data.error || "Failed to upload config");
-  }, [fetchConfig]);
+  }, [appId, fetchConfig]);
 
   const getEntity = useCallback(
     (name: string) => config?.entities[name],

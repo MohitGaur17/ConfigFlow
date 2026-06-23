@@ -50,9 +50,9 @@ export default function NotificationSidebar({
         {/* Header */}
         <div className="border-b border-white/10 p-4 md:p-6 flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-white">Notifications</h2>
+            <h2 className="text-lg font-semibold text-white">{t('notifications.title', 'Notifications')}</h2>
             <p className="text-xs text-white/40 mt-1">
-              {notifications.length} message{notifications.length !== 1 ? "s" : ""}
+              {notifications.length} {notifications.length === 1 ? t('notifications.messageCountOne', 'message') : t('notifications.messageCountOther', 'messages')}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -60,9 +60,9 @@ export default function NotificationSidebar({
               <button
                 onClick={onMarkAllRead}
                 className="text-xs md:text-sm inline-flex items-center gap-2 px-3 py-1 rounded-md bg-white/5 hover:bg-white/10 text-white/90 font-medium transition-colors mr-2"
-                title="Mark all as Read"
+                title={t('notifications.markAllRead', 'Mark all as Read')}
               >
-                Mark all as Read
+                {t('notifications.markAllRead', 'Mark all as Read')}
               </button>
             )}
             <button
@@ -88,7 +88,7 @@ export default function NotificationSidebar({
           ) : notifications.length === 0 ? (
             <div className="flex items-center justify-center h-full p-4 md:p-6">
               <div className="text-center">
-                <p className="text-sm text-white/50">No notifications yet</p>
+                <p className="text-sm text-white/50">{t('notifications.empty', 'No notifications yet')}</p>
               </div>
             </div>
           ) : (
@@ -118,7 +118,7 @@ export default function NotificationSidebar({
                       <button
                         onClick={() => onMarkRead(notification.id)}
                         className="flex-shrink-0 inline-flex items-center justify-center p-1.5 rounded-full border border-white/10 bg-white/5 text-white/70 hover:text-white hover:border-indigo-500/50 hover:bg-indigo-500/10 transition-colors"
-                        title="Mark as read"
+                        title={t('notifications.markAsRead', 'Mark as read')}
                       >
                         <CheckCircle2 className="h-4 w-4" />
                       </button>

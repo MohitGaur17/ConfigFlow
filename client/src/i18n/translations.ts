@@ -94,6 +94,14 @@ export const translations: Record<Language, Record<string, string>> = {
     'pwa.installTitle': 'Install ConfigFlow',
     'pwa.installDescription': 'Access your apps offline and from your home screen.',
     'pwa.installButton': 'Install Now',
+
+    // Notifications
+    'notifications.title': 'Notifications',
+    'notifications.messageCountOne': 'message',
+    'notifications.messageCountOther': 'messages',
+    'notifications.markAllRead': 'Mark all as Read',
+    'notifications.markAsRead': 'Mark as read',
+    'notifications.empty': 'No notifications yet',
   },
 
   es: {

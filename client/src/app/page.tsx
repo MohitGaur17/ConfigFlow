@@ -106,6 +106,36 @@ export default function HomePage() {
     }
   }, [isAuthenticated, handleGenerate]);
 
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const searchParams = new URLSearchParams(window.location.search);
+      const sharedText = searchParams.get("text") || searchParams.get("title");
+      const sharedUrl = searchParams.get("url");
+
+      let contentToParse = sharedText || "";
+      if (sharedUrl && !contentToParse.includes(sharedUrl)) {
+        contentToParse = contentToParse ? `${contentToParse}\n${sharedUrl}` : sharedUrl;
+      }
+
+      if (contentToParse) {
+        try {
+          const trimmed = contentToParse.trim();
+          if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+            const parsed = JSON.parse(trimmed);
+            setJsonInput(JSON.stringify(parsed, null, 2));
+            toast.success("Imported shared configuration!");
+            
+            // Clean up query string from URL
+            const cleanUrl = window.location.pathname;
+            window.history.replaceState({}, document.title, cleanUrl);
+          }
+        } catch (e) {
+          // not valid JSON
+        }
+      }
+    }
+  }, []);
+
   const handleGenerateClick = () => {
     if (!isAuthenticated) {
       localStorage.setItem("pending_app_config", jsonInput);

@@ -103,6 +103,13 @@ export default function AppShell({ children, hideSidebar = false, showLanguageSw
             })}
           </nav>
 
+          {/* Language Switcher */}
+          {showLanguageSwitcher && (
+            <div className="px-3 py-2 border-t border-white/5">
+              <LanguageSwitcher />
+            </div>
+          )}
+
           {/* User */}
           <div className="px-3 py-3 border-t border-white/5">
             <div className="flex items-center gap-3 px-3">
@@ -124,13 +131,6 @@ export default function AppShell({ children, hideSidebar = false, showLanguageSw
           </div>
         </aside>
       )}
-
-          {/* Language Switcher */}
-          {showLanguageSwitcher && (
-            <div className="px-3 py-3 border-t border-white/5">
-              <LanguageSwitcher />
-            </div>
-          )}
       {/* Main */}
       <main className="flex-1 min-w-0">
         {/* Mobile header */}
