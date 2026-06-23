@@ -16,6 +16,7 @@ COPY tsconfig.base.json ./
 RUN npm ci
 
 # Build server
+RUN npm run build --workspace=shared
 RUN npm run build --workspace=server
 
 # Generate Prisma client during build (requires dev deps available in builder)
@@ -38,6 +39,7 @@ COPY shared ./shared
 RUN npm ci --omit=dev
 
 # Copy built application from builder
+COPY --from=builder /app/shared/dist ./shared/dist
 COPY --from=builder /app/server/dist ./server/dist
 
 # Copy generated Prisma client from builder stage into runtime image
