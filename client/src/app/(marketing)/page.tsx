@@ -148,42 +148,6 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white selection:bg-indigo-500/30 font-sans" dir={direction === "rtl" ? "ltr" : undefined}>
       <PwaRegister />
-      {/* Navigation */}
-      <nav className="border-b border-white/10 bg-black/50 backdrop-blur-md fixed top-0 w-full z-50 safe-area-inset-top">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 h-14 md:h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2 min-w-0">
-            <Image src="/favicon.svg" alt="ConfigFlow" width={32} height={32} className="w-7 h-7 md:w-8 md:h-8 rounded-lg flex-shrink-0 object-contain" />
-            <span className="font-bold tracking-tight text-base md:text-lg truncate">ConfigFlow</span>
-          </div>
-          <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
-            {loading ? null : isAuthenticated ? (
-              <button
-                onClick={() => router.push("/dashboard")}
-                className="text-xs md:text-sm font-medium hover:text-indigo-400 transition-colors whitespace-nowrap"
-              >
-                {t('nav.dashboard')}
-              </button>
-            ) : (
-              <>
-                <button
-                  onClick={() => router.push("/login")}
-                  className="text-xs md:text-sm font-medium text-white/70 hover:text-white transition-colors whitespace-nowrap"
-                >
-                  {t('auth.login')}
-                </button>
-                <button
-                  onClick={() => router.push("/register")}
-                  className="text-xs md:text-sm font-medium bg-white text-black px-3 md:px-4 py-1.5 md:py-2 rounded-full hover:bg-gray-200 transition-colors whitespace-nowrap"
-                >
-                  {t('auth.signup')}
-                </button>
-              </>
-            )}
-                      <LanguageSwitcher />
-          </div>
-        </div>
-      </nav>
-
       {/* Hero Section */}
       <main className="pt-20 md:pt-32 pb-12 md:pb-16 px-4 md:px-6 safe-area-inset-bottom">
         <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-8 md:gap-16 items-center">
