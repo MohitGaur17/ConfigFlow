@@ -1,238 +1,238 @@
 "use client";
+import Link from "next/link";
+import { useEffect, useRef } from "react";
 
-import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import Image from "next/image";
-import { useAuth } from "@/lib/auth-context";
-import { ArrowRight, Code2, Database, LayoutTemplate, Zap } from "lucide-react";
-import api from "@/lib/api";
-
-import { useTranslation } from "@/i18n/useTranslation";
-import LanguageSwitcher from "@/components/LanguageSwitcher";
-import PwaRegister from "@/components/PwaRegister";
-import { toast } from "react-hot-toast";
-const SAMPLE_CONFIG = {
-  "app": {
-    "name": "Task Manager",
-    "description": "Personal task tracking app",
-    "theme": { "primaryColor": "#6366f1", "mode": "light" },
-    "auth": { "enabled": true }
-  },
-  "entities": {
-    "task": {
-      "userScoped": true,
-      "displayField": "title",
-      "fields": {
-        "title":       { "type": "string", "required": true, "label": "Task Title" },
-        "description": { "type": "text", "label": "Description" },
-        "status":      { "type": "enum", "options": ["todo", "in_progress", "done"], "default": "todo", "label": "Status" },
-        "priority":    { "type": "number", "min": 1, "max": 5, "default": 3, "label": "Priority" },
-        "dueDate":     { "type": "date", "label": "Due Date" },
-        "isUrgent":    { "type": "boolean", "default": false, "label": "Urgent?" }
-      }
-    }
-  },
-  "pages": [
-    {
-      "type": "table", "name": "All Tasks", "path": "/tasks",
-      "entity": "task",
-      "columns": ["title", "status", "priority", "dueDate", "isUrgent"],
-      "actions": ["create", "edit", "delete"],
-      "filters": ["status", "priority"],
-      "searchable": true,
-      "pageSize": 10
-    },
-    {
-      "type": "form", "name": "New Task", "path": "/tasks/new",
-      "entity": "task",
-      "fields": ["title", "description", "status", "priority", "dueDate", "isUrgent"]
-    },
-    {
-      "type": "dashboard", "name": "Dashboard", "path": "/dashboard",
-      "widgets": [
-        { "type": "stat", "label": "Total Tasks", "entity": "task", "operation": "count" },
-        { "type": "stat", "label": "Avg Priority", "entity": "task", "operation": "avg", "field": "priority" },
-        { "type": "chart", "label": "Tasks by Status", "entity": "task", "groupBy": "status", "chartType": "pie" },
-        { "type": "list", "label": "Recent Tasks", "entity": "task" }
-      ]
-    }
-  ]
-};
-
-export default function HomePage() {
-  const { isAuthenticated, loading } = useAuth();
-  const router = useRouter();
-  const [jsonInput, setJsonInput] = useState(JSON.stringify(SAMPLE_CONFIG, null, 2));
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [error, setError] = useState("");
-
-  const { t, direction } = useTranslation();
-  const handleGenerate = useCallback(async (configString: string) => {
-    try {
-      setIsGenerating(true);
-      setError("");
-      const configJson = JSON.parse(configString);
-
-      const response = await api.post("/apps", configJson);
-      if (response.data.success) {
-        toast.success("Application created");
-        router.push(`/builder/${response.data.data.id}`);
-      }
-    } catch (err: unknown) {
-      let message = "Invalid JSON or server error";
-      if (typeof err === "object" && err !== null) {
-        const e = err as { response?: { data?: { error?: unknown } }; message?: unknown };
-        if (typeof e.response?.data?.error === "string") {
-          message = e.response!.data!.error as string;
-        } else if (typeof e.message === "string") {
-          message = e.message;
-        }
-      } else if (typeof err === "string") {
-        message = err;
-      }
-      setError(message);
-    } finally {
-      setIsGenerating(false);
-    }
-  }, [router]);
+export default function Home() {
+  const heroRef = useRef<HTMLElement>(null);
+  const glowRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // If returning from login with a pending config, generate it
-    const pendingConfig = localStorage.getItem("pending_app_config");
-    if (isAuthenticated && pendingConfig) {
-      localStorage.removeItem("pending_app_config");
-      // defer to avoid calling setState synchronously during rendering
-      setTimeout(() => handleGenerate(pendingConfig), 0);
-    }
-  }, [isAuthenticated, handleGenerate]);
+    const heroSection = heroRef.current;
+    const mouseGlow = glowRef.current;
+    
+    if (heroSection && mouseGlow) {
+        const handleMouseMove = (e: MouseEvent) => {
+            const rect = heroSection.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            mouseGlow.style.left = `${x}px`;
+            mouseGlow.style.top = `${y}px`;
+        };
+        
+        heroSection.addEventListener('mousemove', handleMouseMove);
+        heroSection.addEventListener('mouseleave', () => {
+            mouseGlow.style.left = '50%';
+            mouseGlow.style.top = '50%';
+        });
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const searchParams = new URLSearchParams(window.location.search);
-      const sharedText = searchParams.get("text") || searchParams.get("title");
-      const sharedUrl = searchParams.get("url");
-
-      let contentToParse = sharedText || "";
-      if (sharedUrl && !contentToParse.includes(sharedUrl)) {
-        contentToParse = contentToParse ? `${contentToParse}\n${sharedUrl}` : sharedUrl;
-      }
-
-      if (contentToParse) {
-        try {
-          const trimmed = contentToParse.trim();
-          if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
-            const parsed = JSON.parse(trimmed);
-            setJsonInput(JSON.stringify(parsed, null, 2));
-            toast.success("Imported shared configuration!");
-            
-            // Clean up query string from URL
-            const cleanUrl = window.location.pathname;
-            window.history.replaceState({}, document.title, cleanUrl);
-          }
-        } catch (e) {
-          // not valid JSON
-        }
-      }
+        return () => {
+          heroSection.removeEventListener('mousemove', handleMouseMove);
+        };
     }
   }, []);
 
-  const handleGenerateClick = () => {
-    if (!isAuthenticated) {
-      localStorage.setItem("pending_app_config", jsonInput);
-      router.push("/login?redirect=generate");
-      return;
-    }
-    handleGenerate(jsonInput);
-  };
-
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white selection:bg-indigo-500/30 font-sans" dir={direction === "rtl" ? "ltr" : undefined}>
-      <PwaRegister />
+    <div className="font-body-md antialiased selection:bg-primary-container selection:text-white bg-grid min-h-screen">
       {/* Hero Section */}
-      <main className="pt-20 md:pt-32 pb-12 md:pb-16 px-4 md:px-6 safe-area-inset-bottom">
-        <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-8 md:gap-16 items-center">
-          
-          {/* Left: Copy */}
-          <div className="order-1 lg:order-1">
-            <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs md:text-sm text-indigo-300 mb-4 md:mb-6 ${direction === "rtl" ? "justify-end text-right self-start" : ""}`}>
-              <Zap className="w-4 h-4 flex-shrink-0" />
-              <span className="truncate">{t('header.tagline')}</span>
+      <section ref={heroRef} className="relative max-w-container-max mx-auto px-margin-safe py-20 lg:py-32 flex flex-col lg:flex-row items-center gap-12" id="hero-section">
+        <div ref={glowRef} id="mouse-glow" style={{ left: '50%', top: '50%' }}></div>
+        <div className="flex-1 z-10 relative">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-outline-variant bg-surface-container-low mb-6">
+            <span className="w-2 h-2 rounded-full bg-primary-container animate-pulse"></span>
+            <span className="text-label-caps font-label-caps text-on-surface-variant uppercase tracking-widest">Configuration is the new compiler</span>
+          </div>
+          <h1 className="text-display-hero font-display-hero text-on-surface mb-6">
+            <div className="reveal-text-1">Define it.</div>
+            <div className="reveal-text-2">Generate it.</div>
+            <div className="reveal-text-3 text-primary-container">Ship it.</div>
+          </h1>
+          <p className="text-body-lg font-body-lg text-on-surface-variant mb-10 max-w-xl">
+            Describe your software architecture in JSON. ConfigFlow's generation engine orchestrates the architecture and generates a production-ready Next.js system in minutes.
+          </p>
+          <div className="flex flex-wrap items-center gap-4">
+            <Link href="/register" className="bg-primary-container hover:bg-orange-600 text-white px-6 py-3 rounded-md text-body-md font-bold transition-all shadow-[0_0_20px_rgba(255,107,0,0.5)] flex items-center gap-2 shine-effect">
+              Start Building Free
+              <span className="material-symbols-outlined text-sm">arrow_forward</span>
+            </Link>
+            <Link href="#how-it-works" className="glass-panel hover:bg-white/5 text-on-surface px-6 py-3 rounded-md text-body-md font-medium transition-colors flex items-center gap-2 shine-effect">
+              <span className="material-symbols-outlined text-sm">play_circle</span>
+              See How It Works
+            </Link>
+          </div>
+          <div className="mt-12 pt-8 border-t border-outline-hairline flex gap-8">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary-container text-sm">memory</span>
+              <span className="text-label-tech font-label-tech text-on-surface-variant">Config-Driven Architecture</span>
             </div>
-            <h1 className={`max-w-2xl text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight leading-[0.95] mb-4 md:mb-6 ${direction === "rtl" ? "text-right" : ""}`}>
-              <span className="block text-white">{t('home.title')}</span>
-              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 mt-2">
-                {t('home.subtitle')}
-              </span>
-            </h1>
-            <p className={`max-w-xl text-base sm:text-lg md:text-xl text-white/60 mb-6 md:mb-8 leading-relaxed ${direction === "rtl" ? "text-right" : ""}`}>
-              {t('header.description')}
-            </p>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
-              <Feature rtl={direction === "rtl"} icon={<Database />} title={t('home.featureDatabase')} desc={t('home.featureDatabaseDesc')} />
-              <Feature rtl={direction === "rtl"} icon={<LayoutTemplate />} title={t('home.featureNext')} desc={t('home.featureNextDesc')} />
-              <Feature rtl={direction === "rtl"} icon={<Code2 />} title={t('home.featureExport')} desc={t('home.featureExportDesc')} />
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary-container text-sm">verified</span>
+              <span className="text-label-tech font-label-tech text-on-surface-variant">Production Ready</span>
             </div>
           </div>
-
-          {/* Right: The Prompt Box (JSON Editor) */}
-          <div className="relative group order-2 lg:order-2 mb-8 lg:mb-0">
-            <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-2xl blur opacity-25 group-hover:opacity-40 transition duration-1000"></div>
-            <div className="relative bg-[#111111] border border-white/10 rounded-xl md:rounded-2xl shadow-2xl overflow-hidden flex flex-col h-80 sm:h-96 md:h-[600px]">
-              
-              {/* Editor Header */}
-              <div className="h-10 md:h-12 bg-black/40 border-b border-white/5 flex items-center justify-between px-3 md:px-4 flex-shrink-0">
-                <div className="flex gap-2">
-                  <div className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-red-500/50"></div>
-                  <div className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-yellow-500/50"></div>
-                  <div className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-green-500/50"></div>
-                </div>
-                <div className="text-xs text-white/40 font-mono">app-config.json</div>
-                <div className="w-8 md:w-10"></div>
-              </div>
-
-              {/* Editor Body */}
-              <div className="flex-1 p-0 relative overflow-hidden">
-                <textarea
-                  value={jsonInput}
-                  onChange={(e) => setJsonInput(e.target.value)}
-                  className="w-full h-full bg-transparent text-xs sm:text-sm md:text-sm font-mono text-indigo-200 p-3 md:p-6 focus:outline-none resize-none leading-relaxed"
-                  spellCheck={false}
-                />
-              </div>
-
-              {/* Editor Footer / Action */}
-              <div className="p-3 md:p-4 bg-black/40 border-t border-white/5 flex-shrink-0">
-                {error && <div className="text-red-400 text-xs md:text-sm mb-2 md:mb-3 px-2 truncate">{error}</div>}
-                <button
-                  onClick={handleGenerateClick}
-                  disabled={isGenerating}
-                  className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-medium py-2.5 md:py-4 px-4 md:px-6 rounded-lg md:rounded-xl transition-all disabled:opacity-50 text-sm md:text-base"
-                >
-                  {isGenerating ? t('common.loading') : t('home.newApplication')}
-                  {!isGenerating && <ArrowRight className="w-4 h-4 md:w-5 md:h-5" />}
-                </button>
-              </div>
-              
-            </div>
-          </div>
-
         </div>
-      </main>
-    </div>
-  );
-}
+        
+        {/* Abstract Isometric Diagram */}
+        <div className="flex-1 relative w-full lg:h-[600px] flex items-center justify-center overflow-hidden">
+          <div className="absolute inset-0 bg-grid opacity-20"></div>
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary-container/5 blur-[120px] rounded-full pointer-events-none"></div>
+          <div className="absolute w-full h-[1px] bg-outline-variant/20 top-1/2"></div>
+          <div className="absolute h-full w-[1px] bg-outline-variant/20 left-1/2"></div>
+          <div className="absolute w-[400px] h-[400px] border border-outline-variant/10 rounded-full"></div>
+          <div className="absolute w-[250px] h-[250px] border border-outline-variant/20 rounded-full"></div>
+          
+          <div className="relative z-10 flex items-start justify-between w-full max-w-2xl px-4 float-diagram pt-8">
+            <div className="absolute top-[64px] left-[5rem] right-[5rem] h-[2px] bg-outline-variant/30 -z-10"></div>
+            <div className="absolute top-[64px] left-[5rem] w-[calc(50%-7rem)] h-[2px] -z-10 overflow-hidden">
+              <div className="absolute top-0 h-full w-12 bg-gradient-to-r from-transparent via-primary-container to-primary-container animate-[circuitPulse1_3s_linear_infinite]"></div>
+            </div>
+            <div className="absolute top-[64px] right-[5rem] w-[calc(50%-7rem)] h-[2px] -z-10 overflow-hidden">
+              <div className="absolute top-0 h-full w-12 bg-gradient-to-r from-transparent via-primary-container to-primary-container animate-[circuitPulse2_3s_linear_infinite]"></div>
+            </div>
+            
+            <div className="flex flex-col items-center gap-4 bg-background px-2 relative z-10 w-24">
+              <div className="w-16 h-16 rounded bg-surface-container border border-outline-variant flex items-center justify-center hover-lift cursor-default relative">
+                <span className="material-symbols-outlined text-on-surface-variant/60">chat_bubble_outline</span>
+              </div>
+              <span className="text-label-caps font-label-caps text-on-surface-variant/40 tracking-[0.2em] text-[9px] text-center">DEFINE</span>
+            </div>
+            
+            <div className="flex flex-col items-center gap-4 bg-background px-2 relative z-10 w-32 -mt-4">
+              <div className="w-20 h-24 rounded border-2 border-primary-container/30 bg-surface-elevated flex flex-col items-center justify-center relative hover-lift cursor-default animate-[circuitEngine_3s_ease-in-out_infinite]">
+                <span className="material-symbols-outlined text-primary-container text-3xl mb-2">code</span>
+                <div className="w-10 h-1 bg-primary-container/30 rounded-full mb-1"></div>
+                <div className="w-6 h-1 bg-primary-container/30 rounded-full"></div>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 w-[1px] h-24 bg-gradient-to-b from-primary-container to-transparent opacity-50"></div>
+              </div>
+              <span className="text-label-caps font-label-caps text-primary-container tracking-[0.3em] text-[10px] font-bold text-center mt-2">CONFIG</span>
+            </div>
+            
+            <div className="flex flex-col items-center gap-4 bg-background px-2 relative z-10 w-24">
+              <div className="w-16 h-16 rounded bg-surface-container border border-tertiary-container/30 flex items-center justify-center hover-lift cursor-default shadow-[0_0_20px_rgba(0,174,120,0.1)] relative">
+                <span className="material-symbols-outlined text-tertiary-container">layers</span>
+              </div>
+              <span className="text-label-caps font-label-caps text-tertiary-container/80 tracking-[0.2em] text-[9px] text-center">PRODUCTION</span>
+            </div>
+          </div>
+        </div>
+      </section>
 
-function Feature({ rtl, icon, title, desc }: { rtl?: boolean; icon: React.ReactNode; title: string; desc: string }) {
-  return (
-    <div className="flex items-start gap-3">
-      <div className="p-2 rounded-lg bg-white/5 text-indigo-400">
-        {icon}
-      </div>
-      <div>
-        <h3 className={`font-medium text-white ${rtl ? "text-right" : ""}`}>{title}</h3>
-        <p className={`text-sm text-white/50 ${rtl ? "text-right" : ""}`}>{desc}</p>
-      </div>
+      {/* Tech Stack Band */}
+      <section className="border-y border-outline-hairline bg-surface-container-low py-8">
+        <div className="max-w-container-max mx-auto px-margin-safe flex flex-wrap justify-center items-center gap-8 md:gap-16 opacity-60">
+          <div className="flex items-center gap-2 text-on-surface-variant">
+            <span className="material-symbols-outlined">language</span>
+            <span className="text-label-caps font-label-caps">NEXT.JS</span>
+          </div>
+          <div className="flex items-center gap-2 text-on-surface-variant">
+            <span className="material-symbols-outlined">code</span>
+            <span className="text-label-caps font-label-caps">REACT</span>
+          </div>
+          <div className="flex items-center gap-2 text-on-surface-variant">
+            <span className="material-symbols-outlined">api</span>
+            <span className="text-label-caps font-label-caps">EXPRESS</span>
+          </div>
+          <div className="flex items-center gap-2 text-on-surface-variant">
+            <span className="material-symbols-outlined">database</span>
+            <span className="text-label-caps font-label-caps">POSTGRESQL</span>
+          </div>
+          <div className="flex items-center gap-2 text-on-surface-variant">
+            <span className="material-symbols-outlined">schema</span>
+            <span className="text-label-caps font-label-caps">PRISMA</span>
+          </div>
+          <div className="flex items-center gap-2 text-on-surface-variant">
+            <span className="material-symbols-outlined">palette</span>
+            <span className="text-label-caps font-label-caps">TAILWIND CSS</span>
+          </div>
+        </div>
+      </section>
+
+      {/* Generate Section (Showpiece) */}
+      <section className="max-w-container-max mx-auto px-margin-safe py-20 border-t border-outline-hairline" id="how-it-works">
+        <div className="text-center mb-16">
+          <h2 className="text-label-caps font-label-caps text-primary-container tracking-widest mb-2">THE ENGINE</h2>
+          <h3 className="text-headline-lg font-headline-lg text-on-surface mb-4">A complete, production-ready architecture.</h3>
+          <p className="text-body-lg text-on-surface-variant max-w-2xl mx-auto">Every layer. Every file. Every configuration. Generated, connected, and ready to scale.</p>
+        </div>
+        <div className="glass-panel rounded-xl border border-outline-hairline p-1 lg:p-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+            
+            {/* JSON Input Left */}
+            <div className="lg:col-span-4 rounded bg-terminal-bg border border-outline-variant/50 p-4 font-code-base text-code-base h-full flex flex-col">
+              <div className="flex gap-2 mb-4 pb-2 border-b border-outline-variant/50">
+                <div className="w-3 h-3 rounded-full bg-error-red/50"></div>
+                <div className="w-3 h-3 rounded-full bg-warning-amber/50"></div>
+                <div className="w-3 h-3 rounded-full bg-tertiary/50"></div>
+                <span className="text-label-tech text-on-surface-variant ml-2">config.json</span>
+              </div>
+              <pre className="text-on-surface-variant overflow-x-auto hide-scroll text-sm">
+{`{
+  "`}<span className="text-code-indigo">project</span>{`": "`}<span className="text-primary">SaaS CRM</span>{`",
+  "`}<span className="text-code-indigo">models</span>{`": [
+    {
+      "`}<span className="text-code-indigo">name</span>{`": "`}<span className="text-primary">Customer</span>{`",
+      "`}<span className="text-code-indigo">fields</span>{`": {
+        "`}<span className="text-code-indigo">email</span>{`": "`}<span className="text-primary">String @unique</span>{`",
+        "`}<span className="text-code-indigo">status</span>{`": "`}<span className="text-primary">Enum</span>{`"
+      }
+    }
+  ],
+  "`}<span className="text-code-indigo">features</span>{`": [
+    "`}<span className="text-primary">auth</span>{`",
+    "`}<span className="text-primary">api_routes</span>{`",
+    "`}<span className="text-primary">dashboard_ui</span>{`"
+  ]
+}`}
+              </pre>
+            </div>
+            
+            {/* Engine Core Middle */}
+            <div className="lg:col-span-4 flex flex-col items-center justify-center relative py-12">
+              <div className="hidden lg:block absolute left-0 top-1/2 w-full h-[1px] bg-gradient-to-r from-outline-variant via-primary-container to-outline-variant -z-10"></div>
+              <div className="w-24 h-24 rounded-2xl bg-surface-elevated border border-primary-container shadow-[0_0_40px_rgba(255,107,0,0.2)] flex items-center justify-center relative z-10 hover-lift">
+                <span className="material-symbols-outlined text-4xl text-primary-container animate-pulse">settings_b_roll</span>
+              </div>
+              <div className="mt-4 text-label-caps font-label-caps text-primary tracking-widest text-center">
+                  GENERATION ENGINE<br />
+                  <span className="text-[9px] text-on-surface-variant">RESOLVING DEPENDENCIES</span>
+              </div>
+            </div>
+            
+            {/* Outputs Right */}
+            <div className="lg:col-span-4 space-y-4">
+              <div className="glass-panel p-4 rounded border-l-2 border-l-tertiary-container flex items-center gap-4 hover-lift">
+                <span className="material-symbols-outlined text-tertiary-container">database</span>
+                <div>
+                  <div className="text-label-caps text-on-surface font-label-caps mb-1">DATABASE</div>
+                  <div className="text-code-base font-code-base text-on-surface-variant text-xs">schema.prisma generated</div>
+                </div>
+              </div>
+              <div className="glass-panel p-4 rounded border-l-2 border-l-secondary-container flex items-center gap-4 hover-lift">
+                <span className="material-symbols-outlined text-secondary-container">api</span>
+                <div>
+                  <div className="text-label-caps text-on-surface font-label-caps mb-1">BACKEND API</div>
+                  <div className="text-code-base font-code-base text-on-surface-variant text-xs">Next.js Route Handlers</div>
+                </div>
+              </div>
+              <div className="glass-panel p-4 rounded border-l-2 border-l-primary-container flex items-center gap-4 hover-lift">
+                <span className="material-symbols-outlined text-primary-container">web</span>
+                <div>
+                  <div className="text-label-caps text-on-surface font-label-caps mb-1">FRONTEND</div>
+                  <div className="text-code-base font-code-base text-on-surface-variant text-xs">React Server Components</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      
+      {/* Final CTA */}
+      <section className="max-w-container-max mx-auto px-margin-safe py-32 text-center">
+        <h2 className="text-headline-lg font-headline-lg text-on-surface mb-6">Ready to build your next app in minutes?</h2>
+        <p className="text-body-md text-on-surface-variant mb-10">Join developers who are shipping faster with ConfigFlow.</p>
+        <Link href="/register" className="inline-block bg-primary-container hover:bg-orange-600 text-white px-8 py-4 rounded-md text-body-lg font-bold transition-all shadow-[0_0_20px_rgba(255,107,0,0.5)] shine-effect">
+          Start Building Now
+        </Link>
+      </section>
     </div>
   );
 }
