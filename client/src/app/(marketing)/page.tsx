@@ -9,25 +9,25 @@ export default function Home() {
   useEffect(() => {
     const heroSection = heroRef.current;
     const mouseGlow = glowRef.current;
-    
-    if (heroSection && mouseGlow) {
-        const handleMouseMove = (e: MouseEvent) => {
-            const rect = heroSection.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            mouseGlow.style.left = `${x}px`;
-            mouseGlow.style.top = `${y}px`;
-        };
-        
-        heroSection.addEventListener('mousemove', handleMouseMove);
-        heroSection.addEventListener('mouseleave', () => {
-            mouseGlow.style.left = '50%';
-            mouseGlow.style.top = '50%';
-        });
 
-        return () => {
-          heroSection.removeEventListener('mousemove', handleMouseMove);
-        };
+    if (heroSection && mouseGlow) {
+      const handleMouseMove = (e: MouseEvent) => {
+        const rect = heroSection.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        mouseGlow.style.left = `${x}px`;
+        mouseGlow.style.top = `${y}px`;
+      };
+
+      heroSection.addEventListener('mousemove', handleMouseMove);
+      heroSection.addEventListener('mouseleave', () => {
+        mouseGlow.style.left = '50%';
+        mouseGlow.style.top = '50%';
+      });
+
+      return () => {
+        heroSection.removeEventListener('mousemove', handleMouseMove);
+      };
     }
   }, []);
 
@@ -70,7 +70,7 @@ export default function Home() {
             </div>
           </div>
         </div>
-        
+
         {/* Abstract Isometric Diagram */}
         <div className="flex-1 relative w-full lg:h-[600px] flex items-center justify-center overflow-hidden">
           <div className="absolute inset-0 bg-grid opacity-20"></div>
@@ -79,7 +79,7 @@ export default function Home() {
           <div className="absolute h-full w-[1px] bg-outline-variant/20 left-1/2"></div>
           <div className="absolute w-[400px] h-[400px] border border-outline-variant/10 rounded-full"></div>
           <div className="absolute w-[250px] h-[250px] border border-outline-variant/20 rounded-full"></div>
-          
+
           <div className="relative z-10 flex items-start justify-between w-full max-w-2xl px-4 float-diagram pt-8">
             <div className="absolute top-[64px] left-[5rem] right-[5rem] h-[2px] bg-outline-variant/30 -z-10"></div>
             <div className="absolute top-[64px] left-[5rem] w-[calc(50%-7rem)] h-[2px] -z-10 overflow-hidden">
@@ -88,14 +88,14 @@ export default function Home() {
             <div className="absolute top-[64px] right-[5rem] w-[calc(50%-7rem)] h-[2px] -z-10 overflow-hidden">
               <div className="absolute top-0 h-full w-12 bg-gradient-to-r from-transparent via-primary-container to-primary-container animate-[circuitPulse2_3s_linear_infinite]"></div>
             </div>
-            
+
             <div className="flex flex-col items-center gap-4 bg-background px-2 relative z-10 w-24">
               <div className="w-16 h-16 rounded bg-surface-container border border-outline-variant flex items-center justify-center hover-lift cursor-default relative">
                 <span className="material-symbols-outlined text-on-surface-variant/60">chat_bubble_outline</span>
               </div>
               <span className="text-label-caps font-label-caps text-on-surface-variant/40 tracking-[0.2em] text-[9px] text-center">DEFINE</span>
             </div>
-            
+
             <div className="flex flex-col items-center gap-4 bg-background px-2 relative z-10 w-32 -mt-4">
               <div className="w-20 h-24 rounded border-2 border-primary-container/30 bg-surface-elevated flex flex-col items-center justify-center relative hover-lift cursor-default animate-[circuitEngine_3s_ease-in-out_infinite]">
                 <span className="material-symbols-outlined text-primary-container text-3xl mb-2">code</span>
@@ -105,7 +105,7 @@ export default function Home() {
               </div>
               <span className="text-label-caps font-label-caps text-primary-container tracking-[0.3em] text-[10px] font-bold text-center mt-2">CONFIG</span>
             </div>
-            
+
             <div className="flex flex-col items-center gap-4 bg-background px-2 relative z-10 w-24">
               <div className="w-16 h-16 rounded bg-surface-container border border-tertiary-container/30 flex items-center justify-center hover-lift cursor-default shadow-[0_0_20px_rgba(0,174,120,0.1)] relative">
                 <span className="material-symbols-outlined text-tertiary-container">layers</span>
@@ -146,6 +146,72 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Problem / Workflow Comparison */}
+      <section className="max-w-container-max mx-auto px-margin-safe py-20 border-t border-outline-hairline">
+        <div className="text-center mb-16">
+          <h2 className="text-label-caps font-label-caps text-primary-container tracking-widest mb-2">THE PROBLEM</h2>
+          <h3 className="text-headline-lg font-headline-lg text-on-surface mb-4">Stop writing boilerplate.</h3>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+          {/* Traditional */}
+          <div className="glass-panel p-8 rounded-xl border border-error-container/30">
+            <h4 className="text-headline-md font-headline-md text-on-surface mb-6 flex items-center gap-2">
+              <span className="material-symbols-outlined text-error">warning</span>
+              Traditional Development
+            </h4>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center border-b border-outline-variant/30 pb-4">
+                <span className="text-on-surface-variant text-body-md">Timeline</span>
+                <span className="text-error font-label-tech">Weeks to Months</span>
+              </div>
+              <div className="flex justify-between items-center border-b border-outline-variant/30 pb-4">
+                <span className="text-on-surface-variant text-body-md">APIs</span>
+                <span className="text-error font-label-tech">Manual implementation</span>
+              </div>
+              <div className="flex justify-between items-center border-b border-outline-variant/30 pb-4">
+                <span className="text-on-surface-variant text-body-md">Database</span>
+                <span className="text-error font-label-tech">Manual schemas & migrations</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-on-surface-variant text-body-md">UI Components</span>
+                <span className="text-error font-label-tech">Manual wiring & state</span>
+              </div>
+            </div>
+          </div>
+
+          {/* ConfigFlow */}
+          <div className="glass-panel p-8 rounded-xl border border-primary-container/30 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-10">
+              <span className="material-symbols-outlined text-9xl text-primary-container">bolt</span>
+            </div>
+            <h4 className="text-headline-md font-headline-md text-on-surface mb-6 flex items-center gap-2 relative z-10">
+              <span className="material-symbols-outlined text-primary-container">check_circle</span>
+              ConfigFlow
+            </h4>
+            <div className="space-y-4 relative z-10">
+              <div className="flex justify-between items-center border-b border-outline-variant/30 pb-4">
+                <span className="text-on-surface-variant text-body-md">Timeline</span>
+                <span className="text-primary-container font-label-tech">Minutes</span>
+              </div>
+              <div className="flex justify-between items-center border-b border-outline-variant/30 pb-4">
+                <span className="text-on-surface-variant text-body-md">APIs</span>
+                <span className="text-primary-container font-label-tech">Auto-generated CRUD</span>
+              </div>
+              <div className="flex justify-between items-center border-b border-outline-variant/30 pb-4">
+                <span className="text-on-surface-variant text-body-md">Database</span>
+                <span className="text-primary-container font-label-tech">Auto-generated schemas</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-on-surface-variant text-body-md">UI Components</span>
+                <span className="text-primary-container font-label-tech">Auto-generated & wired</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
       {/* Generate Section (Showpiece) */}
       <section className="max-w-container-max mx-auto px-margin-safe py-20 border-t border-outline-hairline" id="how-it-works">
         <div className="text-center mb-16">
@@ -155,7 +221,7 @@ export default function Home() {
         </div>
         <div className="glass-panel rounded-xl border border-outline-hairline p-1 lg:p-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-            
+
             {/* JSON Input Left */}
             <div className="lg:col-span-4 rounded bg-terminal-bg border border-outline-variant/50 p-4 font-code-base text-code-base h-full flex flex-col">
               <div className="flex gap-2 mb-4 pb-2 border-b border-outline-variant/50">
@@ -165,7 +231,7 @@ export default function Home() {
                 <span className="text-label-tech text-on-surface-variant ml-2">config.json</span>
               </div>
               <pre className="text-on-surface-variant overflow-x-auto hide-scroll text-sm">
-{`{
+                {`{
   "`}<span className="text-code-indigo">project</span>{`": "`}<span className="text-primary">SaaS CRM</span>{`",
   "`}<span className="text-code-indigo">models</span>{`": [
     {
@@ -184,7 +250,7 @@ export default function Home() {
 }`}
               </pre>
             </div>
-            
+
             {/* Engine Core Middle */}
             <div className="lg:col-span-4 flex flex-col items-center justify-center relative py-12">
               <div className="hidden lg:block absolute left-0 top-1/2 w-full h-[1px] bg-gradient-to-r from-outline-variant via-primary-container to-outline-variant -z-10"></div>
@@ -192,11 +258,11 @@ export default function Home() {
                 <span className="material-symbols-outlined text-4xl text-primary-container animate-pulse">settings_b_roll</span>
               </div>
               <div className="mt-4 text-label-caps font-label-caps text-primary tracking-widest text-center">
-                  GENERATION ENGINE<br />
-                  <span className="text-[9px] text-on-surface-variant">RESOLVING DEPENDENCIES</span>
+                GENERATION ENGINE<br />
+                <span className="text-[9px] text-on-surface-variant">RESOLVING DEPENDENCIES</span>
               </div>
             </div>
-            
+
             {/* Outputs Right */}
             <div className="lg:col-span-4 space-y-4">
               <div className="glass-panel p-4 rounded border-l-2 border-l-tertiary-container flex items-center gap-4 hover-lift">
@@ -224,7 +290,72 @@ export default function Home() {
           </div>
         </div>
       </section>
-      
+
+      {/* Features Grid */}
+      <section className="max-w-container-max mx-auto px-margin-safe py-20 border-t border-outline-hairline" id="features">
+        <div className="text-center mb-16">
+          <h2 className="text-label-caps font-label-caps text-primary-container tracking-widest mb-2">FEATURES</h2>
+          <h3 className="text-headline-lg font-headline-lg text-on-surface mb-4">Everything you need. Out of the box.</h3>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="glass-panel p-6 rounded-xl border border-outline-variant/30 flex flex-col gap-4">
+            <span className="material-symbols-outlined text-3xl text-primary-container">table_chart</span>
+            <h4 className="text-body-lg font-bold text-on-surface">Dynamic Data Tables</h4>
+            <p className="text-sm text-on-surface-variant">Auto-generated tables with sorting, filtering, and pagination built-in.</p>
+          </div>
+          <div className="glass-panel p-6 rounded-xl border border-outline-variant/30 flex flex-col gap-4">
+            <span className="material-symbols-outlined text-3xl text-primary-container">format_align_left</span>
+            <h4 className="text-body-lg font-bold text-on-surface">Smart Forms</h4>
+            <p className="text-sm text-on-surface-variant">Client and server-side validation derived directly from your schema.</p>
+          </div>
+          <div className="glass-panel p-6 rounded-xl border border-outline-variant/30 flex flex-col gap-4">
+            <span className="material-symbols-outlined text-3xl text-primary-container">monitoring</span>
+            <h4 className="text-body-lg font-bold text-on-surface">Dashboards & Charts</h4>
+            <p className="text-sm text-on-surface-variant">Visual components wired to aggregate your data automatically.</p>
+          </div>
+          <div className="glass-panel p-6 rounded-xl border border-outline-variant/30 flex flex-col gap-4">
+            <span className="material-symbols-outlined text-3xl text-primary-container">admin_panel_settings</span>
+            <h4 className="text-body-lg font-bold text-on-surface">Built-in Auth</h4>
+            <p className="text-sm text-on-surface-variant">Secure user management, roles, and session handling ready to go.</p>
+          </div>
+          <div className="glass-panel p-6 rounded-xl border border-outline-variant/30 flex flex-col gap-4">
+            <span className="material-symbols-outlined text-3xl text-primary-container">offline_bolt</span>
+            <h4 className="text-body-lg font-bold text-on-surface">PWA Support</h4>
+            <p className="text-sm text-on-surface-variant">Offline caching and installability configured by default.</p>
+          </div>
+          <div className="glass-panel p-6 rounded-xl border border-outline-variant/30 flex flex-col gap-4">
+            <span className="material-symbols-outlined text-3xl text-primary-container">file_download</span>
+            <h4 className="text-body-lg font-bold text-on-surface">Standalone Export</h4>
+            <p className="text-sm text-on-surface-variant">Export clean, standard Next.js code. No vendor lock-in.</p>
+          </div>
+        </div>
+      </section>
+
+      {/* Use Cases Section */}
+      <section className="max-w-container-max mx-auto px-margin-safe py-20 border-t border-outline-hairline bg-surface-container-low/50" id="use-cases">
+        <div className="text-center mb-16">
+          <h2 className="text-label-caps font-label-caps text-primary-container tracking-widest mb-2">USE CASES</h2>
+          <h3 className="text-headline-lg font-headline-lg text-on-surface mb-4">Built for any domain.</h3>
+        </div>
+        <div className="flex flex-wrap justify-center gap-6">
+          <div className="glass-panel px-8 py-6 rounded-full border border-outline-variant/50 text-center min-w-[200px]">
+            <span className="text-body-md font-bold text-on-surface">Internal Tools</span>
+          </div>
+          <div className="glass-panel px-8 py-6 rounded-full border border-outline-variant/50 text-center min-w-[200px]">
+            <span className="text-body-md font-bold text-on-surface">Admin Panels</span>
+          </div>
+          <div className="glass-panel px-8 py-6 rounded-full border border-outline-variant/50 text-center min-w-[200px]">
+            <span className="text-body-md font-bold text-on-surface">CRMs</span>
+          </div>
+          <div className="glass-panel px-8 py-6 rounded-full border border-outline-variant/50 text-center min-w-[200px]">
+            <span className="text-body-md font-bold text-on-surface">Inventory Management</span>
+          </div>
+          <div className="glass-panel px-8 py-6 rounded-full border border-outline-variant/50 text-center min-w-[200px]">
+            <span className="text-body-md font-bold text-on-surface">MVPs</span>
+          </div>
+        </div>
+      </section>
+
       {/* Final CTA */}
       <section className="max-w-container-max mx-auto px-margin-safe py-32 text-center">
         <h2 className="text-headline-lg font-headline-lg text-on-surface mb-6">Ready to build your next app in minutes?</h2>
