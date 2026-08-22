@@ -1,254 +1,65 @@
-"use client";
-
-import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/lib/auth-context";
-import { Blocks, Loader2, AlertCircle, Mail } from "lucide-react";
-
-import { useTranslation } from "@/i18n/useTranslation";
-import LanguageSwitcher from "@/components/LanguageSwitcher";
-
-function GoogleLogo({ className = "w-4 h-4" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
-      <path fill="#EA4335" d="M12 10.2v3.9h5.4c-.2 1.2-.9 2.2-1.9 2.9l3 2.3c1.8-1.6 2.8-3.9 2.8-6.7 0-.7-.1-1.4-.2-2H12z" />
-      <path fill="#34A853" d="M12 22c2.6 0 4.8-.9 6.4-2.4l-3-2.3c-.8.6-2 .9-3.4.9-2.6 0-4.8-1.8-5.6-4.2H3.3v2.6C4.9 19.8 8.2 22 12 22z" />
-      <path fill="#4A90E2" d="M6.4 14c-.2-.6-.3-1.3-.3-2s.1-1.4.3-2V7.4H3.3A10 10 0 002 12c0 1.7.4 3.4 1.3 4.6L6.4 14z" />
-      <path fill="#FBBC05" d="M12 5.8c1.5 0 2.8.5 3.8 1.5l2.8-2.8C16.8 2.8 14.6 2 12 2 8.2 2 4.9 4.2 3.3 7.4L6.4 10c.8-2.4 3-4.2 5.6-4.2z" />
-    </svg>
-  );
-}
-
-function GitHubLogo({ className = "w-4 h-4" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
-      <path
-        fill="currentColor"
-        d="M12 .5C5.6.5.5 5.7.5 12.1c0 5.1 3.3 9.5 7.9 11.1.6.1.8-.2.8-.6v-2.2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.4-1.3-1.7-1.3-1.7-1.1-.7.1-.7.1-.7 1.2.1 1.9 1.3 1.9 1.3 1.1 1.9 2.9 1.3 3.6 1 .1-.8.4-1.3.8-1.6-2.5-.3-5.2-1.3-5.2-5.8 0-1.3.5-2.4 1.2-3.3-.1-.3-.5-1.6.1-3.2 0 0 1-.3 3.3 1.2a11.5 11.5 0 016 0c2.3-1.5 3.3-1.2 3.3-1.2.6 1.6.2 2.9.1 3.2.8.9 1.2 2 1.2 3.3 0 4.6-2.7 5.5-5.2 5.8.4.3.8 1 .8 2v3c0 .4.2.7.8.6a11.6 11.6 0 007.9-11.1C23.5 5.7 18.4.5 12 .5z"
-      />
-    </svg>
-  );
-}
 
 export default function LoginPage() {
-  const { login } = useAuth();
-  const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [oauthLoading, setOauthLoading] = useState<"google" | "github" | null>(null);
-  const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
-  const [resendLoading, setResendLoading] = useState(false);
-  const [resendSuccess, setResendSuccess] = useState(false);
-
-  const { t } = useTranslation();
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-
-  const startOAuth = async (provider: "google" | "github") => {
-    setError(null);
-    setOauthLoading(provider);
-
-    try {
-      const res = await fetch(`${API_BASE}/api/auth/${provider}/start?mode=json`);
-      const data = await res.json();
-
-      if (!res.ok || !data?.success || !data?.data?.url) {
-        throw new Error(data?.error || `${provider} sign in is not configured`);
-      }
-
-      window.location.href = data.data.url as string;
-    } catch (err: any) {
-      setError(err?.message || `${provider} sign in failed`);
-      setOauthLoading(null);
-    }
-  };
-
-  useEffect(() => {
-    const resetOAuthLoading = () => setOauthLoading(null);
-    const onVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        resetOAuthLoading();
-      }
-    };
-
-    // If user returns from provider page (back/cancel), unlock OAuth buttons.
-    window.addEventListener("focus", resetOAuthLoading);
-    window.addEventListener("pageshow", resetOAuthLoading);
-    document.addEventListener("visibilitychange", onVisibilityChange);
-
-    return () => {
-      window.removeEventListener("focus", resetOAuthLoading);
-      window.removeEventListener("pageshow", resetOAuthLoading);
-      document.removeEventListener("visibilitychange", onVisibilityChange);
-    };
-  }, []);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setUnverifiedEmail(null);
-    setResendSuccess(false);
-    setLoading(true);
-
-    try {
-      await login(email, password);
-      router.push("/dashboard");
-    } catch (err: any) {
-      const serverError: string = err.response?.data?.error || err.message || "Login failed";
-      setError(serverError);
-      // Detect unverified-account error (server returns 403)
-      if (
-        err.response?.status === 403 ||
-        /verify/i.test(serverError)
-      ) {
-        setUnverifiedEmail(email);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const resendVerification = async () => {
-    if (!unverifiedEmail) return;
-    setResendLoading(true);
-    setResendSuccess(false);
-    setError(null);
-    try {
-      const res = await fetch(`${API_BASE}/api/auth/resend-verification`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: unverifiedEmail }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data?.success) {
-        throw new Error(data?.error || "Unable to resend verification email");
-      }
-      setResendSuccess(true);
-    } catch (err: any) {
-      setError(err?.message || "Unable to resend verification email");
-    } finally {
-      setResendLoading(false);
-    }
-  };
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-950 px-4 sm:px-6 safe-area-inset-top safe-area-inset-bottom">
-      <div className="w-full max-w-sm">
-        {/* Logo */}
-        <div className="text-center mb-6 md:mb-8">
-          <div className="w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-indigo-500/20 flex-shrink-0">
-            <Blocks className="w-6 h-6 md:w-7 md:h-7 text-white" />
-          </div>
-          <h1 className="text-xl md:text-2xl font-bold text-white">{t('auth.login')}</h1>
-          <p className="text-white/40 text-xs md:text-sm mt-1">{t('auth.signInDescription')}</p>
-          <div className="mt-4 flex justify-center">
-            <LanguageSwitcher />
-          </div>
+    <>
+      <div className="glass-panel rounded-xl w-full border border-outline-hairline p-8 shadow-2xl flex flex-col gap-6 relative overflow-hidden">
+        <div className="text-center">
+          <h1 className="font-headline-lg text-headline-lg text-on-surface mb-2">Welcome back.</h1>
+          <p className="font-body-md text-body-md text-on-surface-variant">Sign in to continue to your workspace.</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-3 md:space-y-4">
-          {error && (
-            <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs md:text-sm">
-              <div className="flex items-center gap-2 text-red-400">
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                {error}
-              </div>
-
-              {/* Unverified account — offer resend inline */}
-              {unverifiedEmail && !resendSuccess && (
-                <button
-                  type="button"
-                  onClick={resendVerification}
-                  disabled={resendLoading}
-                  className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-gray-900 transition-colors hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <Mail className="h-4 w-4" />
-                  {resendLoading ? "Sending…" : "Resend verification email"}
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* Resend success confirmation */}
-          {resendSuccess && (
-            <div className="flex items-start gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs md:text-sm text-emerald-300">
-              <Mail className="mt-0.5 h-4 w-4 flex-shrink-0" />
-              <span>Verification email sent to <strong>{unverifiedEmail}</strong>. Check your inbox and click the link to activate your account.</span>
-            </div>
-          )}
-
-          <div>
-            <label className="block text-xs md:text-sm font-medium text-white/60 mb-1 md:mb-1.5">{t('auth.email')}</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 md:px-4 py-2 md:py-2.5 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-sm md:text-base"
-              placeholder="you@example.com"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs md:text-sm font-medium text-white/60 mb-1 md:mb-1.5">{t('auth.password')}</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={6}
-              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 md:px-4 py-2 md:py-2.5 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-sm md:text-base"
-              placeholder="••••••••"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-2 md:py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-lg text-white font-medium transition-colors flex items-center justify-center gap-2 text-sm md:text-base active:scale-95"
-          >
-            {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-            {t('auth.login')}
+        {/* OAuth Buttons */}
+        <div className="flex flex-col gap-3">
+          <button type="button" className="w-full flex items-center justify-center gap-3 py-2.5 px-4 rounded border border-outline-hairline bg-surface-container-high hover:bg-surface-variant transition-colors text-on-surface font-label-tech text-label-tech">
+            <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"></path></svg>
+            Continue with GitHub
           </button>
+          <button type="button" className="w-full flex items-center justify-center gap-3 py-2.5 px-4 rounded border border-outline-hairline bg-surface-container-high hover:bg-surface-variant transition-colors text-on-surface font-label-tech text-label-tech">
+            <svg className="w-4 h-4" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"></path><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"></path><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"></path><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"></path></svg>
+            Continue with Google
+          </button>
+        </div>
+
+        {/* Divider */}
+        <div className="flex items-center gap-4">
+          <div className="flex-1 h-px bg-outline-hairline"></div>
+          <span className="font-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider">or</span>
+          <div className="flex-1 h-px bg-outline-hairline"></div>
+        </div>
+
+        {/* Form */}
+        <form className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <label className="font-label-tech text-label-tech text-on-surface-variant ml-1">EMAIL ADDRESS</label>
+            <input className="w-full bg-surface-container/50 border border-outline-hairline rounded px-4 py-2 text-on-surface font-code-base text-code-base input-glow outline-none transition-shadow" placeholder="name@company.com" required type="email" />
+          </div>
+          
+          <div className="flex flex-col gap-1.5">
+            <label className="font-label-tech text-label-tech text-on-surface-variant ml-1">PASSWORD</label>
+            <input className="w-full bg-surface-container/50 border border-outline-hairline rounded px-4 py-2 text-on-surface font-code-base text-code-base input-glow outline-none transition-shadow" placeholder="••••••••" required type="password" />
+          </div>
+          
+          <div className="flex justify-end -mt-2">
+            <a className="font-label-tech text-label-tech text-on-surface-variant hover:text-primary transition-colors" href="#">Forgot password?</a>
+          </div>
+          
+          <Link href="/dashboard" className="w-full text-center bg-primary-container text-on-primary-container font-headline-md text-body-md py-3 rounded mt-2 hover:bg-primary transition-colors shadow-[0_0_15px_rgba(255,107,0,0.3)] hover:shadow-[0_0_25px_rgba(255,107,0,0.5)]">
+            Sign In
+          </Link>
         </form>
 
-        <div className="my-4 flex items-center gap-3">
-          <div className="h-px flex-1 bg-white/10" />
-          <span className="text-xs text-white/40">{t("auth.orContinueWith", "Or continue with")}</span>
-          <div className="h-px flex-1 bg-white/10" />
+        <div className="text-center mt-2">
+          <span className="font-body-md text-body-md text-on-surface-variant">Don't have an account? </span>
+          <Link className="font-body-md text-body-md text-primary hover:text-primary-fixed transition-colors" href="/register">Sign up.</Link>
         </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <button
-            type="button"
-            disabled={!!oauthLoading}
-            onClick={() => startOAuth("google")}
-            className="w-full py-2 md:py-2.5 bg-white/5 hover:bg-white/10 disabled:opacity-50 border border-white/10 rounded-lg text-white font-medium transition-colors flex items-center justify-center gap-2 text-sm md:text-base"
-          >
-            {oauthLoading === "google" ? <Loader2 className="w-4 h-4 animate-spin" /> : <GoogleLogo className="w-4 h-4" />}
-            {t("auth.continueWithGoogle", "Google")}
-          </button>
-
-          <button
-            type="button"
-            disabled={!!oauthLoading}
-            onClick={() => startOAuth("github")}
-            className="w-full py-2 md:py-2.5 bg-white/5 hover:bg-white/10 disabled:opacity-50 border border-white/10 rounded-lg text-white font-medium transition-colors flex items-center justify-center gap-2 text-sm md:text-base"
-          >
-            {oauthLoading === "github" ? <Loader2 className="w-4 h-4 animate-spin" /> : <GitHubLogo className="w-4 h-4" />}
-            {t("auth.continueWithGithub", "GitHub")}
-          </button>
-        </div>
-
-        <p className="text-center text-xs md:text-sm text-white/40 mt-6 md:mt-8">
-          {t('auth.noAccount')}{" "}
-          <Link href="/register" className="text-indigo-400 hover:text-indigo-300 font-medium">
-            {t('auth.signup')}
-          </Link>
-        </p>
       </div>
-    </div>
+
+      {/* Trust Indicator */}
+      <div className="mt-8 flex items-center justify-center gap-2 text-on-surface-variant opacity-70">
+        <span className="material-symbols-outlined text-[14px]">lock</span>
+        <span className="font-label-tech text-label-tech">Secure 256-bit encryption. We never share your data.</span>
+      </div>
+    </>
   );
 }
