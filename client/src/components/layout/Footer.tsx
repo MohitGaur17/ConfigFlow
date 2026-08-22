@@ -81,14 +81,14 @@ export default function Footer() {
           <h4 className="text-label-caps font-label-caps text-on-surface mb-4 tracking-widest">COMPANY</h4>
           <ul className="space-y-2 text-sm text-on-surface-variant">
             <li><Link href="/mission" className="hover:text-primary transition-colors">Mission</Link></li>
-            <li><Link href="/blog" className="hover:text-primary transition-colors">Blog (Coming Soon)</Link></li>
+            <li><Link href="#" className="hover:text-primary transition-colors">Blog (Coming Soon)</Link></li>
           </ul>
         </div>
         <div>
           <h4 className="text-label-caps font-label-caps text-on-surface mb-4 tracking-widest">SUPPORT</h4>
           <ul className="space-y-2 text-sm text-on-surface-variant">
-            <li><Link href="/support" className="hover:text-primary transition-colors">Contact Support</Link></li>
-            <li><Link href="/docs" className="hover:text-primary transition-colors">Documentation (Coming Soon)</Link></li>
+            <li><Link href="#" className="hover:text-primary transition-colors">Contact Support (Coming Soon)</Link></li>
+            <li><Link href="#" className="hover:text-primary transition-colors">Documentation (Coming Soon)</Link></li>
           </ul>
         </div>
       </div>
