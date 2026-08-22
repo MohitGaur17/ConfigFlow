@@ -70,24 +70,25 @@ export default function Footer() {
           </div>
           <p className="text-label-tech text-on-surface-variant">The operating system for software generation.</p>
         </div>
-        <div>
+                <div>
           <h4 className="text-label-caps font-label-caps text-on-surface mb-4 tracking-widest">PRODUCT</h4>
           <ul className="space-y-2 text-sm text-on-surface-variant">
-            <li><Link href="/templates" className="hover:text-primary transition-colors">Templates</Link></li>
-            <li><Link href="/pricing" className="hover:text-primary transition-colors">Pricing</Link></li>
+            <li><Link href="/#how-it-works" className="hover:text-primary transition-colors">How it Works</Link></li>
+            <li><Link href="/#features" className="hover:text-primary transition-colors">Features</Link></li>
           </ul>
         </div>
         <div>
           <h4 className="text-label-caps font-label-caps text-on-surface mb-4 tracking-widest">COMPANY</h4>
           <ul className="space-y-2 text-sm text-on-surface-variant">
             <li><Link href="/mission" className="hover:text-primary transition-colors">Mission</Link></li>
-            <li><Link href="/showcase" className="hover:text-primary transition-colors">Showcase</Link></li>
+            <li><Link href="/blog" className="hover:text-primary transition-colors">Blog (Coming Soon)</Link></li>
           </ul>
         </div>
         <div>
           <h4 className="text-label-caps font-label-caps text-on-surface mb-4 tracking-widest">SUPPORT</h4>
           <ul className="space-y-2 text-sm text-on-surface-variant">
             <li><Link href="/support" className="hover:text-primary transition-colors">Contact Support</Link></li>
+            <li><Link href="/docs" className="hover:text-primary transition-colors">Documentation (Coming Soon)</Link></li>
           </ul>
         </div>
       </div>

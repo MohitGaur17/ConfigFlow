@@ -70,10 +70,9 @@ export default function Navbar() {
           </Link>
         </div>
         <div className="hidden md:flex items-center gap-8">
-          <Link href="/templates" className="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200">Templates</Link>
-          <Link href="/pricing" className="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200">Pricing</Link>
+          <Link href="/#features" className="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200">Features</Link>
           <Link href="/mission" className="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200">Mission</Link>
-          <Link href="/showcase" className="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200">Showcase</Link>
+          <Link href="/support" className="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200">Support</Link>
         </div>
         <div className="flex items-center gap-4">
           <Link href="/login" className="text-on-surface hover:text-primary transition-colors text-sm font-medium">
