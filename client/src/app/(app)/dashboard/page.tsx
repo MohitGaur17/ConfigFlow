@@ -1,298 +1,74 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/lib/auth-context";
-import api from "@/lib/api";
-import { ArrowRight, Trash2, Clock, AppWindow, Plus, Bell } from "lucide-react";
-import Image from "next/image";
-
-import { useTranslation } from "@/i18n/useTranslation";
-import { toast } from "react-hot-toast";
-import LanguageSwitcher from "@/components/LanguageSwitcher";
-import NotificationSidebar from "@/components/NotificationSidebar";
-import ConfirmDialog from "@/components/ConfirmDialog";
-
-interface AppRecord {
-  id: string;
-  name: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface NotificationRecord {
-  id: string;
-  title: string;
-  message: string;
-  type: string;
-  isRead: boolean;
-  createdAt: string;
-}
+import Link from "next/link";
 
 export default function DashboardPage() {
-  const { isAuthenticated, loading, logout, user, token } = useAuth();
-  const router = useRouter();
-  const [apps, setApps] = useState<AppRecord[]>([]);
-  const [isLoadingApps, setIsLoadingApps] = useState(true);
-  const [notifications, setNotifications] = useState<NotificationRecord[]>([]);
-  const [isLoadingNotifications, setIsLoadingNotifications] = useState(true);
-  const [isNotificationSidebarOpen, setIsNotificationSidebarOpen] = useState(false);
-  const [deleteAppId, setDeleteAppId] = useState<string | null>(null);
-
-  const { t } = useTranslation();
-
-  const unreadCount = notifications.filter(n => !n.isRead).length;
-
-  const deleteApp = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setDeleteAppId(id);
-  };
-
-  const confirmDeleteApp = async (id: string) => {
-    try {
-      await api.delete(`/apps/${id}`);
-      setApps(prev => prev.filter(app => app.id !== id));
-      toast.success("Application deleted");
-      setDeleteAppId(null);
-    } catch {
-      toast.error(t('common.error'));
-      setDeleteAppId(null);
-    }
-  };
-
-  useEffect(() => {
-    if (!loading && !isAuthenticated) {
-      router.push("/login");
-    }
-  }, [loading, isAuthenticated, router]);
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      const loadApps = async () => {
-        try {
-          const res = await api.get("/apps");
-          if (res.data.success) {
-            setApps(res.data.data);
-          }
-        } catch {
-          console.error("Failed to load apps");
-        } finally {
-          setIsLoadingApps(false);
-        }
-      };
-      loadApps();
-    }
-  }, [isAuthenticated]);
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      const loadNotifications = async () => {
-        try {
-          const res = await api.get("/notifications");
-          if (res.data.success) {
-            setNotifications(res.data.data.notifications || []);
-          }
-        } catch {
-          console.error("Failed to load notifications");
-        } finally {
-          setIsLoadingNotifications(false);
-        }
-      };
-
-      loadNotifications();
-    }
-  }, [isAuthenticated, user?.email]);
-
-  // Real-time updates via Server-Sent Events (SSE)
-  useEffect(() => {
-    if (!isAuthenticated || !token) return;
-
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-    const sseUrl = `${API_BASE}/api/notifications/stream?token=${encodeURIComponent(token)}`;
-
-    const es = new EventSource(sseUrl);
-
-    const onNotification = (ev: MessageEvent) => {
-      try {
-        const payload = JSON.parse(ev.data);
-        // Prepend new notification if not already present
-        setNotifications((cur) => {
-          if (cur.some((n) => n.id === payload.id)) return cur;
-          return [payload, ...cur];
-        });
-      } catch (e) {
-        console.error("Failed to parse SSE notification", e);
-      }
-    };
-
-    es.addEventListener("notification", onNotification as EventListener);
-
-    es.addEventListener("error", (err) => {
-      // reconnect handled by EventSource in the browser; log for debugging
-      console.warn("SSE error", err);
-    });
-
-    return () => {
-      es.close();
-    };
-  }, [isAuthenticated, token]);
-
-  const markNotificationRead = async (notificationId: string) => {
-    try {
-      await api.patch(`/notifications/${notificationId}/read`);
-      setNotifications((current) => current.map((item) => (item.id === notificationId ? { ...item, isRead: true } : item)));
-    } catch {
-      toast.error(t('common.error'));
-    }
-  };
-
-  const markAllAsRead = async () => {
-    try {
-      const res = await api.post(`/notifications/mark-all-read`);
-      if (res.data.success) {
-        setNotifications((cur) => cur.map((n) => ({ ...n, isRead: true })));
-        toast.success("All notifications marked as read");
-      }
-    } catch (e) {
-      console.error("Failed to mark all read", e);
-      toast.error(t('common.error'));
-    }
-  };
-
-  if (loading || !isAuthenticated) {
-    return <div className="min-h-screen bg-[#0A0A0A]"></div>;
-  }
-
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white">
-      {/* Top Nav */}
-      <nav className="border-b border-white/10 bg-black/50 backdrop-blur-md sticky top-0 z-50 safe-area-inset-top">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 h-14 md:h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2 cursor-pointer min-w-0" onClick={() => router.push("/")}>
-            <Image src="/favicon.svg" alt="ConfigFlow" width={32} height={32} className="w-7 h-7 md:w-8 md:h-8 rounded-lg flex-shrink-0 object-contain" />
-            <span className="font-bold tracking-tight text-base md:text-lg truncate">ConfigFlow</span>
-          </div>
-          <div className="flex items-center gap-3 md:gap-6 flex-shrink-0">
-            <span className="text-xs md:text-sm text-white/50 truncate max-w-xs md:max-w-none">{user?.email}</span>
-            <LanguageSwitcher />
-            {/* Notification Bell */}
-            <button
-              onClick={() => setIsNotificationSidebarOpen(true)}
-              className="relative p-2 rounded-lg hover:bg-white/10 transition-colors group"
-            >
-              <Bell className="w-5 h-5 text-white/70 group-hover:text-white" />
-              {unreadCount > 0 && (
-                <span className="absolute top-0 right-0 flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 rounded-full">
-                  {unreadCount > 9 ? "9+" : unreadCount}
-                </span>
-              )}
-            </button>
-            <button
-              onClick={logout}
-              className="text-xs md:text-sm text-white/70 hover:text-white transition-colors whitespace-nowrap hidden sm:inline"
-            >
-              {t('nav.logout')}
-            </button>
-          </div>
+    <div className="p-8 max-w-6xl mx-auto w-full">
+      
+      {/* Top Header */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4 border-b border-outline-hairline pb-6">
+        <div>
+          <h1 className="text-headline-md font-headline-md text-on-surface mb-2">Projects</h1>
+          <p className="text-sm font-code-base text-on-surface-variant">Manage and orchestrate your generated applications.</p>
         </div>
-      </nav>
+        <Link href="/builder" className="bg-primary-container hover:bg-orange-600 text-white px-5 py-2.5 rounded text-label-tech font-label-tech transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(255,107,0,0.3)]">
+          <span className="material-symbols-outlined text-[18px]">add</span>
+          New Project
+        </Link>
+      </div>
 
-      <main className="max-w-7xl mx-auto px-4 md:px-6 py-8 md:py-12 safe-area-inset-bottom">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 md:gap-12 mb-8 md:mb-12">
-          <div className="min-w-0">
-            <h1 className="text-2xl md:text-3xl font-bold mb-2">{t('dashboard.title')}</h1>
-            <p className="text-sm md:text-base text-white/50">{t('dashboard.welcome')}</p>
-          </div>
-          <button
-            onClick={() => router.push("/")}
-            className="flex items-center justify-center gap-2 bg-white text-black px-4 md:px-5 py-2 md:py-2.5 rounded-full font-medium hover:bg-gray-200 transition-colors whitespace-nowrap text-sm md:text-base active:scale-95"
-          >
-            <Plus className="w-4 h-4" />
-            {t('home.newApplication')}
-          </button>
-        </div>
-
-        <section className="grid gap-6 mb-8 md:mb-10">
-          {isLoadingApps ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[1, 2, 3].map(i => (
-                <div key={i} className="h-48 bg-white/5 animate-pulse rounded-2xl border border-white/10"></div>
-              ))}
-            </div>
-          ) : apps.length === 0 ? (
-            <div className="text-center py-24 border border-dashed border-white/10 rounded-2xl">
-              <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
-                <AppWindow className="w-8 h-8 text-white/40" />
-              </div>
-              <h2 className="text-xl font-medium mb-2">{t('common.noData')}</h2>
-              <p className="text-white/40 mb-6">{t('dashboard.recentTasks')}</p>
-              <button
-                onClick={() => router.push("/")}
-                className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-full font-medium transition-colors"
-              >
-                {t('home.newApplication')}
+      {/* Project Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        
+        {/* Example Project Card */}
+        <div className="glass-panel border border-outline-hairline rounded-lg overflow-hidden group hover:border-primary-container/50 transition-colors flex flex-col">
+          {/* Status Line */}
+          <div className="h-1 bg-gradient-to-r from-tertiary to-tertiary-container w-full"></div>
+          
+          <div className="p-5 flex-1">
+            <div className="flex justify-between items-start mb-3">
+              <h3 className="font-headline-md text-lg text-on-surface">SaaS CRM Template</h3>
+              <button className="text-on-surface-variant hover:text-on-surface transition-colors">
+                <span className="material-symbols-outlined text-[20px]">more_horiz</span>
               </button>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {apps.map(app => (
-                <div 
-                  key={app.id}
-                  onClick={() => router.push(`/builder/${app.id}`)}
-                  className="group relative bg-[#111111] border border-white/10 rounded-2xl p-6 hover:border-indigo-500/50 hover:bg-[#161616] transition-all cursor-pointer overflow-hidden"
-                >
-                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                  
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center text-indigo-400 group-hover:scale-110 transition-transform">
-                      <AppWindow className="w-6 h-6" />
-                    </div>
-                    <button 
-                      onClick={(e) => deleteApp(app.id, e)}
-                      className="p-2 text-white/20 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                  
-                  <h3 className="text-xl font-semibold mb-2">{app.name}</h3>
-                  
-                  <div className="flex items-center gap-2 text-xs text-white/40 mt-6">
-                    <Clock className="w-3 h-3" />
-                    <span>{t('common.created', 'Created')} {new Date(app.createdAt).toLocaleDateString()}</span>
-                  </div>
-                  
-                  <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity translate-x-4 group-hover:translate-x-0">
-                    <ArrowRight className="w-5 h-5 text-indigo-400" />
-                  </div>
-                </div>
-              ))}
+            
+            <p className="text-xs font-code-base text-on-surface-variant mb-6 leading-relaxed">
+              Full-stack Next.js application with PostgreSQL schema, Prisma auth, and dashboard components.
+            </p>
+            
+            {/* Environment Badges */}
+            <div className="flex items-center gap-3 mb-4">
+              <span className="px-2 py-0.5 rounded-sm bg-tertiary-container/10 border border-tertiary-container/30 text-[10px] font-label-caps text-tertiary-container tracking-widest">
+                PRODUCTION
+              </span>
+              <span className="text-[11px] font-code-base text-on-surface-variant flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse"></span>
+                Healthy
+              </span>
             </div>
-          )}
-        </section>
-      </main>
+          </div>
 
-      {/* Notification Sidebar */}
-      <NotificationSidebar
-        notifications={notifications}
-        isOpen={isNotificationSidebarOpen}
-        onClose={() => setIsNotificationSidebarOpen(false)}
-        onMarkRead={markNotificationRead}
-        onMarkAllRead={markAllAsRead}
-        isLoading={isLoadingNotifications}
-      />
+          {/* Card Footer */}
+          <div className="border-t border-outline-hairline bg-surface-elevated/50 p-3.5 flex justify-between items-center">
+            <div className="flex items-center gap-2 text-[11px] font-code-base text-on-surface-variant">
+              <span className="material-symbols-outlined text-[14px]">commit</span>
+              v1.2.4 deployed 2h ago
+            </div>
+            <Link href="/builder" className="text-xs font-label-tech text-primary-container hover:text-primary transition-colors flex items-center gap-1">
+              Open Builder <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+            </Link>
+          </div>
+        </div>
+        
+        {/* Empty State Card (To encourage creating a new project) */}
+        <Link href="/builder" className="glass-panel border border-outline-hairline border-dashed rounded-lg flex flex-col items-center justify-center p-8 hover:border-primary-container/50 hover:bg-primary-container/5 transition-all text-on-surface-variant hover:text-primary-container group min-h-[220px]">
+          <div className="w-12 h-12 rounded-full bg-surface-elevated border border-outline-hairline flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-lg">
+            <span className="material-symbols-outlined text-2xl">add</span>
+          </div>
+          <span className="font-label-tech text-sm">Create New Project</span>
+        </Link>
 
-      {/* Delete App Confirmation Dialog */}
-      <ConfirmDialog
-        isOpen={deleteAppId !== null}
-        title="Delete Application"
-        message="This action cannot be undone. All data associated with this application will be permanently deleted."
-        confirmText="Delete"
-        cancelText="Cancel"
-        isDangerous={true}
-        onConfirm={() => deleteAppId && confirmDeleteApp(deleteAppId)}
-        onCancel={() => setDeleteAppId(null)}
-      />
+      </div>
     </div>
   );
 }
