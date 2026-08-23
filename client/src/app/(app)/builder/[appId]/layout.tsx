@@ -63,12 +63,12 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
 
   if (loadError) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#0A0A0A] text-white p-4 gap-4">
-        <ArrowLeft className="w-12 h-12 text-amber-400" />
-        <p className="text-white/60 text-center max-w-md">{loadError}</p>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-surface text-on-surface p-4 gap-4">
+        <ArrowLeft className="w-12 h-12 text-error" />
+        <p className="text-on-surface-variant font-body-md text-center max-w-md">{loadError}</p>
         <button
           onClick={() => router.push("/dashboard")}
-          className="flex items-center gap-2 bg-white text-black px-4 py-2 rounded-lg text-sm font-semibold hover:bg-gray-200 transition-colors"
+          className="flex items-center gap-2 bg-surface-container-high text-on-surface px-4 py-2 rounded border border-outline-hairline text-label-tech font-label-tech hover:bg-surface-variant transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Dashboard
@@ -78,27 +78,27 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
   }
 
   if (loading || !isAuthenticated || !appData) {
-    return <div className="min-h-screen bg-[#0A0A0A]"></div>;
+    return <div className="min-h-screen bg-surface"></div>;
   }
 
   return (
-    <div className="min-h-[100svh] flex flex-col bg-[#0A0A0A] text-white overflow-hidden">
+    <div className="min-h-[100svh] flex flex-col bg-surface text-on-surface overflow-hidden font-sans">
       
       {/* Builder Header */}
-      <header className="border-b border-white/10 bg-black px-3 py-3 sm:px-4 shrink-0 z-50 shadow-2xl">
+      <header className="border-b border-outline-hairline bg-surface-container-lowest px-3 py-3 sm:px-4 shrink-0 z-50">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-3 min-w-0">
           <button 
             onClick={() => router.push("/dashboard")}
-            className="p-2.5 hover:bg-white/10 rounded-lg text-white/50 hover:text-white transition-colors shrink-0"
+            className="p-2.5 hover:bg-surface-variant rounded text-on-surface-variant hover:text-on-surface transition-colors shrink-0"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
           <div className="flex items-center gap-2 min-w-0">
-            <span className="font-bold tracking-tight truncate max-w-[10rem] sm:max-w-[16rem] lg:max-w-none">{appData.name}</span>
-            <div className="hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 shrink-0">
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-              <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
+            <span className="font-headline-md text-lg truncate max-w-[10rem] sm:max-w-[16rem] lg:max-w-none">{appData.name}</span>
+            <div className="hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-tertiary-container/10 border border-tertiary-container/30 shrink-0">
+              <div className="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse"></div>
+              <span className="text-[10px] font-label-caps text-tertiary-container tracking-wider">
                 Live Preview
               </span>
             </div>
@@ -106,24 +106,24 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
         </div>
 
         {/* View Toggle */}
-        <div className="flex self-center lg:absolute lg:left-1/2 lg:-translate-x-1/2 bg-white/5 p-1 rounded-xl border border-white/10 shadow-inner w-full lg:w-auto justify-between lg:justify-center">
+        <div className="flex self-center lg:absolute lg:left-1/2 lg:-translate-x-1/2 bg-surface-container p-1 rounded border border-outline-hairline w-full lg:w-auto justify-between lg:justify-center">
           <button
             onClick={() => setActiveTab("preview")}
-            className={`flex flex-1 lg:flex-none items-center justify-center gap-2 px-4 sm:px-6 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
+            className={`flex flex-1 lg:flex-none items-center justify-center gap-2 px-4 sm:px-6 py-1.5 rounded text-label-tech font-label-tech transition-all duration-200 ${
               activeTab === "preview" 
-                ? "bg-white text-black shadow-lg scale-105" 
-                : "text-white/40 hover:text-white hover:bg-white/5"
+                ? "bg-surface-bright text-on-surface border border-outline-hairline shadow-sm scale-105" 
+                : "text-on-surface-variant hover:text-on-surface hover:bg-surface-variant"
             }`}
           >
-            <Play className={`w-4 h-4 ${activeTab === "preview" ? "fill-black" : ""}`} />
+            <Play className={`w-4 h-4 ${activeTab === "preview" ? "fill-current" : ""}`} />
             Preview
           </button>
           <button
             onClick={() => setActiveTab("code")}
-            className={`flex flex-1 lg:flex-none items-center justify-center gap-2 px-4 sm:px-6 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
+            className={`flex flex-1 lg:flex-none items-center justify-center gap-2 px-4 sm:px-6 py-1.5 rounded text-label-tech font-label-tech transition-all duration-200 ${
               activeTab === "code" 
-                ? "bg-white text-black shadow-lg scale-105" 
-                : "text-white/40 hover:text-white hover:bg-white/5"
+                ? "bg-surface-bright text-on-surface border border-outline-hairline shadow-sm scale-105" 
+                : "text-on-surface-variant hover:text-on-surface hover:bg-surface-variant"
             }`}
           >
             <Code2 className="w-4 h-4" />
@@ -137,7 +137,7 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
           <button
             onClick={handleDownload}
             disabled={isExporting}
-            className="group relative flex items-center justify-center gap-2 px-4 sm:px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold rounded-xl transition-all active:scale-95 disabled:opacity-50 shadow-lg shadow-indigo-500/20 min-w-[9rem]"
+            className="group relative flex items-center justify-center gap-2 px-4 sm:px-5 py-2 bg-primary-container hover:bg-orange-600 text-white font-label-tech text-label-tech rounded transition-all active:scale-95 disabled:opacity-50 shadow-[0_0_10px_rgba(255,107,0,0.3)] min-w-[9rem]"
           >
             {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4 group-hover:-translate-y-0.5 transition-transform" />}
             {isExporting ? "Zipping..." : "Download ZIP"}
@@ -147,7 +147,7 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
       </header>
 
       {/* Main Workspace Area */}
-      <main className="flex-1 relative overflow-hidden bg-[#0A0A0A]">
+      <main className="flex-1 relative overflow-hidden bg-surface-dim">
         {activeTab === "preview" ? (
           <div className="absolute inset-0">
             {/* The children are already wrapped in AppShell at the page level */}

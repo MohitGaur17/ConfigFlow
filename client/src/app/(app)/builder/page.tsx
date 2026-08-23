@@ -1,5 +1,7 @@
 "use client";
 import { useState } from "react";
+import toast from "react-hot-toast";
+import api from "@/lib/api";
 import Link from "next/link";
 
 export default function BuilderPage() {
@@ -101,7 +103,20 @@ export default function BuilderPage() {
               <button onClick={() => setJsonConfig("")} className="px-4 py-1.5 rounded font-label-tech text-label-tech text-on-surface-variant hover:text-on-surface transition-colors">
                 Clear
               </button>
-              <button className="bg-primary-container hover:bg-orange-600 text-white px-5 py-1.5 rounded font-label-tech text-label-tech transition-colors shadow-[0_0_10px_rgba(255,107,0,0.3)] flex items-center gap-2">
+              <button 
+                onClick={async () => {
+                  try {
+                    const parsed = JSON.parse(jsonConfig);
+                    await api.post("/apps", parsed).then(async (res) => {
+                      if (!res.data.success) throw new Error(res.data.error);
+                      toast.success("App Generated successfully!");
+                      window.location.href = `/builder/${res.data.data.id}`;
+                    });
+                  } catch (e: any) {
+                    alert("Failed to parse or submit JSON: " + (e.response?.data?.error || e.message));
+                  }
+                }}
+                className="bg-primary-container hover:bg-orange-600 text-white px-5 py-1.5 rounded font-label-tech text-label-tech transition-colors shadow-[0_0_10px_rgba(255,107,0,0.3)] flex items-center gap-2">
                 <span className="material-symbols-outlined text-[16px]">bolt</span>
                 Generate App
               </button>
