@@ -46,21 +46,21 @@ function VerifyErrorPanel({ kind, email }: { kind: VerifyError; email: string | 
   const config = {
     expired: {
       icon: <Clock className="h-8 w-8 text-amber-400" />,
-      iconBg: "bg-amber-400/10 ring-amber-400/20",
+      iconBg: "bg-surface-elevated ring-amber-400/20",
       title: "Link expired",
       desc: "This verification link has expired. Links are valid for 30 minutes.",
       canResend: true,
     },
     used: {
-      icon: <ShieldX className="h-8 w-8 text-indigo-400" />,
-      iconBg: "bg-indigo-400/10 ring-indigo-400/20",
+      icon: <ShieldX className="h-8 w-8 text-primary" />,
+      iconBg: "bg-surface-elevated ring-primary/20",
       title: "Link already used",
       desc: "This verification link has already been used. If you're still having trouble signing in, request a new one.",
       canResend: true,
     },
     invalid: {
-      icon: <AlertCircle className="h-8 w-8 text-red-400" />,
-      iconBg: "bg-red-400/10 ring-red-400/20",
+      icon: <AlertCircle className="h-8 w-8 text-error" />,
+      iconBg: "bg-surface-elevated ring-error/20",
       title: "Invalid link",
       desc: "This verification link is not valid. It may have been copied incorrectly.",
       canResend: false,
@@ -70,18 +70,18 @@ function VerifyErrorPanel({ kind, email }: { kind: VerifyError; email: string | 
   if (resendSuccess) {
     return (
       <div className="text-center">
-        <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/10 ring-1 ring-emerald-400/20">
+        <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded bg-surface-elevated ring-1 ring-emerald-400/20">
           <CheckCircle2 className="h-8 w-8 text-emerald-400" />
         </div>
-        <h1 className="text-xl font-semibold text-white mb-2">Verification email sent</h1>
-        <p className="text-sm text-white/60 mb-6">
+        <h1 className="text-xl font-headline-md text-on-surface mb-2">Verification email sent</h1>
+        <p className="text-sm font-code-base text-on-surface-variant mb-6">
           We sent a new link to{" "}
-          <span className="font-medium text-white">{email}</span>.{" "}
+          <span className="font-bold text-on-surface">{email}</span>.{" "}
           Check your inbox and click the link to verify your account.
         </p>
         <button
           onClick={() => router.replace("/login")}
-          className="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-500 transition-colors"
+          className="inline-flex items-center justify-center rounded bg-primary-container px-5 py-2.5 text-sm font-label-tech text-white hover:bg-orange-600 transition-colors shadow-[0_0_10px_rgba(255,107,0,0.3)]"
         >
           Back to login
         </button>
@@ -92,15 +92,15 @@ function VerifyErrorPanel({ kind, email }: { kind: VerifyError; email: string | 
   return (
     <div className="text-center">
       {/* Icon */}
-      <div className={`mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl ring-1 ${config.iconBg}`}>
+      <div className={`mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded ring-1 ${config.iconBg}`}>
         {config.icon}
       </div>
 
-      <h1 className="text-xl font-semibold text-white mb-2">{config.title}</h1>
-      <p className="text-sm text-white/60 mb-6 leading-relaxed">{config.desc}</p>
+      <h1 className="text-xl font-headline-md text-on-surface mb-2">{config.title}</h1>
+      <p className="text-sm font-code-base text-on-surface-variant mb-6 leading-relaxed">{config.desc}</p>
 
       {resendError && (
-        <div className="mb-4 flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+        <div className="mb-4 flex items-center gap-2 rounded border border-error/20 bg-error/10 px-4 py-3 text-sm font-code-base text-error">
           <AlertCircle className="h-4 w-4 flex-shrink-0" />
           {resendError}
         </div>
@@ -111,7 +111,7 @@ function VerifyErrorPanel({ kind, email }: { kind: VerifyError; email: string | 
           <button
             onClick={resend}
             disabled={resendLoading}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-gray-900 transition-colors hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex items-center justify-center gap-2 rounded bg-surface-elevated px-5 py-3 text-sm font-label-tech text-on-surface transition-colors hover:bg-surface-variant border border-outline-hairline disabled:cursor-not-allowed disabled:opacity-60"
           >
             {resendLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -124,14 +124,14 @@ function VerifyErrorPanel({ kind, email }: { kind: VerifyError; email: string | 
 
         <button
           onClick={() => router.replace("/register")}
-          className="inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/10"
+          className="inline-flex items-center justify-center rounded border border-outline-hairline bg-surface-container px-5 py-3 text-sm font-label-tech text-on-surface transition-colors hover:bg-surface-variant"
         >
           Back to sign up
         </button>
 
         <button
           onClick={() => router.replace("/login")}
-          className="text-sm text-white/40 hover:text-white transition-colors"
+          className="text-sm font-label-tech text-on-surface-variant hover:text-on-surface transition-colors"
         >
           Already verified? Sign in
         </button>
@@ -145,12 +145,12 @@ function GenericErrorPanel({ message }: { message: string }) {
   const router = useRouter();
   return (
     <div className="text-center">
-      <AlertCircle className="mx-auto mb-3 h-8 w-8 text-red-400" />
-      <h1 className="text-lg font-semibold text-white mb-2">Sign in failed</h1>
-      <p className="text-sm text-white/60 mb-6">{message}</p>
+      <AlertCircle className="mx-auto mb-3 h-8 w-8 text-error" />
+      <h1 className="text-lg font-headline-md text-on-surface mb-2">Sign in failed</h1>
+      <p className="text-sm font-code-base text-on-surface-variant mb-6">{message}</p>
       <button
         onClick={() => router.replace("/login")}
-        className="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-500 transition-colors"
+        className="inline-flex items-center justify-center rounded bg-primary-container px-5 py-2.5 text-sm font-label-tech text-white hover:bg-orange-600 transition-colors shadow-[0_0_10px_rgba(255,107,0,0.3)]"
       >
         Back to login
       </button>
@@ -238,8 +238,8 @@ export default function OAuthCallbackContent() {
   // ── Verification error states ──
   if (verifyError) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-950 px-6">
-        <div className="w-full max-w-sm rounded-3xl border border-white/10 bg-white/5 p-8 shadow-2xl backdrop-blur-sm">
+      <div className="min-h-screen flex items-center justify-center bg-surface px-6">
+        <div className="w-full max-w-sm rounded border border-outline-hairline bg-surface-elevated p-8 shadow-2xl">
           <VerifyErrorPanel kind={verifyError} email={verifyEmail} />
         </div>
       </div>
@@ -249,8 +249,8 @@ export default function OAuthCallbackContent() {
   // ── Generic error ──
   if (authError) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-950 px-6">
-        <div className="w-full max-w-md rounded-2xl border border-white/10 bg-white/5 p-6">
+      <div className="min-h-screen flex items-center justify-center bg-surface px-6">
+        <div className="w-full max-w-md rounded border border-outline-hairline bg-surface-elevated p-6">
           <GenericErrorPanel message={authError} />
         </div>
       </div>
@@ -259,12 +259,12 @@ export default function OAuthCallbackContent() {
 
   // ── Loading / completing auth ──
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-950 px-6">
-      <div className="w-full max-w-md rounded-2xl border border-white/10 bg-white/5 p-6 text-center">
+    <div className="min-h-screen flex items-center justify-center bg-surface px-6">
+      <div className="w-full max-w-md rounded border border-outline-hairline bg-surface-elevated p-6 text-center">
         <div className="flex justify-center mb-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500" />
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
         </div>
-        <p className="text-sm text-white/60">Completing sign in…</p>
+        <p className="text-sm font-code-base text-on-surface-variant">Completing sign in…</p>
       </div>
     </div>
   );
