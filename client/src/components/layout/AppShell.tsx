@@ -9,7 +9,7 @@ import { useTranslation } from "@/i18n/useTranslation";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import {
   LayoutDashboard, Table, FormInput, FileText, Menu, X,
-  LogOut, Blocks, ChevronRight, User,
+  LogOut, Blocks, ChevronRight, User, ArrowLeft,
 } from "lucide-react";
 
 const PAGE_ICONS: Record<string, React.ElementType> = {
@@ -77,6 +77,17 @@ export default function AppShell({ children, hideSidebar = false, showLanguageSw
             </button>
           </div>
 
+          {/* Back to Projects */}
+          <div className="px-3 pt-3 pb-1 border-b border-white/5">
+            <Link
+              href="/dashboard"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-white/50 hover:text-white hover:bg-white/5 transition-colors"
+            >
+              <ArrowLeft className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Back to Projects</span>
+            </Link>
+          </div>
+
           {/* Navigation */}
           <nav className="flex-1 py-3 px-3 space-y-0.5 overflow-y-auto">
             {pages.map((page) => {
@@ -142,6 +153,13 @@ export default function AppShell({ children, hideSidebar = false, showLanguageSw
             >
               <Menu className="w-5 h-5" />
             </button>
+            <Link
+              href="/dashboard"
+              className="p-1.5 hover:bg-white/10 rounded-md text-white/60"
+              title="Back to Projects"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </Link>
             <h1 className="text-sm font-semibold text-white truncate flex-1">{appName}</h1>
             {showLanguageSwitcher && <LanguageSwitcher />}
           </header>
