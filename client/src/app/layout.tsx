@@ -6,11 +6,11 @@ import Providers from "./providers";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: "ConfigFlow: Config driven AI App Generator",
-  description: "Generate full-stack web applications from JSON configuration. Deploy instantly with PostgreSQL, Next.js, and REST APIs.",
+  title: "ConfigFlow: Declarative JSON-Driven Full-Stack App Generator",
+  description: "Generate full-stack web applications from JSON configuration. Preview instantly with dynamic UI and export clean Next.js, Prisma, and PostgreSQL code.",
   applicationName: "ConfigFlow",
   authors: [{ name: "ConfigFlow" }],
-  keywords: ["app generator", "no-code", "low-code", "config-driven", "full-stack"],
+  keywords: ["app generator", "no-code", "low-code", "config-driven", "full-stack", "nextjs", "prisma"],
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
   manifest: "/manifest.webmanifest",
   appleWebApp: {
@@ -25,8 +25,8 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: "https://configflow.ai",
-    title: "ConfigFlow: Config driven AI App Generator",
-    description: "Generate full-stack web applications from JSON configuration instantly.",
+    title: "ConfigFlow: Declarative JSON-Driven Full-Stack App Generator",
+    description: "Generate full-stack web applications from JSON configuration with instant live preview and clean code export.",
     images: [
       {
         url: "/og-image.png",
@@ -39,7 +39,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "ConfigFlow",
-    description: "Generate full-stack web applications from JSON configuration.",
+    description: "Generate full-stack web applications from JSON configuration with instant live preview and clean code export.",
     images: ["/og-image.png"],
   },
 };

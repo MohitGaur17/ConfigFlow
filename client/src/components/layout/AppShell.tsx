@@ -36,7 +36,7 @@ export default function AppShell({ children, hideSidebar = false, showLanguageSw
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const pages = config?.pages || [];
-  const appName = config?.app.name || "AI App Generator";
+  const appName = config?.app.name || "ConfigFlow App";
 
   const handleLogout = () => {
     logout();

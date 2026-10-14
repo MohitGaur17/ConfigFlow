@@ -57,6 +57,9 @@ export default function Navbar() {
           <Link href="/mission" className="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200">
             Mission
           </Link>
+          <Link href="/support" className="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200">
+            Support
+          </Link>
         </div>
         
         <div className="flex items-center gap-4">

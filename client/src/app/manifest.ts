@@ -2,7 +2,7 @@ import { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "ConfigFlow: Config driven AI App Generator",
+    name: "ConfigFlow: Declarative Full-Stack App Generator",
     short_name: "ConfigFlow",
     description: "Generate full-stack web applications from JSON configuration instantly.",
     start_url: "/",

@@ -15,7 +15,7 @@ export const translations: Record<Language, Record<string, string>> = {
     'header.description': 'Generate full-stack applications with dynamic UI, APIs, authentication, and extensible data models.',
     'header.status': 'PWA ready',
     'header.brand': 'ConfigFlow',
-    'header.tagline': 'Config driven AI App Generator',
+    'header.tagline': 'Config-driven Full-Stack App Generator',
 
     // Home Page
     'home.overview': 'Overview',
@@ -118,7 +118,7 @@ export const translations: Record<Language, Record<string, string>> = {
     'header.description': 'Genera aplicaciones full-stack con UI dinámica, APIs, autenticación y modelos de datos extensibles.',
     'header.status': 'Lista para PWA',
     'header.brand': 'ConfigFlow',
-    'header.tagline': 'Generador de Aplicaciones de IA Impulsado por Configuración',
+    'header.tagline': 'Generador de Aplicaciones Full-Stack Impulsado por Configuración',
 
     // Home Page
     'home.overview': 'Descripción General',
@@ -213,7 +213,7 @@ export const translations: Record<Language, Record<string, string>> = {
     'header.description': 'Générez des applications full-stack avec UI dynamique, API, authentification et modèles de données extensibles.',
     'header.status': 'Prêt pour PWA',
     'header.brand': 'ConfigFlow',
-    'header.tagline': 'Générateur d\'Applications IA Piloté par Configuration',
+    'header.tagline': 'Générateur d\'Applications Full-Stack Piloté par Configuration',
 
     // Home Page
     'home.overview': 'Aperçu',
@@ -308,7 +308,7 @@ export const translations: Record<Language, Record<string, string>> = {
     'header.description': 'Erstellen Sie Full-Stack-Anwendungen mit dynamischer UI, APIs, Authentifizierung und erweiterbaren Datenmodellen.',
     'header.status': 'PWA bereit',
     'header.brand': 'ConfigFlow',
-    'header.tagline': 'Konfigurationsgesteuerte KI-App-Generator',
+    'header.tagline': 'Konfigurationsgesteuerter Full-Stack-App-Generator',
 
     // Home Page
     'home.overview': 'Übersicht',
@@ -403,7 +403,7 @@ export const translations: Record<Language, Record<string, string>> = {
     'header.description': '動的な UI、API、認証、拡張可能なデータモデルを備えたフルスタックアプリを生成します。',
     'header.status': 'PWA対応',
     'header.brand': 'ConfigFlow',
-    'header.tagline': '設定駆動型AIアプリジェネレーター',
+    'header.tagline': '設定駆動型フルスタックアプリジェネレーター',
 
     // Home Page
     'home.overview': '概要',
@@ -498,7 +498,7 @@ export const translations: Record<Language, Record<string, string>> = {
     'header.description': '生成具有动态 UI、API、身份验证和可扩展数据模型的全栈应用程序。',
     'header.status': 'PWA就绪',
     'header.brand': 'ConfigFlow',
-    'header.tagline': '配置驱动型AI应用生成器',
+    'header.tagline': '配置驱动型全栈应用生成器',
 
     // Home Page
     'home.overview': '概览',
@@ -593,7 +593,7 @@ export const translations: Record<Language, Record<string, string>> = {
     'header.description': 'Gere aplicações full-stack com UI dinâmica, APIs, autenticação e modelos de dados extensíveis.',
     'header.status': 'PWA pronto',
     'header.brand': 'ConfigFlow',
-    'header.tagline': 'Gerador de Aplicativos de IA Orientado por Configuração',
+    'header.tagline': 'Gerador de Aplicativos Full-Stack Orientado por Configuração',
 
     // Home Page
     'home.overview': 'Visão Geral',
@@ -688,7 +688,7 @@ export const translations: Record<Language, Record<string, string>> = {
     'header.description': 'أنشئ تطبيقات ويب كاملة بواجهات ديناميكية وواجهات برمجة تطبيقات ومصادقة ونماذج بيانات قابلة للتوسعة.',
     'header.status': 'PWA جاهز',
     'header.brand': 'ConfigFlow',
-    'header.tagline': 'مولد تطبيقات الذكاء الاصطناعي المدفوع بالإعدادات',
+    'header.tagline': 'مولد تطبيقات متكاملة مدفوع بالإعدادات',
 
     // Home Page
     'home.overview': 'نظرة عامة',

@@ -232,20 +232,23 @@ export default function Home() {
               </div>
               <pre className="text-on-surface-variant overflow-x-auto hide-scroll text-sm">
                 {`{
-  "`}<span className="text-code-indigo">project</span>{`": "`}<span className="text-primary">SaaS CRM</span>{`",
-  "`}<span className="text-code-indigo">models</span>{`": [
-    {
-      "`}<span className="text-code-indigo">name</span>{`": "`}<span className="text-primary">Customer</span>{`",
+  "`}<span className="text-code-indigo">app</span>{`": {
+    "`}<span className="text-code-indigo">name</span>{`": "`}<span className="text-primary">SaaS CRM</span>{`",
+    "`}<span className="text-code-indigo">auth</span>{`": { "`}<span className="text-code-indigo">enabled</span>{`": `}<span className="text-primary">true</span>{` }
+  },
+  "`}<span className="text-code-indigo">entities</span>{`": {
+    "`}<span className="text-code-indigo">customer</span>{`": {
+      "`}<span className="text-code-indigo">displayField</span>{`": "`}<span className="text-primary">name</span>{`",
       "`}<span className="text-code-indigo">fields</span>{`": {
-        "`}<span className="text-code-indigo">email</span>{`": "`}<span className="text-primary">String @unique</span>{`",
-        "`}<span className="text-code-indigo">status</span>{`": "`}<span className="text-primary">Enum</span>{`"
+        "`}<span className="text-code-indigo">name</span>{`": { "`}<span className="text-code-indigo">type</span>{`": "`}<span className="text-primary">string</span>{`", "`}<span className="text-code-indigo">required</span>{`": `}<span className="text-primary">true</span>{` },
+        "`}<span className="text-code-indigo">email</span>{`": { "`}<span className="text-code-indigo">type</span>{`": "`}<span className="text-primary">email</span>{`", "`}<span className="text-code-indigo">required</span>{`": `}<span className="text-primary">true</span>{` },
+        "`}<span className="text-code-indigo">status</span>{`": { "`}<span className="text-code-indigo">type</span>{`": "`}<span className="text-primary">enum</span>{`", "`}<span className="text-code-indigo">options</span>{`": ["lead", "active"] }
       }
     }
-  ],
-  "`}<span className="text-code-indigo">features</span>{`": [
-    "`}<span className="text-primary">auth</span>{`",
-    "`}<span className="text-primary">api_routes</span>{`",
-    "`}<span className="text-primary">dashboard_ui</span>{`"
+  },
+  "`}<span className="text-code-indigo">pages</span>{`": [
+    { "`}<span className="text-code-indigo">name</span>{`": "`}<span className="text-primary">Customers</span>{`", "`}<span className="text-code-indigo">path</span>{`": "`}<span className="text-primary">/customers</span>{`", "`}<span className="text-code-indigo">type</span>{`": "`}<span className="text-primary">table</span>{`", "`}<span className="text-code-indigo">entity</span>{`": "`}<span className="text-primary">customer</span>{`" },
+    { "`}<span className="text-code-indigo">name</span>{`": "`}<span className="text-primary">Dashboard</span>{`", "`}<span className="text-code-indigo">path</span>{`": "`}<span className="text-primary">/dashboard</span>{`", "`}<span className="text-code-indigo">type</span>{`": "`}<span className="text-primary">dashboard</span>{`" }
   ]
 }`}
               </pre>
@@ -283,7 +286,7 @@ export default function Home() {
                 <span className="material-symbols-outlined text-primary-container">web</span>
                 <div>
                   <div className="text-label-caps text-on-surface font-label-caps mb-1">FRONTEND</div>
-                  <div className="text-code-base font-code-base text-on-surface-variant text-xs">React Server Components</div>
+                  <div className="text-code-base font-code-base text-on-surface-variant text-xs">Next.js Client Components & Tailwind</div>
                 </div>
               </div>
             </div>
@@ -316,7 +319,7 @@ export default function Home() {
           <div className="glass-panel p-6 rounded-xl border border-outline-variant/30 flex flex-col gap-4">
             <span className="material-symbols-outlined text-3xl text-primary-container">admin_panel_settings</span>
             <h4 className="text-body-lg font-bold text-on-surface">Built-in Auth</h4>
-            <p className="text-sm text-on-surface-variant">Secure user management, roles, and session handling ready to go.</p>
+            <p className="text-sm text-on-surface-variant">Secure user management, OAuth authentication, and session handling ready to go.</p>
           </div>
           <div className="glass-panel p-6 rounded-xl border border-outline-variant/30 flex flex-col gap-4">
             <span className="material-symbols-outlined text-3xl text-primary-container">offline_bolt</span>

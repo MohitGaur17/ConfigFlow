@@ -22,7 +22,7 @@ export default function SupportPage() {
           </div>
           <h2 className="font-headline-md text-headline-md text-on-surface">Report a Bug or Contribute</h2>
           <p className="font-body-md text-body-md text-on-surface-variant flex-grow">Help us improve the core engine. Submit issues or PRs directly to our repository.</p>
-          <a href="#" className="mt-4 border border-outline-hairline text-on-surface hover:border-primary hover:text-primary transition-colors px-6 py-2 rounded font-label-tech text-label-tech">Open GitHub Issue</a>
+          <a href="https://github.com/MohitGaur17/ConfigFlow/issues" target="_blank" rel="noopener noreferrer" className="mt-4 border border-outline-hairline text-on-surface hover:border-primary hover:text-primary transition-colors px-6 py-2 rounded font-label-tech text-label-tech">Open GitHub Issue</a>
         </div>
 
         {/* Card 2: Roadmap */}
@@ -31,18 +31,18 @@ export default function SupportPage() {
             <span className="material-symbols-outlined text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>tips_and_updates</span>
           </div>
           <h2 className="font-headline-md text-headline-md text-on-surface">Request a Feature</h2>
-          <p className="font-body-md text-body-md text-on-surface-variant flex-grow">Have an idea for a new component or configuration option? Let us know.</p>
-          <a href="#" className="mt-4 border border-outline-hairline text-on-surface hover:border-primary hover:text-primary transition-colors px-6 py-2 rounded font-label-tech text-label-tech">View Roadmap</a>
+          <p className="font-body-md text-body-md text-on-surface-variant flex-grow">Have an idea for a new component or configuration option? Let us know in discussions.</p>
+          <a href="https://github.com/MohitGaur17/ConfigFlow/discussions" target="_blank" rel="noopener noreferrer" className="mt-4 border border-outline-hairline text-on-surface hover:border-primary hover:text-primary transition-colors px-6 py-2 rounded font-label-tech text-label-tech">Feature Discussions</a>
         </div>
 
-        {/* Card 3: Discord */}
+        {/* Card 3: Community */}
         <div className="bento-card rounded-xl p-8 flex flex-col items-start gap-4 h-full min-h-[250px]">
           <div className="text-primary glow-icon mb-2">
             <span className="material-symbols-outlined text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>forum</span>
           </div>
-          <h2 className="font-headline-md text-headline-md text-on-surface">Developer Discord</h2>
-          <p className="font-body-md text-body-md text-on-surface-variant flex-grow">Join the community. Get real-time help, discuss schemas, and connect with other engineers.</p>
-          <a href="#" className="mt-4 bg-primary-container text-white px-6 py-2 rounded font-label-tech text-label-tech shadow-[0_0_15px_rgba(255,107,0,0.4)] hover:opacity-90 transition-opacity">Join Discord</a>
+          <h2 className="font-headline-md text-headline-md text-on-surface">Developer Community</h2>
+          <p className="font-body-md text-body-md text-on-surface-variant flex-grow">Connect with other engineers, share JSON schemas, and explore starter templates.</p>
+          <a href="https://github.com/MohitGaur17/ConfigFlow" target="_blank" rel="noopener noreferrer" className="mt-4 bg-primary-container text-white px-6 py-2 rounded font-label-tech text-label-tech shadow-[0_0_15px_rgba(255,107,0,0.4)] hover:opacity-90 transition-opacity">Explore GitHub</a>
         </div>
 
         {/* Card 4: Direct Support */}
@@ -50,9 +50,9 @@ export default function SupportPage() {
           <div className="text-primary glow-icon mb-2">
             <span className="material-symbols-outlined text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>mail</span>
           </div>
-          <h2 className="font-headline-md text-headline-md text-on-surface">Direct Support</h2>
-          <p className="font-body-md text-body-md text-on-surface-variant flex-grow">For private inquiries, billing issues, or enterprise support SLAs.</p>
-          <a href="#" className="mt-4 border border-outline-hairline text-on-surface hover:border-primary hover:text-primary transition-colors px-6 py-2 rounded font-label-tech text-label-tech">Contact Us</a>
+          <h2 className="font-headline-md text-headline-md text-on-surface">Direct Inquiries</h2>
+          <p className="font-body-md text-body-md text-on-surface-variant flex-grow">For private inquiries, feedback, or technical questions about schema generation.</p>
+          <a href="mailto:support@configflow.ai" className="mt-4 border border-outline-hairline text-on-surface hover:border-primary hover:text-primary transition-colors px-6 py-2 rounded font-label-tech text-label-tech">Contact Us</a>
         </div>
 
       </section>

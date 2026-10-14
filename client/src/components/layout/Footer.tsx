@@ -87,13 +87,13 @@ export default function Footer() {
         <div>
           <h4 className="text-label-caps font-label-caps text-on-surface mb-4 tracking-widest">SUPPORT</h4>
           <ul className="space-y-2 text-sm text-on-surface-variant">
-            <li><Link href="#" className="hover:text-primary transition-colors">Contact Support (Coming Soon)</Link></li>
-            <li><Link href="#" className="hover:text-primary transition-colors">Documentation (Coming Soon)</Link></li>
+            <li><Link href="/support" className="hover:text-primary transition-colors">Support Hub</Link></li>
+            <li><Link href="/#how-it-works" className="hover:text-primary transition-colors">Documentation</Link></li>
           </ul>
         </div>
       </div>
       <div className="max-w-container-max mx-auto px-margin-safe pt-8 border-t border-outline-hairline flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-on-surface-variant">
-        <div>© 2024 ConfigFlow Engineering. All rights reserved.</div>
+        <div>© 2026 ConfigFlow Engineering. All rights reserved.</div>
         <div className="flex items-center gap-4">
           <Link href="#" className="hover:text-primary transition-colors">Privacy</Link>
           <Link href="#" className="hover:text-primary transition-colors">Terms</Link>

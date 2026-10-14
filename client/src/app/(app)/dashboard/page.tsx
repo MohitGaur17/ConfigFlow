@@ -120,14 +120,14 @@ export default function DashboardPage() {
                     ConfigFlow generated application architecture.
                   </p>
                   
-                  {/* Environment Badges */}
+                  {/* Status Badges */}
                   <div className="flex items-center gap-3 mb-4">
-                    <span className="px-2 py-0.5 rounded-sm bg-tertiary-container/10 border border-tertiary-container/30 text-[10px] font-label-caps text-tertiary-container tracking-widest">
-                      PRODUCTION
+                    <span className="px-2 py-0.5 rounded-sm bg-primary-container/10 border border-primary-container/30 text-[10px] font-label-caps text-primary-container tracking-widest">
+                      LIVE PREVIEW
                     </span>
-                    <span className="text-[11px] font-code-base text-on-surface-variant flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse"></span>
-                      Healthy
+                    <span className="text-[11px] font-code-base text-on-surface-variant flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                      Ready to Export
                     </span>
                   </div>
                 </div>

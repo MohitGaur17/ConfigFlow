@@ -16,40 +16,72 @@ export default function BuilderPage() {
     router.push("/login");
   };
   
-  // Dummy Placeholder JSON
+  // Default Valid Starter JSON Configuration
   const [jsonConfig, setJsonConfig] = useState(
 `{
-  // Remove this and write your own JSON config
-  "project": {
-    "name": "ARCHITECT_OS_CORE",
-    "version": "1.0.4-stable",
-    "active_environment": "production"
-  },
-  "configuration": {
-    "features": {
-      "enable_telemetry": false,
-      "max_concurrent_builds": 4,
-      "experimental_rendering": true
+  "app": {
+    "name": "Project Tracker",
+    "description": "Manage team projects, tasks, and deliverables.",
+    "theme": {
+      "primaryColor": "#FF6B00",
+      "mode": "dark"
     },
-    "modules": [
-      {
-        "id": "mod_ui_core",
-        "path": "/src/core/ui",
-        "lazy_load": false
-      },
-      {
-        "id": "mod_data_pipeline",
-        "path": "/src/pipelines/data",
-        "lazy_load": true
-      }
-    ]
+    "auth": {
+      "enabled": true
+    }
   },
-  "deployment": {
-    "targets": ["aws_us_east_1", "aws_eu_central_1"],
-    "auto_scaling": true,
-    "min_instances": 2,
-    "max_instances": 10
-  }
+  "entities": {
+    "project": {
+      "displayField": "title",
+      "fields": {
+        "title": {
+          "type": "string",
+          "required": true,
+          "label": "Project Title",
+          "placeholder": "e.g. Website Redesign"
+        },
+        "description": {
+          "type": "text",
+          "label": "Description"
+        },
+        "status": {
+          "type": "enum",
+          "options": ["planning", "active", "completed"],
+          "default": "planning",
+          "label": "Status"
+        },
+        "dueDate": {
+          "type": "date",
+          "label": "Due Date"
+        },
+        "budget": {
+          "type": "number",
+          "min": 0,
+          "label": "Budget ($)"
+        }
+      }
+    }
+  },
+  "pages": [
+    {
+      "name": "Projects",
+      "path": "/projects",
+      "type": "table",
+      "entity": "project"
+    },
+    {
+      "name": "New Project",
+      "path": "/projects/new",
+      "type": "form",
+      "entity": "project",
+      "submitAction": "create"
+    },
+    {
+      "name": "Dashboard",
+      "path": "/dashboard",
+      "type": "dashboard"
+    }
+  ]
 }`
   );
 
@@ -124,7 +156,7 @@ export default function BuilderPage() {
           <span className="material-symbols-outlined text-3xl mb-4 text-on-surface-variant">auto_awesome</span>
           <h3 className="text-headline-md font-headline-md text-on-surface mb-2">AI Assisted</h3>
           <p className="text-sm font-body-md text-on-surface-variant leading-relaxed">
-            Describe your application in plain English and let Architect OS generate the underlying schema for you.
+            Describe your application in plain English and let ConfigFlow generate the underlying schema for you.
           </p>
         </div>
 
