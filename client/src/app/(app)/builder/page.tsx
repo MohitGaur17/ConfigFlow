@@ -3,11 +3,19 @@ import { useState } from "react";
 import toast from "react-hot-toast";
 import api from "@/lib/api";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/auth-context";
 
 export default function BuilderPage() {
   const [selectedMode, setSelectedMode] = useState<"manual" | null>("manual");
+  const { user, logout } = useAuth();
+  const router = useRouter();
+
+  const handleLogout = () => {
+    logout();
+    router.push("/login");
+  };
   
-  // Dummy Placeholder JSON
   // Dummy Placeholder JSON
   const [jsonConfig, setJsonConfig] = useState(
 `{
@@ -47,6 +55,41 @@ export default function BuilderPage() {
 
   return (
     <div className="p-8 max-w-4xl mx-auto w-full">
+      {/* Brand Navigation Bar */}
+      <div className="flex items-center justify-between pb-6 mb-8 border-b border-outline-hairline">
+        <div className="flex items-center gap-4">
+          <Link
+            href="/dashboard"
+            className="flex items-center gap-1.5 text-xs font-label-tech text-on-surface-variant hover:text-primary-container transition-colors py-1 px-2.5 rounded hover:bg-surface-variant/30 border border-outline-hairline"
+          >
+            <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+            <span>Projects</span>
+          </Link>
+          <div className="h-4 w-px bg-outline-hairline"></div>
+          <Link href="/dashboard" className="flex items-center gap-2 hover:opacity-85 transition-opacity">
+            <div className="w-6 h-6 rounded bg-primary-container flex items-center justify-center text-xs font-bold text-white shadow-[0_0_10px_rgba(255,107,0,0.3)]">
+              C
+            </div>
+            <span className="font-headline-md text-base font-black tracking-tight text-on-surface">ConfigFlow</span>
+          </Link>
+        </div>
+
+        <div className="flex items-center gap-3">
+          {user && (
+            <div className="hidden sm:flex items-center gap-2 text-xs font-code-base text-on-surface-variant bg-surface-variant/30 border border-outline-hairline px-3 py-1 rounded-full">
+              <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+              <span>{user.email}</span>
+            </div>
+          )}
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-label-tech text-on-surface-variant hover:text-white hover:bg-surface-variant/30 border border-outline-hairline transition-colors"
+          >
+            <span className="material-symbols-outlined text-[16px]">logout</span>
+            <span>Logout</span>
+          </button>
+        </div>
+      </div>
       
       {/* Page Header */}
       <div className="mb-8 border-b border-outline-hairline pb-6">

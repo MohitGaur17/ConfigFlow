@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/auth-context";
 import api from "@/lib/api";
 import toast from "react-hot-toast";
 
@@ -15,6 +17,13 @@ interface Project {
 export default function DashboardPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { user, logout } = useAuth();
+  const router = useRouter();
+
+  const handleLogout = () => {
+    logout();
+    router.push("/login");
+  };
 
   const fetchProjects = async () => {
     try {
@@ -46,6 +55,31 @@ export default function DashboardPage() {
 
   return (
     <div className="p-8 max-w-6xl mx-auto w-full">
+      {/* Brand Navigation Bar */}
+      <div className="flex items-center justify-between pb-6 mb-8 border-b border-outline-hairline">
+        <Link href="/" className="flex items-center gap-2.5 hover:opacity-85 transition-opacity">
+          <div className="w-8 h-8 rounded-lg bg-primary-container flex items-center justify-center text-sm font-bold text-white shadow-[0_0_12px_rgba(255,107,0,0.35)]">
+            C
+          </div>
+          <span className="font-headline-md text-lg font-black tracking-tight text-on-surface">ConfigFlow</span>
+        </Link>
+
+        <div className="flex items-center gap-3">
+          {user && (
+            <div className="hidden sm:flex items-center gap-2 text-xs font-code-base text-on-surface-variant bg-surface-variant/30 border border-outline-hairline px-3 py-1.5 rounded-full">
+              <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+              <span>{user.email}</span>
+            </div>
+          )}
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-label-tech text-on-surface-variant hover:text-white hover:bg-surface-variant/30 border border-outline-hairline transition-colors"
+          >
+            <span className="material-symbols-outlined text-[16px]">logout</span>
+            <span>Logout</span>
+          </button>
+        </div>
+      </div>
       
       {/* Top Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4 border-b border-outline-hairline pb-6">
