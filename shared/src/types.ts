@@ -50,7 +50,7 @@ export interface TablePageConfig {
   name: string;
   path: string;
   entity: string;
-  columns: string[];
+  columns?: string[];
   actions?: ("create" | "edit" | "delete")[];
   filters?: string[];
   searchable?: boolean;
@@ -69,6 +69,7 @@ export interface FormPageConfig {
 export interface WidgetConfig {
   type: "stat" | "chart" | "list";
   label: string;
+  title?: string;
   entity: string;
   operation?: "count" | "sum" | "avg";
   field?: string;
@@ -81,7 +82,7 @@ export interface DashboardPageConfig {
   type: "dashboard";
   name: string;
   path: string;
-  widgets: WidgetConfig[];
+  widgets?: WidgetConfig[];
 }
 
 export interface DetailPageConfig {
@@ -103,21 +104,27 @@ export type PageConfig =
 export interface ThemeConfig {
   primaryColor?: string;
   mode?: "light" | "dark";
+  [key: string]: unknown;
 }
 
 export interface AuthConfig {
-  enabled: boolean;
+  enabled?: boolean;
   providers?: {
     google?: boolean;
     github?: boolean;
+    email?: boolean;
+    [key: string]: boolean | undefined;
   };
+  [key: string]: unknown;
 }
 
 export interface AppMeta {
   name: string;
   description?: string;
+  version?: string;
   theme?: ThemeConfig;
-  auth: AuthConfig;
+  auth?: AuthConfig;
+  [key: string]: unknown;
 }
 
 export interface AppConfig {

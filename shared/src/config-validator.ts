@@ -47,21 +47,25 @@ const entityConfigSchema = z.object({
 
 const widgetConfigSchema = z.object({
   type: z.enum(["stat", "chart", "list"]),
-  label: z.string(),
+  label: z.string().optional(),
+  title: z.string().optional(),
   entity: z.string(),
   operation: z.enum(["count", "sum", "avg"]).optional(),
   field: z.string().optional(),
   groupBy: z.string().optional(),
   chartType: z.enum(["bar", "pie", "line"]).optional(),
   limit: z.number().positive().optional(),
-});
+}).transform((w) => ({
+  ...w,
+  label: w.label || w.title || "Widget",
+}));
 
 const tablePageSchema = z.object({
   type: z.literal("table"),
   name: z.string(),
   path: z.string(),
   entity: z.string(),
-  columns: z.array(z.string()).min(1),
+  columns: z.array(z.string()).optional(),
   actions: z.array(z.enum(["create", "edit", "delete"])).optional(),
   filters: z.array(z.string()).optional(),
   searchable: z.boolean().optional(),
@@ -81,7 +85,7 @@ const dashboardPageSchema = z.object({
   type: z.literal("dashboard"),
   name: z.string(),
   path: z.string(),
-  widgets: z.array(widgetConfigSchema).min(1),
+  widgets: z.array(widgetConfigSchema).optional().default([]),
 });
 
 const detailPageSchema = z.object({
@@ -102,18 +106,16 @@ const pageConfigSchema = z.discriminatedUnion("type", [
 const appMetaSchema = z.object({
   name: z.string().min(1, "App name is required"),
   description: z.string().optional(),
+  version: z.string().optional(),
   theme: z.object({
     primaryColor: z.string().optional(),
     mode: z.enum(["light", "dark"]).optional(),
-  }).optional(),
+  }).passthrough().optional(),
   auth: z.object({
-    enabled: z.boolean(),
-    providers: z.object({
-      google: z.boolean().optional(),
-      github: z.boolean().optional(),
-    }).optional(),
-  }),
-});
+    enabled: z.boolean().optional().default(false),
+    providers: z.record(z.string(), z.boolean()).optional(),
+  }).passthrough().optional().default({ enabled: false }),
+}).passthrough();
 
 export const appConfigSchema = z.object({
   app: appMetaSchema,
@@ -190,7 +192,7 @@ function collectWarnings(config: z.infer<typeof appConfigSchema>): string[] {
     // Check column/field references
     if (page.type === "table") {
       const entity = config.entities[page.entity];
-      if (entity) {
+      if (entity && page.columns && Array.isArray(page.columns)) {
         for (const col of page.columns) {
           if (!(col in entity.fields)) {
             warnings.push(
@@ -202,7 +204,7 @@ function collectWarnings(config: z.infer<typeof appConfigSchema>): string[] {
     }
 
     // Check widget entity references
-    if (page.type === "dashboard") {
+    if (page.type === "dashboard" && page.widgets && Array.isArray(page.widgets)) {
       for (const widget of page.widgets) {
         if (!entityNames.includes(widget.entity)) {
           warnings.push(
