@@ -40,11 +40,29 @@ const navbarContent = fs.readFileSync(
   "utf8"
 );
 assert.ok(!navbarContent.includes("LanguageSwitcher"), "Navbar.tsx must not reference LanguageSwitcher");
+assert.ok(!navbarContent.includes('href="/support"'), "Navbar.tsx must not link to /support");
+
+const footerContent = fs.readFileSync(
+  path.join(root, "client", "src", "components", "layout", "Footer.tsx"),
+  "utf8"
+);
+assert.ok(!footerContent.includes('href="/support"'), "Footer.tsx must not link to /support");
+
+assert.ok(
+  !fs.existsSync(path.join(root, "client", "src", "app", "(marketing)", "support")),
+  "client/src/app/(marketing)/support directory must not exist"
+);
+
+const nextConfigContent = fs.readFileSync(
+  path.join(root, "client", "next.config.ts"),
+  "utf8"
+);
+assert.ok(nextConfigContent.includes('source: "/support"'), "next.config.ts must redirect /support route");
 
 const readmeContent = fs.readFileSync(path.join(root, "README.md"), "utf8");
 assert.ok(!readmeContent.includes("Internationalization (i18n)"), "README.md must not advertise i18n");
 
-console.log("✔ i18n has been completely and cleanly removed from codebase!");
+console.log("✔ i18n and support route have been completely and cleanly removed from codebase!");
 
 // 2. Verify Real-Time Notification System (Server & Client)
 console.log("\n[2/4] Verifying Real-Time Notification System...");
