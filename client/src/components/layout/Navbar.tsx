@@ -10,12 +10,12 @@ import {
   Layers,
   Sparkles,
   Compass,
-  LifeBuoy,
   ChevronRight,
   ArrowRight,
   LayoutDashboard,
   LogOut,
 } from "lucide-react";
+import NotificationBell from "@/components/NotificationBell";
 
 const NAV_LINKS = [
   {
@@ -41,12 +41,6 @@ const NAV_LINKS = [
     href: "/mission",
     icon: Compass,
     description: "The ConfigFlow engineering manifesto",
-  },
-  {
-    name: "Support",
-    href: "/support",
-    icon: LifeBuoy,
-    description: "GitHub issues, discussions & contact",
   },
 ];
 
@@ -172,6 +166,7 @@ export default function Navbar() {
 
         {/* Desktop Right Actions */}
         <div className="hidden md:flex items-center gap-3">
+          {mounted && isAuthenticated && <NotificationBell />}
           {mounted && isAuthenticated && user ? (
             <div className="flex items-center gap-3">
               <Link
@@ -207,8 +202,9 @@ export default function Navbar() {
           )}
         </div>
 
-        {/* Mobile Header Actions: Quick CTA + Hamburger Toggle */}
+        {/* Mobile Header Actions: Quick CTA + Notification + Hamburger Toggle */}
         <div className="flex md:hidden items-center gap-2">
+          {mounted && isAuthenticated && <NotificationBell />}
           {mounted && isAuthenticated ? (
             <Link
               href="/dashboard"
@@ -362,13 +358,15 @@ export default function Navbar() {
           {/* Drawer Bottom Bar */}
           <div className="pt-2 flex items-center justify-between text-[11px] font-label-tech text-on-surface-variant border-t border-outline-hairline/60">
             <span>ConfigFlow v1.0.0</span>
-            <Link
-              href="/support"
+            <a
+              href="https://github.com/MohitGaur17/ConfigFlow"
+              target="_blank"
+              rel="noopener noreferrer"
               onClick={() => setIsOpen(false)}
               className="hover:text-primary transition-colors"
             >
-              Need Help?
-            </Link>
+              GitHub
+            </a>
           </div>
         </div>
       </div>

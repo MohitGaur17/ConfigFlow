@@ -85,10 +85,10 @@ export default function Footer() {
           </ul>
         </div>
         <div>
-          <h4 className="text-label-caps font-label-caps text-on-surface mb-4 tracking-widest">SUPPORT</h4>
+          <h4 className="text-label-caps font-label-caps text-on-surface mb-4 tracking-widest">RESOURCES</h4>
           <ul className="space-y-2 text-sm text-on-surface-variant">
-            <li><Link href="/support" className="hover:text-primary transition-colors">Support Hub</Link></li>
             <li><Link href="/#how-it-works" className="hover:text-primary transition-colors">Documentation</Link></li>
+            <li><a href="https://github.com/MohitGaur17/ConfigFlow" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">GitHub Repository</a></li>
           </ul>
         </div>
       </div>
