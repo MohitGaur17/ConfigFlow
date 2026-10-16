@@ -38,7 +38,7 @@ export function generateCodebase(config: AppConfig): VirtualFileSystem {
   // 4. API Routes
   for (const [entityName, entityConfig] of Object.entries(config.entities)) {
     vfs.set(`src/app/api/${entityName}/route.ts`, generateApiRoute(entityName, entityConfig));
-    vfs.set(`src/app/api/${entityName}/[id]/route.ts`, generateApiIdRoute(entityName));
+    vfs.set(`src/app/api/${entityName}/[id]/route.ts`, generateApiIdRoute(entityName, entityConfig));
   }
 
   // 5. Pages
@@ -160,6 +160,9 @@ function generatePackageJson(config: AppConfig): string {
     name: config.app.name.toLowerCase().replace(/\s+/g, "-"),
     version: "0.1.0",
     private: true,
+    engines: {
+      node: ">=20.9.0"
+    },
     scripts: {
       "dev": "next dev",
       "build": "next build",
@@ -171,15 +174,15 @@ function generatePackageJson(config: AppConfig): string {
     dependencies: {
       "@prisma/client": "^5.22.0",
       "lucide-react": "^0.368.0",
-      "next": "14.2.3",
-      "react": "^18",
-      "react-dom": "^18",
+      "next": "^16.2.0",
+      "react": "^19.0.0",
+      "react-dom": "^19.0.0",
       "recharts": "^2.12.7"
     },
     devDependencies: {
       "@types/node": "^20",
-      "@types/react": "^18",
-      "@types/react-dom": "^18",
+      "@types/react": "^19",
+      "@types/react-dom": "^19",
       "postcss": "^8",
       "prisma": "^5.22.0",
       "tailwindcss": "^3.4.1",
@@ -191,6 +194,7 @@ function generatePackageJson(config: AppConfig): string {
 function generateTsConfig(): string {
   return `{
   "compilerOptions": {
+    "target": "ES2017",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
@@ -201,12 +205,12 @@ function generateTsConfig(): string {
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "incremental": true,
     "plugins": [{ "name": "next" }],
     "paths": { "@/*": ["./src/*"] }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", ".next/dev/types/**/*.ts"],
   "exclude": ["node_modules"]
 }`;
 }
@@ -239,27 +243,44 @@ export default config;`;
 function generateTablePage(page: TablePageConfig, entityConfig?: EntityConfig): string {
   const columns = (page.columns && page.columns.length > 0) ? page.columns : Object.keys(entityConfig?.fields || {});
   const searchable = page.searchable !== false;
-  const actions = page.actions || [];
+  const actions = page.actions || ["create", "edit", "delete"];
+  const fields = Object.entries(entityConfig?.fields || {}).map(([key, f]) => ({
+    name: key,
+    type: f.type,
+    required: Boolean(f.required),
+    label: f.label || key,
+    options: f.options || [],
+  }));
 
   return `"use client";
 import { useEffect, useMemo, useState } from "react";
-import { Search, Plus, MoreHorizontal } from "lucide-react";
+import { Search, Plus, Pencil, Trash2, X, Loader2 } from "lucide-react";
 
 const columns = ${JSON.stringify(columns)};
+const entityFields = ${JSON.stringify(fields)};
 
 export default function Page() {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<any | null>(null);
+  const [formData, setFormData] = useState<Record<string, any>>({});
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const loadData = () => {
     fetch("/api/${page.entity}")
       .then((res) => res.json())
       .then((json) => {
-        if (json.success) setData(json.data);
+        if (json.success && Array.isArray(json.data)) setData(json.data);
         setLoading(false);
       })
       .catch(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadData();
   }, []);
 
   const filteredData = useMemo(() => {
@@ -270,8 +291,67 @@ export default function Page() {
     );
   }, [data, query]);
 
+  const canCreate = ${actions.includes("create")};
   const canEdit = ${actions.includes("edit")};
   const canDelete = ${actions.includes("delete")};
+
+  const handleOpenAdd = () => {
+    setEditingRecord(null);
+    const initial: Record<string, any> = {};
+    entityFields.forEach((f) => { initial[f.name] = ""; });
+    setFormData(initial);
+    setFormError(null);
+    setModalOpen(true);
+  };
+
+  const handleOpenEdit = (record: any) => {
+    setEditingRecord(record);
+    const initial: Record<string, any> = {};
+    entityFields.forEach((f) => { initial[f.name] = record[f.name] ?? ""; });
+    setFormData(initial);
+    setFormError(null);
+    setModalOpen(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this record?")) return;
+    try {
+      const res = await fetch("/api/${page.entity}/" + id, { method: "DELETE" });
+      if (res.ok) {
+        setData((prev) => prev.filter((r) => r.id !== id));
+      }
+    } catch (err) {
+      console.error("Failed to delete", err);
+    }
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setFormError(null);
+    try {
+      const url = editingRecord ? "/api/${page.entity}/" + editingRecord.id : "/api/${page.entity}";
+      const method = editingRecord ? "PUT" : "POST";
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || "Failed to save record");
+
+      if (editingRecord) {
+        setData((prev) => prev.map((r) => (r.id === editingRecord.id ? json.data : r)));
+      } else {
+        setData((prev) => [json.data, ...prev]);
+      }
+      setModalOpen(false);
+    } catch (err: any) {
+      setFormError(err.message || "Failed to save");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -291,7 +371,14 @@ export default function Page() {
                 className="w-full bg-transparent outline-none placeholder:text-slate-500"
               />
             </label>` : ""}
-            ${actions.includes("create") ? `<button className="inline-flex items-center justify-center gap-2 rounded-2xl bg-indigo-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20 transition hover:bg-indigo-400 active:scale-[0.98]"><Plus className="h-4 w-4" />Add</button>` : ""}
+            {canCreate && (
+              <button
+                onClick={handleOpenAdd}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-indigo-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20 transition hover:bg-indigo-400 active:scale-[0.98]"
+              >
+                <Plus className="h-4 w-4" />Add
+              </button>
+            )}
           </div>
         </div>
       </section>
@@ -310,7 +397,7 @@ export default function Page() {
                     {columns.map((key) => (
                       <th key={key} className="p-4 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">{key}</th>
                     ))}
-                    {(canEdit || canDelete) && <th className="p-4 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400"><MoreHorizontal className="h-4 w-4" /></th>}
+                    {(canEdit || canDelete) && <th className="p-4 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 text-right">Actions</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
@@ -320,7 +407,28 @@ export default function Page() {
                         <td key={key} className="p-4 text-sm text-slate-300">{String(row[key] ?? "—")}</td>
                       ))}
                       {(canEdit || canDelete) && (
-                        <td className="p-4 text-slate-500"><MoreHorizontal className="h-4 w-4" /></td>
+                        <td className="p-4 text-right">
+                          <div className="inline-flex items-center gap-2">
+                            {canEdit && (
+                              <button
+                                onClick={() => handleOpenEdit(row)}
+                                className="rounded-lg p-1.5 text-slate-400 transition hover:bg-white/10 hover:text-white"
+                                title="Edit"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </button>
+                            )}
+                            {canDelete && (
+                              <button
+                                onClick={() => handleDelete(row.id)}
+                                className="rounded-lg p-1.5 text-red-400 transition hover:bg-red-500/20 hover:text-red-300"
+                                title="Delete"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            )}
+                          </div>
+                        </td>
                       )}
                     </tr>
                   ))}
@@ -337,12 +445,103 @@ export default function Page() {
                       <div className="mt-1 break-words text-sm text-slate-200">{String(row[key] ?? "—")}</div>
                     </div>
                   ))}
+                  {(canEdit || canDelete) && (
+                    <div className="mt-3 flex items-center justify-end gap-2 border-t border-white/5 pt-3">
+                      {canEdit && (
+                        <button
+                          onClick={() => handleOpenEdit(row)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-white/5"
+                        >
+                          <Pencil className="h-3.5 w-3.5" /> Edit
+                        </button>
+                      )}
+                      {canDelete && (
+                        <button
+                          onClick={() => handleDelete(row.id)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-red-500/30 px-3 py-1.5 text-xs font-medium text-red-400 hover:bg-red-500/10"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" /> Delete
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </article>
               ))}
             </div>
           </>
         )}
       </div>
+
+      {modalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-3xl border border-white/10 bg-slate-900 p-6 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+              <h2 className="text-xl font-bold text-white">{editingRecord ? "Edit Record" : "Add New Record"}</h2>
+              <button onClick={() => setModalOpen(false)} className="rounded-lg p-1 text-slate-400 hover:text-white">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            {formError && (
+              <div className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">
+                {formError}
+              </div>
+            )}
+            <form onSubmit={handleSave} className="mt-4 space-y-4">
+              {entityFields.map((field) => (
+                <div key={field.name} className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                    {field.label}{field.required ? " *" : ""}
+                  </label>
+                  {field.type === "boolean" ? (
+                    <select
+                      value={String(formData[field.name] ?? "")}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, [field.name]: e.target.value === "true" }))}
+                      className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:border-indigo-400"
+                    >
+                      <option value="">Select...</option>
+                      <option value="true">True</option>
+                      <option value="false">False</option>
+                    </select>
+                  ) : field.type === "enum" ? (
+                    <select
+                      value={String(formData[field.name] ?? "")}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, [field.name]: e.target.value }))}
+                      className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:border-indigo-400"
+                    >
+                      <option value="">Select...</option>
+                      {field.options.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                  ) : (
+                    <input
+                      type={field.type === "number" ? "number" : "text"}
+                      value={String(formData[field.name] ?? "")}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, [field.name]: e.target.value }))}
+                      className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:border-indigo-400"
+                    />
+                  )}
+                </div>
+              ))}
+              <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setModalOpen(false)}
+                  className="rounded-xl border border-white/10 px-4 py-2 text-sm font-semibold text-slate-300 hover:bg-white/5"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="inline-flex items-center gap-2 rounded-xl bg-indigo-500 px-5 py-2 text-sm font-semibold text-white hover:bg-indigo-400 disabled:opacity-50"
+                >
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  {saving ? "Saving..." : "Save"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }`;
@@ -482,32 +681,38 @@ function generatePostcssConfig(): string {
 function generateNextConfig(): string {
   return `/** @type {import('next').NextConfig} */
 const nextConfig = {};
-export default nextConfig;`;
+module.exports = nextConfig;`;
 }
 
 function generateManifest(config: AppConfig): string {
-  return JSON.stringify(
-    {
-      name: config.app.name,
-      short_name: config.app.name.slice(0, 12),
-      description: config.app.description || "Generated app",
-      start_url: "/",
-      scope: "/",
-      display: "standalone",
-      background_color: "#09090b",
-      theme_color: config.app.theme?.primaryColor || "#6366f1",
-      icons: [
-        {
-          src: "/icon.svg",
-          sizes: "any",
-          type: "image/svg+xml",
-          purpose: "any maskable",
-        },
-      ],
-    },
-    null,
-    2,
-  );
+  const safeName = config.app.name.replace(/"/g, '\\"');
+  const safeShortName = config.app.name.slice(0, 12).replace(/"/g, '\\"');
+  const safeDesc = (config.app.description || "Generated app").replace(/"/g, '\\"');
+  const themeColor = config.app.theme?.primaryColor || "#6366f1";
+
+  return `import type { MetadataRoute } from "next";
+
+export default function manifest(): MetadataRoute.Manifest {
+  return {
+    name: "${safeName}",
+    short_name: "${safeShortName}",
+    description: "${safeDesc}",
+    start_url: "/",
+    scope: "/",
+    display: "standalone",
+    background_color: "#09090b",
+    theme_color: "${themeColor}",
+    icons: [
+      {
+        src: "/icon.svg",
+        sizes: "any",
+        type: "image/svg+xml",
+        purpose: "maskable",
+      },
+    ],
+  };
+}
+`;
 }
 
 function generateServiceWorker(): string {
@@ -668,23 +873,19 @@ function generateRootLayout(config: AppConfig): string {
     .join("\n");
 
   return `import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
 import PwaRegister from "@/components/PwaRegister";
 
-const inter = Inter({ subsets: ["latin"] });
-
 export const metadata: Metadata = {
-  title: "${config.app.name}",
+  title: "${config.app.name.replace(/"/g, '\\"')}",
   description: "Generated by ConfigFlow",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    title: "${config.app.name}",
+    title: "${config.app.name.replace(/"/g, '\\"')}",
     statusBarStyle: "default",
   },
-  themeColor: "${config.app.theme?.primaryColor || "#6366f1"}",
 };
 
 export const viewport: Viewport = {
@@ -692,6 +893,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   viewportFit: "cover",
+  themeColor: "${config.app.theme?.primaryColor || "#6366f1"}",
 };
 
 export default function RootLayout({
@@ -701,7 +903,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className + " bg-slate-950 text-slate-100 antialiased"}>
+      <body className="bg-slate-950 text-slate-100 antialiased font-sans">
         <PwaRegister />
         <div className="min-h-screen md:flex">
           <aside className="hidden md:flex md:w-72 md:flex-col md:border-r md:border-white/10 md:bg-slate-950/80 md:backdrop-blur-xl">
@@ -821,7 +1023,7 @@ function isUnsetOrPlaceholder(value: string | undefined) {
 
 export async function GET() {
   const enabled = ${JSON.stringify(Boolean(config.app.auth?.enabled))};
-  const configProviders = ${JSON.stringify(config.app.auth?.providers || {})};
+  const configProviders = (${JSON.stringify(config.app.auth?.providers || {})}) as Record<string, boolean>;
   const googleConfigured = !isUnsetOrPlaceholder(process.env.GOOGLE_CLIENT_ID) && !isUnsetOrPlaceholder(process.env.GOOGLE_CLIENT_SECRET);
   const githubConfigured = !isUnsetOrPlaceholder(process.env.GITHUB_CLIENT_ID) && !isUnsetOrPlaceholder(process.env.GITHUB_CLIENT_SECRET);
 
@@ -875,7 +1077,7 @@ function GitHubLogo({ className = "h-4 w-4" }: { className?: string }) {
 }
 
 const AUTH_ENABLED = ${JSON.stringify(authEnabled)};
-const CONFIG_PROVIDERS = ${JSON.stringify(providers)};
+const CONFIG_PROVIDERS: Record<string, boolean> = ${JSON.stringify(providers)};
 
 export default function AuthPage() {
   const [mode, setMode] = useState<"login" | "register">("login");
@@ -1018,68 +1220,107 @@ function generateApiRoute(entityName: string, entityConfig: EntityConfig): strin
   return `import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
+function sanitizePayload(raw: Record<string, any>) {
+  const data: Record<string, any> = {};
+${Object.entries(entityConfig?.fields || {}).map(([fieldName, field]) => {
+  if (field.type === "number") {
+    return `  if (raw.${fieldName} !== undefined && raw.${fieldName} !== "" && raw.${fieldName} !== null) data.${fieldName} = Number(raw.${fieldName});`;
+  }
+  if (field.type === "boolean") {
+    return `  if (raw.${fieldName} !== undefined && raw.${fieldName} !== "" && raw.${fieldName} !== null) data.${fieldName} = raw.${fieldName} === true || raw.${fieldName} === "true";`;
+  }
+  if (field.type === "date" || field.type === "datetime") {
+    return `  if (raw.${fieldName}) data.${fieldName} = new Date(raw.${fieldName});`;
+  }
+  return `  if (raw.${fieldName} !== undefined) data.${fieldName} = String(raw.${fieldName});`;
+}).join("\n")}
+  return data;
+}
+
 export async function GET(request: Request) {
   try {
     const records = await prisma.${modelName.toLowerCase()}.findMany({
       orderBy: { createdAt: "desc" }
     });
     return NextResponse.json({ success: true, data: records });
-  } catch (error) {
-    return NextResponse.json({ success: false, error: "Failed to fetch data" }, { status: 500 });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, error: error?.message || "Failed to fetch data" }, { status: 500 });
   }
 }
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    const data = sanitizePayload(body);
     const record = await prisma.${modelName.toLowerCase()}.create({
-      data: body
+      data: data as any
     });
     return NextResponse.json({ success: true, data: record }, { status: 201 });
-  } catch (error) {
-    return NextResponse.json({ success: false, error: "Failed to create record" }, { status: 500 });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, error: error?.message || "Failed to create record" }, { status: 500 });
   }
 }`;
 }
 
-function generateApiIdRoute(entityName: string): string {
+function generateApiIdRoute(entityName: string, entityConfig?: EntityConfig): string {
   const modelName = entityName.charAt(0).toUpperCase() + entityName.slice(1);
   return `import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+function sanitizePayload(raw: Record<string, any>) {
+  const data: Record<string, any> = {};
+${Object.entries(entityConfig?.fields || {}).map(([fieldName, field]) => {
+  if (field.type === "number") {
+    return `  if (raw.${fieldName} !== undefined && raw.${fieldName} !== "" && raw.${fieldName} !== null) data.${fieldName} = Number(raw.${fieldName});`;
+  }
+  if (field.type === "boolean") {
+    return `  if (raw.${fieldName} !== undefined && raw.${fieldName} !== "" && raw.${fieldName} !== null) data.${fieldName} = raw.${fieldName} === true || raw.${fieldName} === "true";`;
+  }
+  if (field.type === "date" || field.type === "datetime") {
+    return `  if (raw.${fieldName}) data.${fieldName} = new Date(raw.${fieldName});`;
+  }
+  return `  if (raw.${fieldName} !== undefined) data.${fieldName} = String(raw.${fieldName});`;
+}).join("\n")}
+  return data;
+}
+
+export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
   try {
     const record = await prisma.${modelName.toLowerCase()}.findUnique({
-      where: { id: params.id }
+      where: { id }
     });
     if (!record) return NextResponse.json({ success: false, error: "Not found" }, { status: 404 });
     return NextResponse.json({ success: true, data: record });
-  } catch (error) {
-    return NextResponse.json({ success: false, error: "Failed to fetch record" }, { status: 500 });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, error: error?.message || "Failed to fetch record" }, { status: 500 });
   }
 }
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(request: Request, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
   try {
     const body = await request.json();
+    const data = sanitizePayload(body);
     const record = await prisma.${modelName.toLowerCase()}.update({
-      where: { id: params.id },
-      data: body
+      where: { id },
+      data: data as any
     });
     return NextResponse.json({ success: true, data: record });
-  } catch (error) {
-    return NextResponse.json({ success: false, error: "Failed to update record" }, { status: 500 });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, error: error?.message || "Failed to update record" }, { status: 500 });
   }
 }
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: Request, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
   try {
     await prisma.${modelName.toLowerCase()}.delete({
-      where: { id: params.id }
+      where: { id }
     });
     return NextResponse.json({ success: true, data: { message: "Deleted" } });
-  } catch (error) {
-    return NextResponse.json({ success: false, error: "Failed to delete record" }, { status: 500 });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, error: error?.message || "Failed to delete record" }, { status: 500 });
   }
 }`;
 }
@@ -1196,15 +1437,12 @@ function generateDashboardPage(page: Extract<AppConfig["pages"][number], { type:
   return `"use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
 const widgets = ${widgets};
 
 export default function Page() {
-  const [widgetState, setWidgetState] = useState<Record<string, { loading: boolean; value?: number; groups?: Array<{ key: string; value: number }>; records?: Array<{ id: string; data: Record<string, unknown>; createdAt: string }> }>>({});
-  const params = useParams();
-  const appId = params.appId as string;
+  const [widgetState, setWidgetState] = useState<Record<string, { loading: boolean; value?: number; groups?: Array<{ key: string; value: number }>; records?: Array<any> }>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -1212,27 +1450,32 @@ export default function Page() {
     async function loadWidgets() {
       const entries = await Promise.all(widgets.map(async (widget: any) => {
         try {
+          const res = await fetch("/api/" + widget.entity);
+          const json = await res.json();
+          const list = json?.success && Array.isArray(json.data) ? json.data : [];
+
           if (widget.type === "stat") {
-            const searchParams = new URLSearchParams({ operation: widget.operation || "count" });
-            if (widget.field) searchParams.set("field", widget.field);
-            const response = await fetch("/api/entities/" + appId + "/${'${'}widget.entity}/stats?" + searchParams.toString());
-            const json = await response.json();
-            return [widget.label, { loading: false, value: json?.data?.value ?? 0, groups: json?.data?.groups }];
+            let val = list.length;
+            if (widget.operation === "sum" && widget.field) {
+              val = list.reduce((acc: number, r: any) => acc + (Number(r[widget.field]) || 0), 0);
+            } else if (widget.operation === "avg" && widget.field) {
+              val = list.length ? Math.round(list.reduce((acc: number, r: any) => acc + (Number(r[widget.field]) || 0), 0) / list.length) : 0;
+            }
+            return [widget.label, { loading: false, value: val }];
           }
 
           if (widget.type === "list") {
-            const response = await fetch("/api/entities/" + appId + "/${'${'}widget.entity}/recent?limit=" + (${''}widget.limit || 5));
-            const json = await response.json();
-            return [widget.label, { loading: false, records: json?.data ?? [] }];
+            return [widget.label, { loading: false, records: list.slice(0, widget.limit || 5) }];
           }
 
           if (widget.type === "chart") {
-            const searchParams = new URLSearchParams({ operation: widget.operation || "count" });
-            if (widget.field) searchParams.set("field", widget.field);
-            if (widget.groupBy) searchParams.set("groupBy", widget.groupBy);
-            const response = await fetch("/api/entities/" + appId + "/${'${'}widget.entity}/stats?" + searchParams.toString());
-            const json = await response.json();
-            return [widget.label, { loading: false, value: json?.data?.value ?? 0, groups: json?.data?.groups }];
+            const counts: Record<string, number> = {};
+            for (const r of list) {
+              const k = String(r[widget.groupBy || "status"] || "Other");
+              counts[k] = (counts[k] || 0) + 1;
+            }
+            const groups = Object.entries(counts).map(([key, value]) => ({ key, value }));
+            return [widget.label, { loading: false, value: list.length, groups }];
           }
 
           return [widget.label, { loading: false }];
@@ -1250,7 +1493,7 @@ export default function Page() {
     return () => {
       cancelled = true;
     };
-  }, [appId]);
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -1266,9 +1509,9 @@ export default function Page() {
             return `<div className=\"rounded-2xl border border-white/10 bg-slate-950/60 p-5\"><p className=\"text-sm text-slate-400\">${widget.label}</p><p className=\"mt-2 text-2xl font-bold text-white\">{widgetState[\"${widget.label}\"]?.loading ? <Loader2 className=\"h-5 w-5 animate-spin text-indigo-400\" /> : (widgetState[\"${widget.label}\"]?.value ?? 0).toLocaleString()}</p></div>`;
           }
           if (widget.type === "list") {
-            return `<div className=\"rounded-2xl border border-white/10 bg-slate-950/60 p-5\"><p className=\"text-sm font-medium text-white/70\">${widget.label}</p><div className=\"mt-4 space-y-2\">{(widgetState[\"${widget.label}\"]?.records || []).map((record) => <div key={record.id} className=\"rounded-xl bg-white/5 px-3 py-2 text-sm text-slate-200\">{String(record.data[Object.keys(record.data)[0]] ?? \"Untitled\")}</div>)}</div></div>`;
+            return `<div className=\"rounded-2xl border border-white/10 bg-slate-950/60 p-5\"><p className=\"text-sm font-medium text-white/70\">${widget.label}</p><div className=\"mt-4 space-y-2\">{(widgetState[\"${widget.label}\"]?.records || []).map((record: any) => <div key={record.id} className=\"rounded-xl bg-white/5 px-3 py-2 text-sm text-slate-200\">{String(record.title || record.name || record.label || Object.values(record)[1] || "Item")}</div>)}</div></div>`;
           }
-          return `<div className=\"rounded-2xl border border-white/10 bg-slate-950/60 p-5\"><p className=\"text-sm font-medium text-white/70\">${widget.label}</p><p className=\"mt-2 text-sm text-slate-400\">Chart widgets are driven by the same entity stats endpoint and can be expanded further as needed.</p></div>`;
+          return `<div className=\"rounded-2xl border border-white/10 bg-slate-950/60 p-5\"><p className=\"text-sm font-medium text-white/70\">${widget.label}</p><p className=\"mt-2 text-sm text-slate-400\">Chart widgets are driven by the entity API endpoint.</p></div>`;
         }).join("\n        ")}
       </div>
     </div>
@@ -1282,24 +1525,28 @@ function generateDetailPage(page: Extract<AppConfig["pages"][number], { type: "d
   return `"use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 
 export default function Page() {
   const params = useParams();
-  const appId = params.appId as string;
-  const recordId = params.id as string;
+  const searchParams = useSearchParams();
+  const recordId = (params?.id as string) || searchParams?.get("id") || "";
   const [record, setRecord] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/entities/" + appId + "/${page.entity}/" + recordId)
+    if (!recordId) {
+      setLoading(false);
+      return;
+    }
+    fetch("/api/${page.entity}/" + recordId)
       .then((response) => response.json())
       .then((json) => {
-        if (json.success) setRecord(json.data?.data ?? json.data);
+        if (json.success) setRecord(json.data);
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, [appId, recordId]);
+  }, [recordId]);
 
   const visibleFields = ${fields} ?? Object.keys(record || {});
 
