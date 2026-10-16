@@ -11,13 +11,15 @@ export interface AuthRequest extends Request {
   userEmail?: string;
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || "fallback-secret-change-me";
+export function getJwtSecret(): string {
+  return process.env.JWT_SECRET || "fallback-secret-change-me";
+}
 
 /**
  * Generate a JWT token for a user.
  */
 export function generateToken(userId: string, email: string): string {
-  return jwt.sign({ userId, email }, JWT_SECRET, { expiresIn: "24h" });
+  return jwt.sign({ userId, email }, getJwtSecret(), { expiresIn: "24h" });
 }
 
 /**
@@ -38,7 +40,7 @@ export function requireAuth(req: AuthRequest, res: Response, next: NextFunction)
   const token = authHeader.split(" ")[1];
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string; email: string };
+    const decoded = jwt.verify(token, getJwtSecret()) as { userId: string; email: string };
     req.userId = decoded.userId;
     req.userEmail = decoded.email;
     next();
@@ -60,7 +62,7 @@ export function optionalAuth(req: AuthRequest, res: Response, next: NextFunction
   if (authHeader && authHeader.startsWith("Bearer ")) {
     const token = authHeader.split(" ")[1];
     try {
-      const decoded = jwt.verify(token, JWT_SECRET) as { userId: string; email: string };
+      const decoded = jwt.verify(token, getJwtSecret()) as { userId: string; email: string };
       req.userId = decoded.userId;
       req.userEmail = decoded.email;
     } catch {

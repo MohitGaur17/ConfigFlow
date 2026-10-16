@@ -121,14 +121,14 @@ router.get("/", requireAuth, async (req: AuthRequest, res: Response) => {
  * GET /api/apps/:id
  * Get details and config for a specific app.
  */
-router.get("/:id", optionalAuth, async (req: AuthRequest, res: Response) => {
+router.get("/:id", requireAuth, async (req: AuthRequest, res: Response) => {
   try {
-    // If user is authenticated, ensure the app belongs to them.
-    // Otherwise allow public read by app id.
-    const whereClause: any = { id: req.params.id };
-    if (req.userId) whereClause.userId = req.userId;
-
-    const app = await prisma.app.findFirst({ where: whereClause });
+    const app = await prisma.app.findFirst({
+      where: {
+        id: req.params.id,
+        userId: req.userId!,
+      },
+    });
 
     if (!app) {
       res.status(404).json({ success: false, error: "App not found" });
@@ -146,15 +146,21 @@ router.get("/:id", optionalAuth, async (req: AuthRequest, res: Response) => {
  * GET /api/apps/:id/auth/providers
  * Returns the effective OAuth provider availability for a specific app.
  */
-router.get("/:id/auth/providers", async (req: Request, res: Response) => {
+router.get("/:id/auth/providers", requireAuth, async (req: AuthRequest, res: Response) => {
   try {
-    const config = await getAppConfig(req.params.id);
+    const app = await prisma.app.findFirst({
+      where: {
+        id: req.params.id,
+        userId: req.userId!,
+      },
+    });
 
-    if (!config) {
+    if (!app) {
       res.status(404).json({ success: false, error: "App not found" });
       return;
     }
 
+    const config = app.config as any;
     const appAuth = config.app?.auth;
     const enabled = Boolean(appAuth?.enabled);
     const providerFlags = appAuth?.providers || {};
@@ -193,7 +199,7 @@ router.delete("/:id", requireAuth, async (req: AuthRequest, res: Response) => {
 
     await recordNotification({
       userId: req.userId!,
-      appId: app.id,
+      appId: undefined,
       type: "app",
       title: "Application deleted",
       message: `${app.name} was removed from your workspace.`,
@@ -244,8 +250,12 @@ router.get("/:id/export", requireAuth, async (req: AuthRequest, res: Response) =
     // 3. Generate ZIP buffer
     const zipBuffer = await zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" });
 
-    // 4. Send as downloadable attachment
-    res.setHeader("Content-Disposition", `attachment; filename="${config.app.name.toLowerCase().replace(/\s+/g, '-')}-source.zip"`);
+    // 4. Send as downloadable attachment with sanitized filename
+    const sanitizedName = (config.app?.name || "app")
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]/g, "-")
+      .replace(/-+/g, "-");
+    res.setHeader("Content-Disposition", `attachment; filename="${sanitizedName}-source.zip"`);
     res.setHeader("Content-Type", "application/zip");
     res.send(zipBuffer);
 
@@ -260,12 +270,14 @@ router.get("/:id/export", requireAuth, async (req: AuthRequest, res: Response) =
  * GET /api/apps/:id/files
  * Returns the virtual file system (path => content) for previewing generated files.
  */
-router.get("/:id/files", optionalAuth, async (req: AuthRequest, res: Response) => {
+router.get("/:id/files", requireAuth, async (req: AuthRequest, res: Response) => {
   try {
-    const whereClause: any = { id: req.params.id };
-    if (req.userId) whereClause.userId = req.userId;
-
-    const app = await prisma.app.findFirst({ where: whereClause });
+    const app = await prisma.app.findFirst({
+      where: {
+        id: req.params.id,
+        userId: req.userId!,
+      },
+    });
     if (!app) {
       res.status(404).json({ success: false, error: "App not found" });
       return;

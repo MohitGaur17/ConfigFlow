@@ -10,6 +10,28 @@ const fieldTypeEnum = z.enum([
   "email", "url", "enum", "relation",
 ]);
 
+const identifierRegex = /^[a-zA-Z][a-zA-Z0-9_]*$/;
+
+const fieldNameSchema = z
+  .string()
+  .min(1, "Field name cannot be empty")
+  .max(64, "Field name too long")
+  .regex(identifierRegex, "Field name must be a valid identifier (letters, digits, underscores, starting with a letter)");
+
+const entityNameSchema = z
+  .string()
+  .min(1, "Entity name cannot be empty")
+  .max(64, "Entity name too long")
+  .regex(identifierRegex, "Entity name must be a valid identifier (letters, digits, underscores, starting with a letter)");
+
+const pagePathSchema = z
+  .string()
+  .min(1, "Page path cannot be empty")
+  .refine(
+    (path) => path.startsWith("/") && !path.includes("..") && !path.includes("\\") && /^\/[a-zA-Z0-9_\-\/]+$/.test(path),
+    { message: "Page path must start with '/' and contain only alphanumeric, hyphen, underscore, or forward-slash characters without traversal" }
+  );
+
 const fieldConfigSchema = z.object({
   type: fieldTypeEnum,
   required: z.boolean().optional().default(false),
@@ -37,7 +59,7 @@ const fieldConfigSchema = z.object({
 );
 
 const entityConfigSchema = z.object({
-  fields: z.record(z.string(), fieldConfigSchema).refine(
+  fields: z.record(fieldNameSchema, fieldConfigSchema).refine(
     (fields) => Object.keys(fields).length > 0,
     { message: "Entity must have at least one field" }
   ),
@@ -49,7 +71,7 @@ const widgetConfigSchema = z.object({
   type: z.enum(["stat", "chart", "list"]),
   label: z.string().optional(),
   title: z.string().optional(),
-  entity: z.string(),
+  entity: entityNameSchema,
   operation: z.enum(["count", "sum", "avg"]).optional(),
   field: z.string().optional(),
   groupBy: z.string().optional(),
@@ -63,8 +85,8 @@ const widgetConfigSchema = z.object({
 const tablePageSchema = z.object({
   type: z.literal("table"),
   name: z.string(),
-  path: z.string(),
-  entity: z.string(),
+  path: pagePathSchema,
+  entity: entityNameSchema,
   columns: z.array(z.string()).optional(),
   actions: z.array(z.enum(["create", "edit", "delete"])).optional(),
   filters: z.array(z.string()).optional(),
@@ -75,8 +97,8 @@ const tablePageSchema = z.object({
 const formPageSchema = z.object({
   type: z.literal("form"),
   name: z.string(),
-  path: z.string(),
-  entity: z.string(),
+  path: pagePathSchema,
+  entity: entityNameSchema,
   fields: z.array(z.string()).optional(),
   submitAction: z.enum(["create", "edit"]).optional().default("create"),
 });
@@ -84,15 +106,15 @@ const formPageSchema = z.object({
 const dashboardPageSchema = z.object({
   type: z.literal("dashboard"),
   name: z.string(),
-  path: z.string(),
+  path: pagePathSchema,
   widgets: z.array(widgetConfigSchema).optional().default([]),
 });
 
 const detailPageSchema = z.object({
   type: z.literal("detail"),
   name: z.string(),
-  path: z.string(),
-  entity: z.string(),
+  path: pagePathSchema,
+  entity: entityNameSchema,
   fields: z.array(z.string()).optional(),
 });
 
@@ -119,7 +141,7 @@ const appMetaSchema = z.object({
 
 export const appConfigSchema = z.object({
   app: appMetaSchema,
-  entities: z.record(z.string(), entityConfigSchema).refine(
+  entities: z.record(entityNameSchema, entityConfigSchema).refine(
     (entities) => Object.keys(entities).length > 0,
     { message: "Config must define at least one entity" }
   ),

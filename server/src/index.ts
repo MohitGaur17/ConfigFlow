@@ -1,12 +1,12 @@
+import dotenv from "dotenv";
+dotenv.config();
+
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 import authRoutes from "./routes/auth";
 import appsRoutes from "./routes/apps";
 import entityRoutes from "./routes/entity";
 import notificationsRoutes from "./routes/notifications";
-
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -50,9 +50,11 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 // ============================================================
 // Start Server
 // ============================================================
+let serverInstance: any = null;
+
 async function start() {
   try {
-    app.listen(PORT, () => {
+    serverInstance = app.listen(PORT, () => {
       console.log(`[Server] Running on http://localhost:${PORT}`);
     });
   } catch (error) {
@@ -61,4 +63,8 @@ async function start() {
   }
 }
 
-start();
+if (process.env.NODE_ENV !== "test") {
+  start();
+}
+
+export { app, serverInstance };

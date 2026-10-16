@@ -36,13 +36,30 @@ async function validateEntity(req: AuthRequest, res: Response, next: Function) {
     return;
   }
 
-  if (!config.entities[entityName]) {
+  const entityConfig = config.entities?.[entityName];
+  if (!entityConfig) {
     res.status(404).json({
       success: false,
-      error: `Entity "${entityName}" not found. Available entities: ${Object.keys(config.entities).join(", ")}`,
+      error: `Entity "${entityName}" not found. Available entities: ${Object.keys(config.entities || {}).join(", ")}`,
     });
     return;
   }
+
+  // Enforce authentication policy:
+  // If the app has auth.enabled OR the entity is userScoped, unauthenticated access is strictly denied.
+  const authRequired = Boolean(config.app?.auth?.enabled) || Boolean(entityConfig.userScoped);
+  if (authRequired && !req.userId) {
+    res.status(401).json({
+      success: false,
+      error: entityConfig.userScoped
+        ? "Authentication required to access user-scoped records."
+        : "Authentication required for this application.",
+    });
+    return;
+  }
+
+  (req as any).appConfig = config;
+  (req as any).entityConfig = entityConfig;
 
   next();
 }
@@ -54,7 +71,7 @@ async function validateEntity(req: AuthRequest, res: Response, next: Function) {
 router.get("/:appId/:entityName", optionalAuth, validateEntity, async (req: AuthRequest, res: Response) => {
   try {
     const { appId, entityName } = req.params;
-    const entityConfig = await getEntityConfig(appId, entityName);
+    const entityConfig = (req as any).entityConfig;
 
     const result = await listRecords(appId, entityName, {
       page: parseInt(req.query.page as string) || 1,
@@ -82,7 +99,7 @@ router.get("/:appId/:entityName", optionalAuth, validateEntity, async (req: Auth
 router.get("/:appId/:entityName/stats", optionalAuth, validateEntity, async (req: AuthRequest, res: Response) => {
   try {
     const { appId, entityName } = req.params;
-    const entityConfig = await getEntityConfig(appId, entityName);
+    const entityConfig = (req as any).entityConfig;
     const { operation, field, groupBy } = req.query;
 
     const result = await getEntityStats(
@@ -109,7 +126,7 @@ router.get("/:appId/:entityName/stats", optionalAuth, validateEntity, async (req
 router.get("/:appId/:entityName/recent", optionalAuth, validateEntity, async (req: AuthRequest, res: Response) => {
   try {
     const { appId, entityName } = req.params;
-    const entityConfig = await getEntityConfig(appId, entityName);
+    const entityConfig = (req as any).entityConfig;
     const limit = parseInt(req.query.limit as string) || 5;
 
     const result = await getRecentRecords(
@@ -134,7 +151,7 @@ router.get("/:appId/:entityName/recent", optionalAuth, validateEntity, async (re
 router.get("/:appId/:entityName/:id", optionalAuth, validateEntity, async (req: AuthRequest, res: Response) => {
   try {
     const { appId, entityName, id } = req.params;
-    const entityConfig = await getEntityConfig(appId, entityName);
+    const entityConfig = (req as any).entityConfig;
 
     const record = await getRecord(appId, entityName, id, req.userId, entityConfig?.userScoped);
     if (!record) {

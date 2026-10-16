@@ -43,8 +43,14 @@ export async function listRecords(appId: string, entityName: string, options: Li
   // Build where clause
   const where: any = { appId, entityName };
 
-  // User scoping
-  if (options.userScoped && options.userId) {
+  // User scoping - unauthenticated requests must never access user-scoped records
+  if (options.userScoped) {
+    if (!options.userId) {
+      return {
+        data: [],
+        pagination: { page, pageSize, total: 0, totalPages: 0 },
+      };
+    }
     where.userId = options.userId;
   }
 
@@ -136,7 +142,8 @@ export async function getRecord(
   userScoped?: boolean
 ): Promise<{ id: string; data: Record<string, unknown>; createdAt: Date; updatedAt: Date } | null> {
   const where: any = { id: recordId, appId, entityName };
-  if (userScoped && userId) {
+  if (userScoped) {
+    if (!userId) return null;
     where.userId = userId;
   }
 
@@ -163,8 +170,18 @@ export async function createRecord(
   const entityConfig = await getEntityConfig(appId, entityName);
   if (!entityConfig) throw new Error(`Entity config for "${entityName}" not found`);
 
+  if (entityConfig.userScoped && !userId) {
+    throw new ValidationError("Authentication required for user-scoped entity", {
+      userId: "Authentication required",
+    });
+  }
+
+  // Never trust client-supplied userId in body
+  const cleanData = { ...data };
+  delete cleanData.userId;
+
   // Validate
-  const validation = validateRecordData(data, entityConfig.fields as any);
+  const validation = validateRecordData(cleanData, entityConfig.fields as any);
   if (!validation.valid) {
     throw new ValidationError("Validation failed", validation.errors);
   }
@@ -199,18 +216,25 @@ export async function updateRecord(
   if (!entityConfig) throw new Error(`Entity config for "${entityName}" not found`);
 
   // Check record exists and belongs to user/app
-  const existing = await prisma.record.findFirst({
-    where: {
-      id: recordId,
-      appId,
-      entityName,
-      ...(userScoped && userId ? { userId } : {}),
-    },
-  });
+  const where: any = {
+    id: recordId,
+    appId,
+    entityName,
+  };
+  if (userScoped) {
+    if (!userId) throw new NotFoundError("Record not found");
+    where.userId = userId;
+  }
+
+  const existing = await prisma.record.findFirst({ where });
   if (!existing) throw new NotFoundError("Record not found");
 
+  // Never trust client-supplied userId
+  const cleanData = { ...data };
+  delete cleanData.userId;
+
   // Partial validation
-  const validation = validateRecordData(data, entityConfig.fields as any, true);
+  const validation = validateRecordData(cleanData, entityConfig.fields as any, true);
   if (!validation.valid) {
     throw new ValidationError("Validation failed", validation.errors);
   }
@@ -220,7 +244,7 @@ export async function updateRecord(
   const mergedData = { ...existingData, ...validation.sanitized };
 
   const record = await prisma.record.update({
-    where: { id: recordId },
+    where: { id: existing.id },
     data: { data: mergedData as any },
   });
 
@@ -237,17 +261,20 @@ export async function deleteRecord(
   userId?: string,
   userScoped?: boolean
 ): Promise<void> {
-  const existing = await prisma.record.findFirst({
-    where: {
-      id: recordId,
-      appId,
-      entityName,
-      ...(userScoped && userId ? { userId } : {}),
-    },
-  });
+  const where: any = {
+    id: recordId,
+    appId,
+    entityName,
+  };
+  if (userScoped) {
+    if (!userId) throw new NotFoundError("Record not found");
+    where.userId = userId;
+  }
+
+  const existing = await prisma.record.findFirst({ where });
   if (!existing) throw new NotFoundError("Record not found");
 
-  await prisma.record.delete({ where: { id: recordId } });
+  await prisma.record.delete({ where: { id: existing.id } });
 }
 
 /**
@@ -263,7 +290,8 @@ export async function getEntityStats(
   userScoped?: boolean
 ): Promise<{ value: number; groups?: Array<{ key: string; value: number }> }> {
   const where: any = { appId, entityName };
-  if (userScoped && userId) {
+  if (userScoped) {
+    if (!userId) return { value: 0, groups: [] };
     where.userId = userId;
   }
 
@@ -319,7 +347,8 @@ export async function getRecentRecords(
   userScoped?: boolean
 ): Promise<Array<{ id: string; data: Record<string, unknown>; createdAt: Date }>> {
   const where: any = { appId, entityName };
-  if (userScoped && userId) {
+  if (userScoped) {
+    if (!userId) return [];
     where.userId = userId;
   }
 

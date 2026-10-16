@@ -1,10 +1,8 @@
 import { Router, Response } from "express";
-import { requireAuth, AuthRequest } from "../middleware/auth";
+import { requireAuth, AuthRequest, getJwtSecret } from "../middleware/auth";
 import { listNotifications, markNotificationRead } from "../services/notification-service";
 import { subscribe as subscribeNotifications } from "../services/notification-bus";
 import jwt from "jsonwebtoken";
-
-const JWT_SECRET = process.env.JWT_SECRET || "fallback-secret-change-me";
 
 const router = Router();
 
@@ -37,7 +35,7 @@ router.get("/stream", (req: AuthRequest, res: Response) => {
       return;
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string; email: string };
+    const decoded = jwt.verify(token, getJwtSecret()) as { userId: string; email: string };
     const userId = decoded.userId;
 
     // keep the response open and register for SSE
