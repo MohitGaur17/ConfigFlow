@@ -8,7 +8,6 @@ import { ArrowLeft, Play, Code2, Download, FileJson, Loader2 } from "lucide-reac
 import { toast } from "react-hot-toast";
 
 import { useConfig } from "@/lib/config-context";
-import LanguageSwitcher from "@/components/LanguageSwitcher";
 import CodeViewer from "@/components/builder/CodeViewer";
 
 export default function BuilderLayout({ children }: { children: React.ReactNode }) {
@@ -133,7 +132,6 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
 
         {/* Actions */}
         <div className="flex items-center gap-3 justify-end lg:justify-start">
-          <LanguageSwitcher />
           <button
             onClick={handleDownload}
             disabled={isExporting}

@@ -1,21 +1,33 @@
 "use client";
 
+import React from "react";
 import { AuthProvider } from "@/lib/auth-context";
 import { ConfigProvider } from "@/lib/config-context";
-import { LanguageProvider } from "@/i18n/LanguageContext";
-
-import LanguageSyncComponent from "@/components/LanguageSyncComponent";
+import { NotificationProvider } from "@/lib/notification-context";
+import NotificationSidebar from "@/components/NotificationSidebar";
+import PwaRegister from "@/components/PwaRegister";
 import { Toaster } from "react-hot-toast";
+
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <LanguageProvider>
-      <AuthProvider>
+    <AuthProvider>
+      <NotificationProvider>
         <ConfigProvider>
           {children}
-          <LanguageSyncComponent />
-          <Toaster position="top-right" />
+          <NotificationSidebar />
+          <PwaRegister />
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              style: {
+                background: "#11141A",
+                color: "#ffffff",
+                border: "1px solid rgba(255, 255, 255, 0.1)",
+              },
+            }}
+          />
         </ConfigProvider>
-      </AuthProvider>
-    </LanguageProvider>
+      </NotificationProvider>
+    </AuthProvider>
   );
 }

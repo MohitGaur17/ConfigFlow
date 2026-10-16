@@ -5,8 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { useConfig } from "@/lib/config-context";
-import { useTranslation } from "@/i18n/useTranslation";
-import LanguageSwitcher from "@/components/LanguageSwitcher";
+import NotificationBell from "@/components/NotificationBell";
 import {
   LayoutDashboard, Table, FormInput, FileText, Menu, X,
   LogOut, Blocks, ChevronRight, User, ArrowLeft,
@@ -22,13 +21,11 @@ const PAGE_ICONS: Record<string, React.ElementType> = {
 interface AppShellProps {
   children: React.ReactNode;
   hideSidebar?: boolean;
-  showLanguageSwitcher?: boolean;
 }
 
-export default function AppShell({ children, hideSidebar = false, showLanguageSwitcher = true }: AppShellProps) {
+export default function AppShell({ children, hideSidebar = false }: AppShellProps) {
   const { config } = useConfig();
   const { user, logout } = useAuth();
-  const { t } = useTranslation();
   const pathname = usePathname();
   const router = useRouter();
   const params = useParams();
@@ -67,7 +64,7 @@ export default function AppShell({ children, hideSidebar = false, showLanguageSw
             </div>
             <div className="flex-1 min-w-0">
               <h1 className="text-sm font-bold text-white truncate">{appName}</h1>
-              <p className="text-[10px] text-white/30">{t('nav.generatedApp')}</p>
+              <p className="text-[10px] text-white/30">Generated App</p>
             </div>
             <button
               onClick={() => setSidebarOpen(false)}
@@ -114,12 +111,10 @@ export default function AppShell({ children, hideSidebar = false, showLanguageSw
             })}
           </nav>
 
-          {/* Language Switcher */}
-          {showLanguageSwitcher && (
-            <div className="px-3 py-2 border-t border-white/5">
-              <LanguageSwitcher />
-            </div>
-          )}
+          {/* Notifications */}
+          <div className="px-3 py-2 border-t border-white/5 flex items-center justify-end">
+            <NotificationBell />
+          </div>
 
           {/* User */}
           <div className="px-3 py-3 border-t border-white/5">
@@ -134,7 +129,7 @@ export default function AppShell({ children, hideSidebar = false, showLanguageSw
               <button
                 onClick={handleLogout}
                 className="p-1.5 hover:bg-white/10 rounded-md text-white/40 hover:text-red-400 transition-colors"
-                title={t('nav.logout')}
+                title="Sign Out"
               >
                 <LogOut className="w-4 h-4" />
               </button>
@@ -161,7 +156,9 @@ export default function AppShell({ children, hideSidebar = false, showLanguageSw
               <ArrowLeft className="w-4 h-4" />
             </Link>
             <h1 className="text-sm font-semibold text-white truncate flex-1">{appName}</h1>
-            {showLanguageSwitcher && <LanguageSwitcher />}
+            <div className="flex items-center gap-2">
+              <NotificationBell />
+            </div>
           </header>
         )}
         <div className="p-4 sm:p-6 lg:p-8">{children}</div>
