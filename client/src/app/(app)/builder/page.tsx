@@ -9,6 +9,7 @@ import Logo from "@/components/Logo";
 
 export default function BuilderPage() {
   const [selectedMode, setSelectedMode] = useState<"manual" | null>("manual");
+  const [submitting, setSubmitting] = useState(false);
   const { user, logout } = useAuth();
   const router = useRouter();
 
@@ -68,7 +69,12 @@ export default function BuilderPage() {
       "name": "Projects",
       "path": "/projects",
       "type": "table",
-      "entity": "project"
+      "entity": "project",
+      "columns": ["title", "status", "dueDate", "budget"],
+      "actions": ["create", "edit", "delete"],
+      "filters": ["status"],
+      "searchable": true,
+      "pageSize": 10
     },
     {
       "name": "New Project",
@@ -80,7 +86,28 @@ export default function BuilderPage() {
     {
       "name": "Dashboard",
       "path": "/dashboard",
-      "type": "dashboard"
+      "type": "dashboard",
+      "widgets": [
+        {
+          "type": "stat",
+          "label": "Total Projects",
+          "entity": "project",
+          "operation": "count"
+        },
+        {
+          "type": "chart",
+          "label": "Projects by Status",
+          "entity": "project",
+          "groupBy": "status",
+          "chartType": "pie"
+        },
+        {
+          "type": "list",
+          "label": "Recent Projects",
+          "entity": "project",
+          "limit": 5
+        }
+      ]
     }
   ]
 }`
@@ -178,21 +205,37 @@ export default function BuilderPage() {
                 Clear
               </button>
               <button 
+                disabled={submitting}
                 onClick={async () => {
                   try {
-                    const parsed = JSON.parse(jsonConfig);
-                    await api.post("/apps", parsed).then(async (res) => {
-                      if (!res.data.success) throw new Error(res.data.error);
-                      toast.success("App Generated successfully!");
-                      window.location.href = `/builder/${res.data.data.id}`;
-                    });
+                    setSubmitting(true);
+                    let parsed: unknown;
+                    try {
+                      parsed = JSON.parse(jsonConfig);
+                    } catch (parseErr: any) {
+                      throw new Error(`JSON Syntax Error: ${parseErr.message}`);
+                    }
+                    const res = await api.post("/apps", parsed);
+                    if (!res.data.success) throw new Error(res.data.error || "Failed to create app");
+                    toast.success("App Generated successfully!");
+                    window.location.href = `/builder/${res.data.data.id}`;
                   } catch (e: any) {
-                    alert("Failed to parse or submit JSON: " + (e.response?.data?.error || e.message));
+                    const serverError = e.response?.data?.error;
+                    const fieldErrors = e.response?.data?.errors;
+                    const errorDetail = fieldErrors && Array.isArray(fieldErrors) && fieldErrors.length > 0
+                      ? fieldErrors.map((err: any) => `${err.path ? err.path + ": " : ""}${err.message}`).join("\n• ")
+                      : "";
+                    const fullMessage = serverError
+                      ? (errorDetail ? `${serverError}:\n• ${errorDetail}` : serverError)
+                      : e.message;
+                    alert("Failed to parse or submit JSON: " + fullMessage);
+                  } finally {
+                    setSubmitting(false);
                   }
                 }}
-                className="bg-primary-container hover:bg-orange-600 text-white px-5 py-1.5 rounded font-label-tech text-label-tech transition-colors shadow-[0_0_10px_rgba(255,107,0,0.3)] flex items-center gap-2">
-                <span className="material-symbols-outlined text-[16px]">bolt</span>
-                Generate App
+                className="bg-primary-container hover:bg-orange-600 disabled:opacity-60 disabled:cursor-not-allowed text-white px-5 py-1.5 rounded font-label-tech text-label-tech transition-colors shadow-[0_0_10px_rgba(255,107,0,0.3)] flex items-center gap-2">
+                <span className="material-symbols-outlined text-[16px]">{submitting ? "refresh" : "bolt"}</span>
+                {submitting ? "Generating..." : "Generate App"}
               </button>
             </div>
           </div>

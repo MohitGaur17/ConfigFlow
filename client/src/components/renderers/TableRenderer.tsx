@@ -47,7 +47,7 @@ export default function TableRenderer({ pageConfig, entityConfig, entityName }: 
 
   const pageSize = pageConfig.pageSize || 10;
   const entityFields = entityConfig?.fields || {};
-  const columns = pageConfig.columns || Object.keys(entityFields);
+  const columns = (pageConfig.columns && pageConfig.columns.length > 0) ? pageConfig.columns : Object.keys(entityFields);
   const actions = pageConfig.actions || [];
   const filterFields = pageConfig.filters || [];
   const missingColumns = columns.filter((column) => !entityFields[column]);
