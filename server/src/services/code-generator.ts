@@ -237,7 +237,7 @@ export default config;`;
 }
 
 function generateTablePage(page: TablePageConfig, entityConfig?: EntityConfig): string {
-  const columns = page.columns.length > 0 ? page.columns : Object.keys(entityConfig?.fields || {});
+  const columns = (page.columns && page.columns.length > 0) ? page.columns : Object.keys(entityConfig?.fields || {});
   const searchable = page.searchable !== false;
   const actions = page.actions || [];
 
@@ -1190,7 +1190,8 @@ export default function Page() {
 }
 
 function generateDashboardPage(page: Extract<AppConfig["pages"][number], { type: "dashboard" }>): string {
-  const widgets = JSON.stringify(page.widgets, null, 2);
+  const widgetsList = page.widgets || [];
+  const widgets = JSON.stringify(widgetsList, null, 2);
 
   return `"use client";
 
@@ -1260,7 +1261,7 @@ export default function Page() {
       </section>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        ${page.widgets.map((widget) => {
+        ${widgetsList.length === 0 ? `<div className=\"rounded-2xl border border-white/10 bg-slate-950/60 p-5 text-sm text-slate-400\">No dashboard widgets configured.</div>` : widgetsList.map((widget) => {
           if (widget.type === "stat") {
             return `<div className=\"rounded-2xl border border-white/10 bg-slate-950/60 p-5\"><p className=\"text-sm text-slate-400\">${widget.label}</p><p className=\"mt-2 text-2xl font-bold text-white\">{widgetState[\"${widget.label}\"]?.loading ? <Loader2 className=\"h-5 w-5 animate-spin text-indigo-400\" /> : (widgetState[\"${widget.label}\"]?.value ?? 0).toLocaleString()}</p></div>`;
           }
