@@ -115,7 +115,7 @@ ConfigFlow/
 
 ### Prerequisites
 
-- **Node.js**: v18.0.0 or higher
+- **Node.js**: v20.9.0 or higher (required for Next.js 16)
 - **npm**: v9.0.0 or higher
 - **PostgreSQL**: v14.0 or higher (local instance or cloud like [Neon](https://neon.tech) / [Supabase](https://supabase.com))
 
@@ -225,7 +225,7 @@ Below is an annotated example of a valid ConfigFlow JSON configuration (`AppConf
     "version": "1.0.0",
     "theme": {
       "primaryColor": "#ff6b00",
-      "darkMode": true
+      "mode": "dark"
     },
     "auth": {
       "enabled": true,
@@ -329,13 +329,15 @@ Pre-made templates are available in the [`configs/`](./configs/) directory:
 
 | Method | Endpoint | Description | Auth Required |
 | :--- | :--- | :--- | :---: |
-| `GET` | `/api/entities/:appId/:entityName` | Query records with pagination, sort, search | Yes (Bearer) |
+| `GET` | `/api/entities/:appId/:entityName` | Query records with pagination, sort, search | Conditional* |
 | `POST` | `/api/entities/:appId/:entityName` | Create new entity record | Yes (Bearer) |
-| `GET` | `/api/entities/:appId/:entityName/:id`| Retrieve single record by ID | Yes (Bearer) |
+| `GET` | `/api/entities/:appId/:entityName/:id`| Retrieve single record by ID | Conditional* |
 | `PUT` | `/api/entities/:appId/:entityName/:id`| Update single record by ID | Yes (Bearer) |
 | `DELETE`| `/api/entities/:appId/:entityName/:id`| Delete single record by ID | Yes (Bearer) |
-| `GET` | `/api/entities/:appId/:entityName/stats` | Aggregated record count & field statistics | Yes (Bearer) |
-| `GET` | `/api/entities/:appId/:entityName/recent`| Fetch latest records for dashboard widgets | Yes (Bearer) |
+| `GET` | `/api/entities/:appId/:entityName/stats` | Aggregated record count & field statistics | Conditional* |
+| `GET` | `/api/entities/:appId/:entityName/recent`| Fetch latest records for dashboard widgets | Conditional* |
+
+*\*Authentication is strictly required if the application specifies `auth.enabled: true` or if the entity is configured with `userScoped: true`. All mutate endpoints (`POST`, `PUT`, `DELETE`) require a valid Bearer token. When `userScoped: true`, strict user-level multi-tenant isolation is enforced across all operations (cross-user access attempts return `404 Not Found`).*
 
 ### Notifications (`/api/notifications`)
 
