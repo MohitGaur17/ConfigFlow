@@ -288,6 +288,12 @@ Pre-made templates are available in the [`configs/`](./configs/) directory:
 - `configs/task-manager.json`
 - `configs/inventory.json`
 
+#### Schema Guidelines & Defaults
+
+- **Table Pages**: Specifying `columns` is optional. If omitted or empty, tables automatically fall back to rendering all fields declared in the target entity.
+- **Dashboard Pages**: The `widgets` list is optional (defaults to `[]`). Widgets accept either `label` or `title` for descriptive text.
+- **Authentication**: `auth.enabled` toggles application authentication requirements. Custom OAuth providers and settings can be configured via environment variables.
+
 ---
 
 ## API Reference
