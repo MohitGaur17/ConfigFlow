@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Offline - ConfigFlow</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <style>
     * {
       margin: 0;
@@ -12,9 +13,9 @@
     }
     
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
       background: #0a0a0a;
-      color: white;
+      color: #ffffff;
       min-height: 100vh;
       display: flex;
       align-items: center;
@@ -22,47 +23,147 @@
       padding: 1.5rem;
     }
     
-    .container {
+    .card {
       text-align: center;
       max-width: 28rem;
+      width: 100%;
+      background: #11141a;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 1.5rem;
+      padding: 2.5rem 2rem;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
     }
     
-    .icon {
-      width: 4rem;
-      height: 4rem;
+    .icon-container {
+      width: 4.5rem;
+      height: 4.5rem;
       margin: 0 auto 1.5rem;
-      background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
-      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(255, 107, 0, 0.2) 0%, rgba(99, 102, 241, 0.2) 100%);
+      border: 1px solid rgba(255, 107, 0, 0.4);
+      border-radius: 1.25rem;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 2rem;
+      color: #ff6b00;
     }
     
     h1 {
-      font-size: 1.875rem;
-      font-weight: 700;
-      margin-bottom: 0.5rem;
+      font-size: 1.75rem;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      margin-bottom: 0.75rem;
     }
     
     p {
-      color: #9ca3af;
-      margin-bottom: 1.5rem;
-      line-height: 1.5;
+      color: #94a3b8;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      margin-bottom: 1.75rem;
     }
     
-    .small {
-      font-size: 0.875rem;
-      color: #6b7280;
+    .sync-note {
+      font-size: 0.8rem;
+      color: #64748b;
+      margin-bottom: 1.75rem;
+    }
+    
+    .btn-retry {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      width: 100%;
+      background: #ff6b00;
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 0.9rem;
+      padding: 0.85rem 1.5rem;
+      border: none;
+      border-radius: 0.75rem;
+      cursor: pointer;
+      box-shadow: 0 0 20px rgba(255, 107, 0, 0.35);
+      transition: all 0.2s ease;
+    }
+
+    .btn-retry:hover {
+      background: #ea580c;
+      transform: translateY(-1px);
+    }
+
+    .btn-retry:active {
+      transform: scale(0.98);
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-bottom: 1.25rem;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #ef4444;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="icon">📡</div>
+  <div class="card">
+    <div class="status-badge">
+      <span class="dot"></span>
+      <span>Connection Lost</span>
+    </div>
+
+    <div class="icon-container">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="1" y1="1" x2="23" y2="23"></line>
+        <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"></path>
+        <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"></path>
+        <path d="M10.71 5.05A16 16 0 0 1 22.58 9"></path>
+        <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path>
+        <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+        <line x1="12" y1="20" x2="12.01" y2="20"></line>
+      </svg>
+    </div>
+
     <h1>You're Offline</h1>
     <p>Looks like you've lost your internet connection. Some features may be limited.</p>
-    <p class="small">Your data will sync automatically when you're back online.</p>
+    <div class="sync-note">Your data will sync automatically when you're back online.</div>
+
+    <button class="btn-retry" id="retry-button" onclick="handleRetry()">
+      <span>Retry Connection</span>
+    </button>
   </div>
+
+  <script>
+    function handleRetry() {
+      if (navigator.onLine) {
+        window.location.reload();
+      } else {
+        const btn = document.getElementById('retry-button');
+        btn.style.opacity = '0.6';
+        setTimeout(() => { btn.style.opacity = '1'; }, 600);
+      }
+    }
+
+    window.addEventListener('online', () => {
+      window.location.reload();
+    });
+  </script>
 </body>
 </html>

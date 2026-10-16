@@ -45,14 +45,14 @@ export default function manifest(): MetadataRoute.Manifest {
         short_name: "Create",
         description: "Create a new application from config",
         url: "/?action=create",
-        icons: [{ src: "/icon-192.svg", sizes: "192x192", type: "image/svg+xml" }],
+        icons: [{ src: "/icon-192.png", sizes: "192x192", type: "image/png" }],
       },
       {
         name: "Dashboard",
         short_name: "Apps",
         description: "View your applications",
         url: "/dashboard",
-        icons: [{ src: "/icon-192.svg", sizes: "192x192", type: "image/svg+xml" }],
+        icons: [{ src: "/icon-192.png", sizes: "192x192", type: "image/png" }],
       },
     ],
     share_target: {

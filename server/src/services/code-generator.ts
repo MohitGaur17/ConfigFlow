@@ -511,7 +511,7 @@ function generateManifest(config: AppConfig): string {
 }
 
 function generateServiceWorker(): string {
-  return `const CACHE_NAME = "antigravity-app-v1";
+  return `const CACHE_NAME = "configflow-app-v1";
 const ASSETS = ["/", "/manifest.webmanifest", "/icon.svg", "/apple-touch-icon.svg"];
 
 self.addEventListener("install", (event) => {
