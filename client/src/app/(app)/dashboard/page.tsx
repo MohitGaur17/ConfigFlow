@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
+import Logo from "@/components/Logo";
+import NotificationBell from "@/components/NotificationBell";
 import api from "@/lib/api";
 import toast from "react-hot-toast";
 
@@ -58,13 +60,12 @@ export default function DashboardPage() {
       {/* Brand Navigation Bar */}
       <div className="flex items-center justify-between pb-6 mb-8 border-b border-outline-hairline">
         <Link href="/" className="flex items-center gap-2.5 hover:opacity-85 transition-opacity">
-          <div className="w-8 h-8 rounded-lg bg-primary-container flex items-center justify-center text-sm font-bold text-white shadow-[0_0_12px_rgba(255,107,0,0.35)]">
-            C
-          </div>
+          <Logo width={36} height={25} />
           <span className="font-headline-md text-lg font-black tracking-tight text-on-surface">ConfigFlow</span>
         </Link>
 
         <div className="flex items-center gap-3">
+          <NotificationBell />
           {user && (
             <div className="hidden sm:flex items-center gap-2 text-xs font-code-base text-on-surface-variant bg-surface-variant/30 border border-outline-hairline px-3 py-1.5 rounded-full">
               <span className="w-2 h-2 rounded-full bg-emerald-400"></span>

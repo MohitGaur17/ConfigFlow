@@ -5,6 +5,7 @@ import api from "@/lib/api";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
+import Logo from "@/components/Logo";
 
 export default function BuilderPage() {
   const [selectedMode, setSelectedMode] = useState<"manual" | null>("manual");
@@ -99,9 +100,7 @@ export default function BuilderPage() {
           </Link>
           <div className="h-4 w-px bg-outline-hairline"></div>
           <Link href="/dashboard" className="flex items-center gap-2 hover:opacity-85 transition-opacity">
-            <div className="w-6 h-6 rounded bg-primary-container flex items-center justify-center text-xs font-bold text-white shadow-[0_0_10px_rgba(255,107,0,0.3)]">
-              C
-            </div>
+            <Logo width={30} height={21} />
             <span className="font-headline-md text-base font-black tracking-tight text-on-surface">ConfigFlow</span>
           </Link>
         </div>

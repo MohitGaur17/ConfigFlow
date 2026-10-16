@@ -48,7 +48,7 @@ router.get("/stream", (req: AuthRequest, res: Response) => {
   }
 });
 
-router.post("/mark-all-read", requireAuth, async (req: AuthRequest, res: Response) => {
+const handleMarkAllRead = async (req: AuthRequest, res: Response) => {
   try {
     const { markAllNotificationsRead } = await import("../services/notification-service");
     const result = await markAllNotificationsRead(req.userId!);
@@ -58,7 +58,10 @@ router.post("/mark-all-read", requireAuth, async (req: AuthRequest, res: Respons
     console.error("[Notifications] Mark all read error:", error);
     res.status(500).json({ success: false, error: "Internal server error" });
   }
-});
+};
+
+router.post("/mark-all-read", requireAuth, handleMarkAllRead);
+router.post("/read-all", requireAuth, handleMarkAllRead);
 
 router.patch("/:id/read", requireAuth, async (req: AuthRequest, res: Response) => {
   try {

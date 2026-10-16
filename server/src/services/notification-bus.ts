@@ -7,6 +7,31 @@ type Subscriber = {
 
 const subscribers: Map<string, Subscriber[]> = new Map();
 
+let heartbeatTimer: NodeJS.Timeout | null = null;
+
+function ensureHeartbeat() {
+  if (heartbeatTimer) return;
+  heartbeatTimer = setInterval(() => {
+    if (subscribers.size === 0) {
+      if (heartbeatTimer) {
+        clearInterval(heartbeatTimer);
+        heartbeatTimer = null;
+      }
+      return;
+    }
+    for (const [, list] of subscribers) {
+      for (const sub of list) {
+        try {
+          sub.res.write(`: ping\n\n`);
+        } catch (e) {
+          // ignore error; cleanup happens on connection close
+        }
+      }
+    }
+  }, 25000);
+  if (heartbeatTimer.unref) heartbeatTimer.unref();
+}
+
 export function subscribe(userId: string, res: Response) {
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
@@ -25,6 +50,8 @@ export function subscribe(userId: string, res: Response) {
   } catch (e) {
     // ignore
   }
+
+  ensureHeartbeat();
 
   const onClose = () => {
     const cur = subscribers.get(userId) || [];
