@@ -47,6 +47,7 @@ Open `http://localhost:3000`.
 - `/dashboard` - user apps and actions
 - `/builder/[appId]` - app preview shell
 - `/builder/[appId]/[[...slug]]` - dynamic page rendering
+- `/offline` - custom offline fallback page
 
 ## Build
 
@@ -66,4 +67,5 @@ npm run build
 
 - Favicon and brand icon are served from `public/favicon.svg`.
 - Dynamic rendering components are in `src/components/renderers`.
-- i18n implementation is documented in `src/i18n/README.md`.
+- Real-time Server-Sent Events (SSE) notification stream and in-app slide-out drawer.
+- Progressive Web App (PWA) with Service Worker caching and install prompt.

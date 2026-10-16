@@ -50,7 +50,6 @@ ConfigFlow turns declarative JSON architecture specifications into fully functio
 - **Responsive & Accessible Design**:
   - Obsidian dark theme with glassmorphic accents and mobile-first responsiveness.
   - Touch-friendly mobile navigation drawer with backdrop light-dismiss, keyboard navigation (<kbd>Esc</kbd>), and body-scroll locking.
-- **Internationalization (i18n)**: Built-in localization support for 8 languages (`en`, `es`, `fr`, `de`, `ja`, `zh`, `pt`, `ar`) with bidirectional RTL rendering.
 - **Real-Time Notification System**: Server-Sent Events (SSE) stream for instant event delivery and an in-app slide-out notification drawer.
 - **Progressive Web App (PWA)**: Web App Manifest, Service Worker caching, and custom offline fallback page.
 
@@ -94,8 +93,7 @@ ConfigFlow/
 │   ├── src/
 │   │   ├── app/                # App Router routes ((marketing), (auth), (app)/dashboard, builder)
 │   │   ├── components/         # Renderers (Table, Form, Dashboard), Layouts, CodeViewer
-│   │   ├── i18n/               # Multi-language translations & LanguageContext
-│   │   └── lib/                # API client, AuthContext, ConfigContext
+│   │   └── lib/                # API client, AuthContext, ConfigContext, NotificationContext
 │   └── public/                 # Static assets, PWA icons, Service Worker
 ├── server/                     # Express.js + TypeScript Backend
 │   ├── prisma/                 # Prisma schema & migrations
@@ -106,6 +104,7 @@ ConfigFlow/
 ├── shared/                     # Shared TypeScript Types & Validators
 │   └── src/                    # AppConfig interfaces, Zod schema validation
 ├── configs/                    # Sample JSON application configurations
+├── scripts/                    # Feature and consistency verification test suite
 ├── docker-compose.yml          # Local container orchestration
 └── package.json                # Monorepo workspaces configuration
 ```
