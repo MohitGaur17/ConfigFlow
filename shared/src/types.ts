@@ -41,6 +41,8 @@ export interface EntityConfig {
   fields: Record<string, FieldConfig>;
   displayField?: string;
   userScoped?: boolean;
+  /** Allows unauthenticated reads only when app authentication is disabled. */
+  publicAccess?: boolean;
 }
 
 // ---- Page Types ----

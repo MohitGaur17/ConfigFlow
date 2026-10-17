@@ -39,11 +39,13 @@ app.get("/api/health", (_req, res) => {
 // ============================================================
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error("[Server] Unhandled error:", err);
+  if (err instanceof SyntaxError && "status" in err && (err as SyntaxError & { status?: number }).status === 400) {
+    res.status(400).json({ success: false, error: "Malformed JSON request body" });
+    return;
+  }
   res.status(500).json({
     success: false,
-    error: process.env.NODE_ENV === "production"
-      ? "Internal server error"
-      : err.message,
+    error: "Internal server error",
   });
 });
 

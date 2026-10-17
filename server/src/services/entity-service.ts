@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import { EntityConfig, FieldConfig, validateRecordData } from "shared";
+import { EntityConfig, validateRecordData } from "shared";
 import { getEntityConfig } from "./config-engine";
 
 const prisma = new PrismaClient();
@@ -170,6 +170,10 @@ export async function createRecord(
   const entityConfig = await getEntityConfig(appId, entityName);
   if (!entityConfig) throw new Error(`Entity config for "${entityName}" not found`);
 
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    throw new ValidationError("Validation failed", { body: "Expected a JSON object" });
+  }
+
   if (entityConfig.userScoped && !userId) {
     throw new ValidationError("Authentication required for user-scoped entity", {
       userId: "Authentication required",
@@ -180,14 +184,19 @@ export async function createRecord(
   const cleanData = { ...data };
   delete cleanData.userId;
 
+  const dataWithDefaults = { ...cleanData };
+  for (const [fieldName, field] of Object.entries(entityConfig.fields)) {
+    if (dataWithDefaults[fieldName] === undefined && field.default !== undefined) dataWithDefaults[fieldName] = field.default;
+  }
+
   // Validate
-  const validation = validateRecordData(cleanData, entityConfig.fields as any);
+  const validation = validateRecordData(dataWithDefaults, entityConfig.fields as any);
   if (!validation.valid) {
     throw new ValidationError("Validation failed", validation.errors);
   }
 
   // Apply defaults for missing fields
-  const finalData = applyDefaults(validation.sanitized, entityConfig.fields);
+  const finalData = validation.sanitized;
 
   const record = await prisma.record.create({
     data: {
@@ -214,6 +223,9 @@ export async function updateRecord(
 ): Promise<{ id: string; data: Record<string, unknown> }> {
   const entityConfig = await getEntityConfig(appId, entityName);
   if (!entityConfig) throw new Error(`Entity config for "${entityName}" not found`);
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    throw new ValidationError("Validation failed", { body: "Expected a JSON object" });
+  }
 
   // Check record exists and belongs to user/app
   const where: any = {
@@ -355,7 +367,7 @@ export async function getRecentRecords(
   const records = await prisma.record.findMany({
     where,
     orderBy: { createdAt: "desc" },
-    take: limit,
+    take: Math.min(100, Math.max(1, Math.floor(Number.isFinite(limit) ? limit : 5))),
   });
 
   return records.map((r: any) => ({
@@ -366,19 +378,6 @@ export async function getRecentRecords(
 }
 
 // ---- Helpers ----
-
-function applyDefaults(
-  data: Record<string, unknown>,
-  fields: Record<string, FieldConfig>
-): Record<string, unknown> {
-  const result = { ...data };
-  for (const [fieldName, fieldConfig] of Object.entries(fields)) {
-    if (result[fieldName] === undefined && fieldConfig.default !== undefined) {
-      result[fieldName] = fieldConfig.default;
-    }
-  }
-  return result;
-}
 
 function groupRecords(
   records: Array<{ data: any }>,

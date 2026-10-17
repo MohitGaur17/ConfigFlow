@@ -1,4 +1,4 @@
-import { Router, Response } from "express";
+import { Router, Response, NextFunction } from "express";
 import { requireAuth, optionalAuth, AuthRequest } from "../middleware/auth";
 import { getAppConfig, getEntityConfig } from "../services/config-engine";
 import {
@@ -13,8 +13,37 @@ import {
   NotFoundError,
 } from "../services/entity-service";
 import { recordNotification } from "../services/notification-service";
+import { PrismaClient } from "@prisma/client";
 
 const router = Router();
+const prisma = new PrismaClient();
+
+function sendValidationError(res: Response, error: ValidationError) {
+  res.status(400).json({ success: false, error: error.message, errors: error.fieldErrors });
+}
+
+function queryInteger(value: unknown, field: string, fallback: number, max: number): number {
+  if (value === undefined) return fallback;
+  if (typeof value !== "string" || !/^\d+$/.test(value)) throw new ValidationError("Invalid query parameters", { [field]: "Must be a positive integer" });
+  const number = Number(value);
+  if (!Number.isSafeInteger(number) || number < 1 || number > max) throw new ValidationError("Invalid query parameters", { [field]: `Must be between 1 and ${max}` });
+  return number;
+}
+
+function parseFilters(value: unknown, fields: string[]): Record<string, string> | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== "string") throw new ValidationError("Invalid query parameters", { filters: "Must be a JSON object" });
+  let filters: unknown;
+  try { filters = JSON.parse(value); } catch { throw new ValidationError("Invalid query parameters", { filters: "Malformed JSON" }); }
+  if (!filters || typeof filters !== "object" || Array.isArray(filters)) throw new ValidationError("Invalid query parameters", { filters: "Must be a JSON object" });
+  const result: Record<string, string> = {};
+  for (const [key, entry] of Object.entries(filters as Record<string, unknown>)) {
+    if (!fields.includes(key)) throw new ValidationError("Invalid query parameters", { filters: `Unknown field: ${key}` });
+    if (!["string", "number", "boolean"].includes(typeof entry)) throw new ValidationError("Invalid query parameters", { filters: `Invalid value for ${key}` });
+    result[key] = String(entry);
+  }
+  return result;
+}
 
 // ============================================================
 // Dynamic Entity Routes — CRUD for any entity defined in config.
@@ -24,44 +53,52 @@ const router = Router();
 /**
  * Middleware: Verify app exists and entity exists in config.
  */
-async function validateEntity(req: AuthRequest, res: Response, next: Function) {
-  const { appId, entityName } = req.params;
-  const config = await getAppConfig(appId);
+async function validateEntity(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const { appId, entityName } = req.params;
+    const config = await getAppConfig(appId);
 
-  if (!config) {
-    res.status(404).json({
-      success: false,
-      error: "App not found.",
-    });
-    return;
+    if (!config) {
+      res.status(404).json({
+        success: false,
+        error: "App not found.",
+      });
+      return;
+    }
+
+    const isRead = req.method === "GET";
+    // Public access is an explicit entity policy and applies to reads only.
+    const requestedEntity = config.entities?.[entityName];
+    const publicRead = isRead && config.app?.auth?.enabled !== true && requestedEntity?.userScoped !== true && requestedEntity?.publicAccess === true;
+    if (!publicRead && !req.userId) {
+      res.status(401).json({ success: false, error: "Authentication required." });
+      return;
+    }
+    if (!publicRead) {
+      const app = await prisma.app.findUnique({ where: { id: appId }, select: { userId: true } });
+      if (app?.userId !== req.userId) {
+        res.status(404).json({ success: false, error: "App not found." });
+        return;
+      }
+    }
+
+    const entityConfig = config.entities?.[entityName];
+    if (!entityConfig) {
+      res.status(404).json({
+        success: false,
+        error: `Entity "${entityName}" not found. Available entities: ${Object.keys(config.entities || {}).join(", ")}`,
+      });
+      return;
+    }
+
+    (req as any).appConfig = config;
+    (req as any).entityConfig = entityConfig;
+
+    next();
+  } catch (error) {
+    console.error("[Entity] Authorization check failed:", error);
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
-
-  const entityConfig = config.entities?.[entityName];
-  if (!entityConfig) {
-    res.status(404).json({
-      success: false,
-      error: `Entity "${entityName}" not found. Available entities: ${Object.keys(config.entities || {}).join(", ")}`,
-    });
-    return;
-  }
-
-  // Enforce authentication policy:
-  // If the app has auth.enabled OR the entity is userScoped, unauthenticated access is strictly denied.
-  const authRequired = Boolean(config.app?.auth?.enabled) || Boolean(entityConfig.userScoped);
-  if (authRequired && !req.userId) {
-    res.status(401).json({
-      success: false,
-      error: entityConfig.userScoped
-        ? "Authentication required to access user-scoped records."
-        : "Authentication required for this application.",
-    });
-    return;
-  }
-
-  (req as any).appConfig = config;
-  (req as any).entityConfig = entityConfig;
-
-  next();
 }
 
 /**
@@ -72,14 +109,24 @@ router.get("/:appId/:entityName", optionalAuth, validateEntity, async (req: Auth
   try {
     const { appId, entityName } = req.params;
     const entityConfig = (req as any).entityConfig;
+    const fieldNames = Object.keys(entityConfig.fields);
+    const page = queryInteger(req.query.page, "page", 1, Number.MAX_SAFE_INTEGER);
+    const pageSize = queryInteger(req.query.pageSize, "pageSize", 10, 100);
+    const sortBy = req.query.sortBy as string | undefined;
+    const sortOrder = (req.query.sortOrder as string | undefined) || "desc";
+    const search = req.query.search;
+    if (search !== undefined && typeof search !== "string") throw new ValidationError("Invalid query parameters", { search: "Must be a string" });
+    if (typeof search === "string" && search.length > 500) throw new ValidationError("Invalid query parameters", { search: "Must not exceed 500 characters" });
+    if (sortBy && !fieldNames.includes(sortBy)) throw new ValidationError("Invalid query parameters", { sortBy: "Unknown field" });
+    if (sortOrder !== "asc" && sortOrder !== "desc") throw new ValidationError("Invalid query parameters", { sortOrder: "Must be asc or desc" });
 
     const result = await listRecords(appId, entityName, {
-      page: parseInt(req.query.page as string) || 1,
-      pageSize: parseInt(req.query.pageSize as string) || 10,
-      sortBy: req.query.sortBy as string,
-      sortOrder: (req.query.sortOrder as "asc" | "desc") || "desc",
-      filters: req.query.filters ? JSON.parse(req.query.filters as string) : undefined,
-      search: req.query.search as string,
+      page,
+      pageSize,
+      sortBy,
+      sortOrder: sortOrder as "asc" | "desc",
+      filters: parseFilters(req.query.filters, fieldNames),
+      search: search as string | undefined,
       searchFields: entityConfig ? Object.keys(entityConfig.fields) : [],
       userId: req.userId,
       userScoped: entityConfig?.userScoped,
@@ -87,6 +134,7 @@ router.get("/:appId/:entityName", optionalAuth, validateEntity, async (req: Auth
 
     res.json({ success: true, ...result });
   } catch (error: any) {
+    if (error instanceof ValidationError) return sendValidationError(res, error);
     console.error(`[Entity] List ${req.params.entityName} error:`, error);
     res.status(500).json({ success: false, error: "Internal server error" });
   }
@@ -101,11 +149,19 @@ router.get("/:appId/:entityName/stats", optionalAuth, validateEntity, async (req
     const { appId, entityName } = req.params;
     const entityConfig = (req as any).entityConfig;
     const { operation, field, groupBy } = req.query;
+    const op = (operation as string) || "count";
+    const fieldNames = Object.keys(entityConfig.fields);
+    if (!["count", "sum", "avg"].includes(op)) throw new ValidationError("Invalid query parameters", { operation: "Must be count, sum, or avg" });
+    if (field && !fieldNames.includes(field as string)) throw new ValidationError("Invalid query parameters", { field: "Unknown field" });
+    if (groupBy && !fieldNames.includes(groupBy as string)) throw new ValidationError("Invalid query parameters", { groupBy: "Unknown field" });
+    if ((op === "sum" || op === "avg") && (!field || entityConfig.fields[field as string]?.type !== "number")) {
+      throw new ValidationError("Invalid query parameters", { field: "A numeric field is required for sum and avg" });
+    }
 
     const result = await getEntityStats(
       appId,
       entityName,
-      (operation as string) || "count",
+      op,
       field as string,
       groupBy as string,
       req.userId,
@@ -114,6 +170,7 @@ router.get("/:appId/:entityName/stats", optionalAuth, validateEntity, async (req
 
     res.json({ success: true, data: result });
   } catch (error: any) {
+    if (error instanceof ValidationError) return sendValidationError(res, error);
     console.error(`[Entity] Stats ${req.params.entityName} error:`, error);
     res.status(500).json({ success: false, error: "Internal server error" });
   }
@@ -127,7 +184,7 @@ router.get("/:appId/:entityName/recent", optionalAuth, validateEntity, async (re
   try {
     const { appId, entityName } = req.params;
     const entityConfig = (req as any).entityConfig;
-    const limit = parseInt(req.query.limit as string) || 5;
+    const limit = queryInteger(req.query.limit, "limit", 5, 100);
 
     const result = await getRecentRecords(
       appId,
@@ -139,6 +196,7 @@ router.get("/:appId/:entityName/recent", optionalAuth, validateEntity, async (re
 
     res.json({ success: true, data: result });
   } catch (error: any) {
+    if (error instanceof ValidationError) return sendValidationError(res, error);
     console.error(`[Entity] Recent ${req.params.entityName} error:`, error);
     res.status(500).json({ success: false, error: "Internal server error" });
   }

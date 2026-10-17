@@ -5,6 +5,11 @@ import assert from "assert";
 
 process.env.NODE_ENV = "test";
 process.env.PORT = "4099";
+if (!process.env.CONFIGFLOW_TEST_DATABASE_URL) {
+  throw new Error("Set CONFIGFLOW_TEST_DATABASE_URL to a disposable PostgreSQL database before running this suite.");
+}
+process.env.DATABASE_URL = process.env.CONFIGFLOW_TEST_DATABASE_URL;
+process.env.JWT_SECRET ||= "configflow-security-suite-secret-change-me";
 
 const { app } = await import("../server/dist/index.js");
 
@@ -25,7 +30,13 @@ async function request(path, options = {}) {
 
 async function runSecuritySuite() {
   console.log("=== ConfigFlow Security & Authorization Test Suite ===");
+  const { PrismaClient } = await import("@prisma/client");
+  const prisma = new PrismaClient();
   const server = app.listen(PORT);
+  let userA_Id;
+  let userB_Id;
+  let appId;
+  let publicAppId;
 
   try {
     const timestamp = Date.now();
@@ -34,17 +45,15 @@ async function runSecuritySuite() {
     const password = "Password123!";
 
     // 1. Register User A (Alice)
-    console.log("\n[1/12] Registering User A (Alice)...");
+    console.log("\nRegistering User A (Alice)...");
     const regA = await request("/api/auth/register", {
       method: "POST",
       body: JSON.stringify({ email: userA_Email, password, name: "Alice" }),
     });
     assert.strictEqual(regA.status, 201, `Failed to register Alice: ${regA.text}`);
-    const userA_Id = regA.body.data.user.id;
+    userA_Id = regA.body.data.user.id;
 
     // Verify Alice email and login
-    const { PrismaClient } = await import("@prisma/client");
-    const prisma = new PrismaClient();
     await prisma.user.update({
       where: { id: userA_Id },
       data: { emailVerifiedAt: new Date() },
@@ -59,13 +68,13 @@ async function runSecuritySuite() {
     console.log(`✔ User A registered and logged in: ${userA_Id}`);
 
     // 2. Register User B (Bob)
-    console.log("\n[2/12] Registering User B (Bob)...");
+    console.log("\nRegistering User B (Bob)...");
     const regB = await request("/api/auth/register", {
       method: "POST",
       body: JSON.stringify({ email: userB_Email, password, name: "Bob" }),
     });
     assert.strictEqual(regB.status, 201, `Failed to register Bob: ${regB.text}`);
-    const userB_Id = regB.body.data.user.id;
+    userB_Id = regB.body.data.user.id;
 
     await prisma.user.update({
       where: { id: userB_Id },
@@ -81,7 +90,7 @@ async function runSecuritySuite() {
     console.log(`✔ User B registered and logged in: ${userB_Id}`);
 
     // 3. User A creates private App A with userScoped entity
-    console.log("\n[3/12] User A creates private Application with userScoped entity...");
+    console.log("\nUser A creates private Application with userScoped entity...");
     const appConfig = {
       app: {
         name: "Alice Secret App",
@@ -115,22 +124,71 @@ async function runSecuritySuite() {
       body: JSON.stringify(appConfig),
     });
     assert.strictEqual(createAppRes.status, 201, `Failed to create app: ${createAppRes.text}`);
-    const appId = createAppRes.body.data.id;
+    appId = createAppRes.body.data.id;
     console.log(`✔ App created by Alice: ${appId}`);
 
     // 4. User A creates a secret record
-    console.log("\n[4/12] User A creates a user-scoped record...");
+    console.log("\nUser A creates a user-scoped record...");
     const createRecRes = await request(`/api/entities/${appId}/secrets`, {
       method: "POST",
       headers: { Authorization: `Bearer ${tokenA}` },
-      body: JSON.stringify({ title: "Alice Bank Credentials", note: "SuperSecretKey123" }),
+      body: JSON.stringify({ title: "Alice Bank Credentials", note: "SuperSecretKey123", userId: userB_Id }),
     });
     assert.strictEqual(createRecRes.status, 201, `Failed to create record: ${createRecRes.text}`);
     const recordId = createRecRes.body.data.id;
+    const persistedRecord = await prisma.record.findUnique({ where: { id: recordId } });
+    assert.strictEqual(persistedRecord.userId, userA_Id, "Record owner must come from authenticated identity, never the request body");
+    assert.strictEqual(persistedRecord.data.userId, undefined, "Client owner field must not be persisted as record data");
+
+    const invalidFilters = await request(`/api/entities/${appId}/secrets?filters=%7B`, { headers: { Authorization: `Bearer ${tokenA}` } });
+    assert.strictEqual(invalidFilters.status, 400, "Malformed filter JSON must be a client error");
+    const invalidSort = await request(`/api/entities/${appId}/secrets?sortBy=unknown`, { headers: { Authorization: `Bearer ${tokenA}` } });
+    assert.strictEqual(invalidSort.status, 400, "Unknown sort fields must be rejected");
+    const invalidStats = await request(`/api/entities/${appId}/secrets/stats?operation=drop`, { headers: { Authorization: `Bearer ${tokenA}` } });
+    assert.strictEqual(invalidStats.status, 400, "Unknown stats operations must be rejected");
+    const malformedBody = await request(`/api/entities/${appId}/secrets`, {
+      method: "POST", headers: { Authorization: `Bearer ${tokenA}` }, body: "{",
+    });
+    assert.strictEqual(malformedBody.status, 400, "Malformed JSON bodies must be a client error");
+    assert.strictEqual(malformedBody.body.error, "Malformed JSON request body", "Malformed body errors must not reveal parser internals");
+
+    console.log("\nVerifying unauthenticated entity operations are rejected...");
+    for (const [method, suffix, body] of [
+      ["GET", "", undefined], ["GET", `/${recordId}`, undefined], ["GET", "/stats", undefined], ["GET", "/recent", undefined],
+      ["POST", "", { title: "Anonymous write" }], ["PUT", `/${recordId}`, { title: "Anonymous update" }], ["DELETE", `/${recordId}`, undefined],
+    ]) {
+      const result = await request(`/api/entities/${appId}/secrets${suffix}`, { method, body: body && JSON.stringify(body) });
+      assert.strictEqual(result.status, 401, `Expected unauthenticated ${method} ${suffix || "collection"} to return 401; got ${result.status}`);
+    }
+    console.log("Unauthenticated entity list/read/stats/recent/create/update/delete requests returned 401");
+
+    console.log("\nVerifying cross-application entity access is denied...");
+    for (const [method, suffix, body] of [
+      ["GET", "", undefined], ["GET", `/${recordId}`, undefined], ["GET", "/stats", undefined], ["GET", "/recent", undefined],
+      ["POST", "", { title: "Cross-app write" }], ["PUT", `/${recordId}`, { title: "Cross-app update" }], ["DELETE", `/${recordId}`, undefined],
+    ]) {
+      const result = await request(`/api/entities/${appId}/secrets${suffix}`, {
+        method,
+        headers: { Authorization: `Bearer ${tokenB}` },
+        body: body && JSON.stringify(body),
+      });
+      assert.strictEqual(result.status, 404, `Expected cross-app ${method} ${suffix || "collection"} to return 404; got ${result.status}`);
+    }
+    console.log("Cross-app entity list/read/stats/recent/create/update/delete requests returned 404");
+
+    console.log("\nVerifying user-scoped service reads, statistics, updates, and deletes...");
+    const { getRecord, listRecords, getEntityStats, getRecentRecords, updateRecord, deleteRecord, NotFoundError } = await import("../server/dist/services/entity-service.js");
+    assert.strictEqual(await getRecord(appId, "secrets", recordId, userB_Id, true), null);
+    assert.strictEqual((await listRecords(appId, "secrets", { userId: userB_Id, userScoped: true })).data.length, 0);
+    assert.strictEqual((await getEntityStats(appId, "secrets", "count", undefined, undefined, userB_Id, true)).value, 0);
+    assert.strictEqual((await getRecentRecords(appId, "secrets", 10, userB_Id, true)).length, 0);
+    await assert.rejects(updateRecord(appId, "secrets", recordId, { title: "Cross-user update" }, userB_Id, true), NotFoundError);
+    await assert.rejects(deleteRecord(appId, "secrets", recordId, userB_Id, true), NotFoundError);
+    console.log("Cross-user record reads and aggregates are empty; updates and deletes return not found");
     console.log(`✔ Record created by Alice: ${recordId}`);
 
     // 5. Test: Unauthenticated user cannot read App A config or files
-    console.log("\n[5/12] Verifying unauthenticated access to App metadata/files is blocked...");
+    console.log("\nVerifying unauthenticated access to App metadata/files is blocked...");
     const unauthApp = await request(`/api/apps/${appId}`);
     assert.strictEqual(unauthApp.status, 401, "Expected 401 for unauthenticated app get");
     const unauthFiles = await request(`/api/apps/${appId}/files`);
@@ -138,7 +196,7 @@ async function runSecuritySuite() {
     console.log("✔ Unauthenticated app access returned 401 Unauthorized");
 
     // 6. Test: User B cannot read User A's App
-    console.log("\n[6/12] Verifying User B cannot read User A's application or files...");
+    console.log("\nVerifying User B cannot read User A's application or files...");
     const bobApp = await request(`/api/apps/${appId}`, {
       headers: { Authorization: `Bearer ${tokenB}` },
     });
@@ -154,7 +212,7 @@ async function runSecuritySuite() {
     console.log("✔ Cross-user app read and export returned 404 Not Found");
 
     // 7. Test: User B cannot read User A's record by tampering record ID
-    console.log("\n[7/12] Verifying User B cannot read User A's record by ID...");
+    console.log("\nVerifying User B cannot read User A's record by ID...");
     const bobRecGet = await request(`/api/entities/${appId}/secrets/${recordId}`, {
       headers: { Authorization: `Bearer ${tokenB}` },
     });
@@ -162,7 +220,7 @@ async function runSecuritySuite() {
     console.log("✔ Cross-user record read returned 404 Not Found");
 
     // 8. Test: User B cannot update User A's record
-    console.log("\n[8/12] Verifying User B cannot modify User A's record...");
+    console.log("\nVerifying User B cannot modify User A's record...");
     const bobRecPut = await request(`/api/entities/${appId}/secrets/${recordId}`, {
       method: "PUT",
       headers: { Authorization: `Bearer ${tokenB}` },
@@ -179,7 +237,7 @@ async function runSecuritySuite() {
     console.log("✔ Cross-user record update returned 404; data was not modified");
 
     // 9. Test: User B cannot delete User A's record
-    console.log("\n[9/12] Verifying User B cannot delete User A's record...");
+    console.log("\nVerifying User B cannot delete User A's record...");
     const bobRecDel = await request(`/api/entities/${appId}/secrets/${recordId}`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${tokenB}` },
@@ -188,7 +246,7 @@ async function runSecuritySuite() {
     console.log("✔ Cross-user record deletion returned 404 Not Found");
 
     // 10. Test: User B list and stats do not expose User A's records
-    console.log("\n[10/12] Verifying list and aggregation isolation across users...");
+    console.log("\nVerifying list and aggregation isolation across users...");
     const bobList = await request(`/api/entities/${appId}/secrets`, {
       headers: { Authorization: `Bearer ${tokenB}` },
     });
@@ -203,7 +261,61 @@ async function runSecuritySuite() {
     console.log("✔ User B sees 0 records and stats count is 0 in multi-tenant isolation");
 
     // 11. Test: Path traversal / Zip Slip rejection in config validation
-    console.log("\n[11/12] Verifying rejection of malicious path-traversal configurations...");
+    console.log("\nVerifying explicit public-read policy...");
+    const publicApp = await request("/api/apps", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${tokenA}` },
+      body: JSON.stringify({
+        app: { name: "Public Read App", auth: { enabled: false } },
+        entities: { notices: { publicAccess: true, fields: { title: { type: "string", required: true } } } },
+        pages: [{ type: "table", name: "Notices", path: "/notices", entity: "notices", actions: [] }],
+      }),
+    });
+    assert.strictEqual(publicApp.status, 201, `Failed to create public-read app: ${publicApp.text}`);
+    publicAppId = publicApp.body.data.id;
+    const publicRecord = await request(`/api/entities/${publicAppId}/notices`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${tokenA}` },
+      body: JSON.stringify({ title: "Public notice" }),
+    });
+    assert.strictEqual(publicRecord.status, 201, `App owner should retain write access: ${publicRecord.text}`);
+    const publicRecordId = publicRecord.body.data.id;
+    const publicReadPaths = ["", `/${publicRecordId}`, "/stats", "/recent"];
+    for (const suffix of publicReadPaths) {
+      const anonymousRead = await request(`/api/entities/${publicAppId}/notices${suffix}`);
+      assert.strictEqual(anonymousRead.status, 200, `Explicit publicAccess should allow anonymous GET ${suffix || "collection"}`);
+      const crossUserRead = await request(`/api/entities/${publicAppId}/notices${suffix}`, {
+        headers: { Authorization: `Bearer ${tokenB}` },
+      });
+      assert.strictEqual(crossUserRead.status, 200, `Explicit publicAccess should allow cross-user GET ${suffix || "collection"}`);
+    }
+
+    for (const [method, suffix, body] of [
+      ["POST", "", { title: "Anonymous write" }],
+      ["PUT", `/${publicRecordId}`, { title: "Anonymous update" }],
+      ["DELETE", `/${publicRecordId}`, undefined],
+    ]) {
+      const anonymousWrite = await request(`/api/entities/${publicAppId}/notices${suffix}`, {
+        method,
+        body: body && JSON.stringify(body),
+      });
+      assert.strictEqual(anonymousWrite.status, 401, `Public reads must not permit anonymous ${method}`);
+    }
+    for (const [method, suffix, body] of [
+      ["POST", "", { title: "Cross-user write" }],
+      ["PUT", `/${publicRecordId}`, { title: "Cross-user update" }],
+      ["DELETE", `/${publicRecordId}`, undefined],
+    ]) {
+      const crossUserWrite = await request(`/api/entities/${publicAppId}/notices${suffix}`, {
+        method,
+        headers: { Authorization: `Bearer ${tokenB}` },
+        body: body && JSON.stringify(body),
+      });
+      assert.strictEqual(crossUserWrite.status, 404, `Public reads must not permit non-owner ${method}`);
+    }
+    console.log("Explicit publicAccess permits anonymous and cross-user GET collection/item/stats/recent only; writes require the app owner");
+
+    console.log("\nVerifying rejection of malicious path-traversal configurations...");
     const maliciousConfig = {
       app: { name: "Traverse App" },
       entities: {
@@ -222,7 +334,7 @@ async function runSecuritySuite() {
     console.log("✔ Malicious config rejected with 400 Bad Request");
 
     // 12. User A cleans up App A
-    console.log("\n[12/12] User A deletes App A and cleans up test data...");
+    console.log("\nUser A deletes App A and cleans up test data...");
     const delApp = await request(`/api/apps/${appId}`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${tokenA}` },
@@ -234,7 +346,17 @@ async function runSecuritySuite() {
     console.log("🎉 ALL SECURITY & AUTHORIZATION TESTS PASSED! 🎉");
     console.log("========================================================\n");
   } finally {
-    server.close();
+    await new Promise((resolve) => server.close(resolve));
+    if (prisma) {
+      try {
+        const appIds = [appId, publicAppId].filter(Boolean);
+        if (appIds.length) await prisma.app.deleteMany({ where: { id: { in: appIds } } });
+        const userIds = [userA_Id, userB_Id].filter(Boolean);
+        if (userIds.length) await prisma.user.deleteMany({ where: { id: { in: userIds } } });
+      } finally {
+        await prisma.$disconnect();
+      }
+    }
   }
 }
 

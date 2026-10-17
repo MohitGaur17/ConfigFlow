@@ -56,6 +56,12 @@ const fieldConfigSchema = z.object({
     return true;
   },
   { message: "Enum fields require 'options', relation fields require 'entity'" }
+).refine(
+  (data) => {
+    if (!data.pattern) return true;
+    try { new RegExp(data.pattern); return true; } catch { return false; }
+  },
+  { message: "Field pattern must be a valid regular expression" }
 );
 
 const entityConfigSchema = z.object({
@@ -65,6 +71,10 @@ const entityConfigSchema = z.object({
   ),
   displayField: z.string().optional(),
   userScoped: z.boolean().optional().default(false),
+  publicAccess: z.boolean().optional().default(false),
+}).refine((entity) => !(entity.publicAccess && entity.userScoped), {
+  message: "User-scoped entities cannot allow unauthenticated public reads",
+  path: ["publicAccess"],
 });
 
 const widgetConfigSchema = z.object({
@@ -146,6 +156,9 @@ export const appConfigSchema = z.object({
     { message: "Config must define at least one entity" }
   ),
   pages: z.array(pageConfigSchema).min(1, "Config must define at least one page"),
+}).refine((config) => !(config.app.auth?.enabled && Object.values(config.entities).some((entity) => entity.publicAccess)), {
+  message: "Public entity access cannot be enabled when app authentication is enabled",
+  path: ["entities"],
 });
 
 // ---- Validation helpers ----
@@ -252,6 +265,13 @@ export function validateRecordData(
   const errors: Record<string, string> = {};
   const sanitized: Record<string, unknown> = {};
 
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    return { valid: false, errors: { body: "Expected a JSON object" }, sanitized };
+  }
+  for (const key of Object.keys(data)) {
+    if (!(key in fields)) errors[key] = "Unknown field";
+  }
+
   for (const [fieldName, fieldConfig] of Object.entries(fields)) {
     const value = data[fieldName];
 
@@ -273,6 +293,10 @@ export function validateRecordData(
         case "text":
         case "email":
         case "url":
+          if (typeof value !== "string") {
+            errors[fieldName] = `${fieldName} must be a string`;
+            break;
+          }
           sanitized[fieldName] = String(value);
           if (fieldConfig.type === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value))) {
             errors[fieldName] = `${fieldName} must be a valid email`;
@@ -293,7 +317,7 @@ export function validateRecordData(
 
         case "number": {
           const num = Number(value);
-          if (isNaN(num)) {
+          if ((typeof value !== "number" && typeof value !== "string") || (typeof value === "string" && !value.trim()) || !Number.isFinite(num)) {
             errors[fieldName] = `${fieldName} must be a number`;
           } else {
             if (fieldConfig.min !== undefined && num < fieldConfig.min) {
@@ -308,7 +332,9 @@ export function validateRecordData(
         }
 
         case "boolean":
-          sanitized[fieldName] = value === true || value === "true" || value === 1;
+          if (value === true || value === "true") sanitized[fieldName] = true;
+          else if (value === false || value === "false") sanitized[fieldName] = false;
+          else errors[fieldName] = `${fieldName} must be true or false`;
           break;
 
         case "date":
@@ -323,7 +349,9 @@ export function validateRecordData(
         }
 
         case "enum":
-          if (fieldConfig.options && !fieldConfig.options.includes(String(value))) {
+          if (typeof value !== "string") {
+            errors[fieldName] = `${fieldName} must be a string`;
+          } else if (fieldConfig.options && !fieldConfig.options.includes(value)) {
             errors[fieldName] = `${fieldName} must be one of: ${fieldConfig.options.join(", ")}`;
           } else {
             sanitized[fieldName] = String(value);
@@ -331,7 +359,8 @@ export function validateRecordData(
           break;
 
         case "relation":
-          sanitized[fieldName] = String(value);
+          if (typeof value !== "string") errors[fieldName] = `${fieldName} must be a string`;
+          else sanitized[fieldName] = value;
           break;
 
         default:
