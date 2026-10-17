@@ -70,9 +70,12 @@ jobs:
         run: |
           curl --fail --silent --show-error --retry 60 --retry-all-errors --retry-delay 2 --retry-max-time 150 http://localhost:4000/api/health
           curl --fail --silent --show-error --retry 60 --retry-all-errors --retry-delay 2 --retry-max-time 150 http://localhost:3000/
-      - name: Show container status
+      - name: Show container status and logs
         if: always()
-        run: docker compose ps
+        run: |
+          docker compose ps --all || true
+          docker inspect configflow_server --format '{{json .State.Health}}' || true
+          docker compose logs --no-color --timestamps || true
       - name: Stop and clean Docker Compose stack
         if: always()
         run: docker compose down --volumes --remove-orphans

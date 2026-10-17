@@ -48,8 +48,8 @@ COPY --from=builder /app/server/dist ./server/dist
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:' + (process.env.PORT || 4000) + '/api/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
+HEALTHCHECK --interval=10s --timeout=5s --start-period=40s --retries=3 \
+  CMD node -e "const req=require('http').get('http://127.0.0.1:'+(process.env.PORT||4000)+'/api/health',r=>{r.resume();r.on('end',()=>process.exit(r.statusCode===200?0:1))});req.setTimeout(3000,()=>req.destroy());req.on('error',()=>process.exit(1))"
 
 # Expose port
 EXPOSE ${PORT:-4000}
