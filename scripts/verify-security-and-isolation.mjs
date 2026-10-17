@@ -245,20 +245,19 @@ async function runSecuritySuite() {
     assert.strictEqual(bobRecDel.status, 404, "Expected 404 for User B deleting User A's record");
     console.log("✔ Cross-user record deletion returned 404 Not Found");
 
-    // 10. Test: User B list and stats do not expose User A's records
-    console.log("\nVerifying list and aggregation isolation across users...");
+    // 10. App ownership blocks another user's list and aggregate requests.
+    // Service-level assertions above verify userScoped filtering independently.
+    console.log("\nVerifying User B cannot list or aggregate User A's app data...");
     const bobList = await request(`/api/entities/${appId}/secrets`, {
       headers: { Authorization: `Bearer ${tokenB}` },
     });
-    assert.strictEqual(bobList.status, 200);
-    assert.strictEqual(bobList.body.data.length, 0, "User B should see 0 records");
+    assert.strictEqual(bobList.status, 404, "A non-owner must not list another user's app records");
 
     const bobStats = await request(`/api/entities/${appId}/secrets/stats`, {
       headers: { Authorization: `Bearer ${tokenB}` },
     });
-    assert.strictEqual(bobStats.status, 200);
-    assert.strictEqual(bobStats.body.data.value, 0, "User B stats count should be 0");
-    console.log("✔ User B sees 0 records and stats count is 0 in multi-tenant isolation");
+    assert.strictEqual(bobStats.status, 404, "A non-owner must not aggregate another user's app records");
+    console.log("Non-owner list and statistics requests returned 404; userScoped isolation is covered by service-level assertions");
 
     // 11. Test: Path traversal / Zip Slip rejection in config validation
     console.log("\nVerifying explicit public-read policy...");
