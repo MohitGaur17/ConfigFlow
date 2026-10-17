@@ -8,6 +8,30 @@ import { AppConfig, EntityConfig, TablePageConfig, FormPageConfig, DashboardPage
 export type VirtualFileSystem = Map<string, string>;
 
 export function generateCodebase(config: AppConfig): VirtualFileSystem {
+  const emailAuth = config.app.auth?.providers?.email !== false;
+  const generatedAuthEnabled = Boolean(config.app.auth?.enabled) || Object.values(config.entities).some((entity) => entity.userScoped);
+  const oauthRequested = config.app.auth?.providers?.google === true || config.app.auth?.providers?.github === true;
+  const authModelCollision = Object.keys(config.entities).find((name) => `${name.charAt(0).toUpperCase()}${name.slice(1)}` === "User");
+  if (generatedAuthEnabled && authModelCollision) {
+    throw new Error(`Entity "${authModelCollision}" conflicts with the generated authentication User model. Rename the entity before enabling authentication.`);
+  }
+  if (oauthRequested) {
+    throw new Error("Generated projects currently support email/password authentication only. Disable Google and GitHub providers before generation.");
+  }
+  if (!config.app.auth?.enabled) {
+    const privateEntities = Object.entries(config.entities).filter(([, entity]) => !entity.userScoped && entity.publicAccess !== true);
+    const hasMutatingPages = config.pages.some((page) =>
+      (page.type === "form" || (page.type === "table" && (page.actions || ["create", "edit", "delete"]).length > 0)) &&
+      !("entity" in page && config.entities[page.entity]?.userScoped)
+    );
+    if (privateEntities.length || hasMutatingPages) {
+      throw new Error("Authentication-disabled generated projects are public read-only apps. Mark every entity publicAccess: true and remove forms and table mutations, or enable email authentication.");
+    }
+  }
+  if (generatedAuthEnabled && !emailAuth) {
+    throw new Error("Generated projects require the email authentication provider when authentication is enabled.");
+  }
+
   const vfs = new Map<string, string>();
 
   // 1. Configs
@@ -20,6 +44,8 @@ export function generateCodebase(config: AppConfig): VirtualFileSystem {
   // 2. Database
   vfs.set("prisma/schema.prisma", generatePrismaSchema(config));
   vfs.set("src/lib/prisma.ts", generatePrismaClient());
+  vfs.set("src/lib/api-auth.ts", generateApiAuth(config));
+  vfs.set("src/lib/api-validation.ts", generateApiValidation());
 
   // 3. App Core
   vfs.set("src/app/globals.css", generateGlobalsCss());
@@ -27,6 +53,9 @@ export function generateCodebase(config: AppConfig): VirtualFileSystem {
   vfs.set("src/app/page.tsx", generateHomePage(config));
   vfs.set("src/app/auth/page.tsx", generateAuthPage(config));
   vfs.set("src/app/api/auth/providers/route.ts", generateAuthProvidersRoute(config));
+  if (config.app.auth?.enabled || Object.values(config.entities).some((entity) => entity.userScoped)) {
+    vfs.set("src/app/api/auth/[action]/route.ts", generateAuthRoute());
+  }
     vfs.set("src/components/PwaRegister.tsx", generatePwaRegister());
 
     // 3b. PWA assets
@@ -37,8 +66,8 @@ export function generateCodebase(config: AppConfig): VirtualFileSystem {
 
   // 4. API Routes
   for (const [entityName, entityConfig] of Object.entries(config.entities)) {
-    vfs.set(`src/app/api/${entityName}/route.ts`, generateApiRoute(entityName, entityConfig));
-    vfs.set(`src/app/api/${entityName}/[id]/route.ts`, generateApiIdRoute(entityName, entityConfig));
+    vfs.set(`src/app/api/${entityName}/route.ts`, generateApiRoute(entityName, entityConfig, config));
+    vfs.set(`src/app/api/${entityName}/[id]/route.ts`, generateApiIdRoute(entityName, entityConfig, config));
   }
 
   // 5. Pages
@@ -76,16 +105,13 @@ function generateEnvExample(): string {
   const lines = [
     '# Copy to .env and fill in your values',
     'DATABASE_URL="postgresql://user:password@localhost:5432/your_database"',
-    'NEXTAUTH_SECRET="change-me"',
-    'GOOGLE_CLIENT_ID="your-google-client-id"',
-    'GOOGLE_CLIENT_SECRET="your-google-client-secret"',
-    'GITHUB_CLIENT_ID="your-github-client-id"',
-    'GITHUB_CLIENT_SECRET="your-github-client-secret"',
+    'AUTH_SECRET="replace-with-at-least-32-random-characters"',
   ];
   return lines.join('\n') + '\n';
 }
 
 function generateGeneratedReadme(config: AppConfig): string {
+  const authEnabled = Boolean(config.app.auth?.enabled) || Object.values(config.entities).some((entity) => entity.userScoped);
   const lines = [
     `# ${config.app.name}`,
     '',
@@ -109,6 +135,14 @@ function generateGeneratedReadme(config: AppConfig): string {
     '5. Run the dev server:',
     '',
     '   npm run dev',
+    '',
+    'Authentication and access policy',
+    authEnabled
+      ? '- Email/password registration and login are supported. Set a long random AUTH_SECRET before starting the app.'
+      : '- This app is public and read-only. Only entities explicitly marked publicAccess: true are exposed.',
+    '- Google and GitHub OAuth are not supported by generated projects; generation fails if either provider is enabled.',
+    '- User-scoped entities are filtered by the authenticated user on every list, read, update, delete, and aggregate query.',
+    '- Email verification and password reset are not implemented in generated projects.',
 
       'PWA',
 
@@ -117,7 +151,7 @@ function generateGeneratedReadme(config: AppConfig): string {
     '',
     'Notes',
     '- The Prisma schema is under prisma/schema.prisma.',
-    '- prisma/seed.js will create one sample record per entity.',
+    '- prisma/seed.js creates sample records for entities that are not user-scoped.',
   ];
   return lines.join('\n') + '\n';
 }
@@ -131,6 +165,10 @@ function generatePrismaSeed(config: AppConfig): string {
   ];
 
   for (const [entityName, entityConfig] of Object.entries(config.entities)) {
+    if (entityConfig.userScoped) {
+      lines.push(`  // ${entityName} is user-scoped and is created after a user registers.`);
+      continue;
+    }
     const modelName = entityName.charAt(0).toUpperCase() + entityName.slice(1);
     const sample: Record<string, any> = {};
     for (const [fieldName, field] of Object.entries(entityConfig.fields)) {
@@ -173,7 +211,9 @@ function generatePackageJson(config: AppConfig): string {
     },
     dependencies: {
       "@prisma/client": "^5.22.0",
-      "lucide-react": "^0.368.0",
+      "bcryptjs": "^2.4.3",
+      "jsonwebtoken": "^9.0.2",
+      "lucide-react": "^1.14.0",
       "next": "^16.2.0",
       "react": "^19.0.0",
       "react-dom": "^19.0.0",
@@ -181,8 +221,11 @@ function generatePackageJson(config: AppConfig): string {
     },
     devDependencies: {
       "@types/node": "^20",
+      "@types/bcryptjs": "^2.4.6",
+      "@types/jsonwebtoken": "^9.0.6",
       "@types/react": "^19",
       "@types/react-dom": "^19",
+      "autoprefixer": "^10.4.19",
       "postcss": "^8",
       "prisma": "^5.22.0",
       "tailwindcss": "^3.4.1",
@@ -786,15 +829,37 @@ datasource db {
 
 `;
 
+  const hasUsers = Boolean(config.app.auth?.enabled) || Object.values(config.entities).some((entity) => entity.userScoped);
+  if (hasUsers) {
+    const scopedModelRelations = Object.entries(config.entities)
+      .filter(([, entity]) => entity.userScoped)
+      .map(([name]) => `${name.charAt(0).toUpperCase()}${name.slice(1)}[]`);
+    schema += `model User {
+  id String @id @default(uuid())
+  email String @unique
+  passwordHash String
+  name String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+${scopedModelRelations.map((relation, index) => `  records${index || ""} ${relation}`).join("\n")}
+}
+
+`;
+  }
+
   for (const [entityName, entityConfig] of Object.entries(config.entities)) {
     // Capitalize first letter
     const modelName = entityName.charAt(0).toUpperCase() + entityName.slice(1);
     schema += `model ${modelName} {\n`;
     schema += `  id String @id @default(uuid())\n`;
+    if (entityConfig.userScoped) {
+      schema += `  userId String\n`;
+      schema += `  user User @relation(fields: [userId], references: [id], onDelete: Cascade)\n`;
+    }
     
     for (const [fieldName, field] of Object.entries(entityConfig.fields)) {
       let type = "String";
-      if (field.type === "number") type = "Int";
+      if (field.type === "number") type = "Float";
       if (field.type === "boolean") type = "Boolean";
       if (field.type === "date" || field.type === "datetime") type = "DateTime";
       
@@ -804,6 +869,7 @@ datasource db {
     
     schema += `  createdAt DateTime @default(now())\n`;
     schema += `  updatedAt DateTime @updatedAt\n`;
+    if (entityConfig.userScoped) schema += `  @@index([userId])\n`;
     schema += `}\n\n`;
   }
 
@@ -953,7 +1019,7 @@ function generateHomePage(config: AppConfig): string {
 import { ArrowRight } from "lucide-react";
 
 export default function Home() {
-  const authEnabled = ${JSON.stringify(Boolean(config.app.auth?.enabled))};
+  const authEnabled = ${JSON.stringify(Boolean(config.app.auth?.enabled) || Object.values(config.entities).some((entity) => entity.userScoped))};
   return (
     <div className="space-y-6">
       <section className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-soft backdrop-blur-xl md:p-8">
@@ -979,7 +1045,7 @@ export default function Home() {
         <section className="rounded-3xl border border-white/10 bg-slate-950/60 p-5 shadow-soft md:p-6">
           <p className="text-[10px] font-semibold uppercase tracking-[0.35em] text-indigo-300/70">Authentication</p>
           <h2 className="mt-2 text-xl font-semibold text-white">Secure sign-in is enabled for this app</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-7 text-slate-300">Use the generated auth page to sign in, create accounts, and switch OAuth providers based on the app configuration.</p>
+          <p className="mt-2 max-w-2xl text-sm leading-7 text-slate-300">Create an account or sign in with email and password. User-scoped data stays private to its owner.</p>
           <div className="mt-5">
             <a href="/auth" className="inline-flex items-center gap-2 rounded-full bg-indigo-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-400">
               Open auth screen
@@ -1012,316 +1078,263 @@ export default function Home() {
 }
 
 function generateAuthProvidersRoute(config: AppConfig): string {
+  const enabled = Boolean(config.app.auth?.enabled) || Object.values(config.entities).some((entity) => entity.userScoped);
   return `import { NextResponse } from "next/server";
-
-function isUnsetOrPlaceholder(value: string | undefined) {
-  if (!value) return true;
-  const normalized = value.trim().toLowerCase();
-  if (!normalized) return true;
-  return normalized.includes("placeholder") || normalized.includes("your-google") || normalized.includes("your-github") || normalized.includes("replace");
+export async function GET() {
+  return NextResponse.json({ success: true, data: { enabled: ${JSON.stringify(enabled)}, email: ${JSON.stringify(enabled)}, google: false, github: false } });
+}`;
 }
 
-export async function GET() {
-  const enabled = ${JSON.stringify(Boolean(config.app.auth?.enabled))};
-  const configProviders = (${JSON.stringify(config.app.auth?.providers || {})}) as Record<string, boolean>;
-  const googleConfigured = !isUnsetOrPlaceholder(process.env.GOOGLE_CLIENT_ID) && !isUnsetOrPlaceholder(process.env.GOOGLE_CLIENT_SECRET);
-  const githubConfigured = !isUnsetOrPlaceholder(process.env.GITHUB_CLIENT_ID) && !isUnsetOrPlaceholder(process.env.GITHUB_CLIENT_SECRET);
+function generateSupportedAuthPage(config: AppConfig): string {
+  return `"use client";
+import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
 
-  return NextResponse.json({
-    success: true,
-    data: {
-      enabled,
-      google: enabled && configProviders.google !== false && googleConfigured,
-      github: enabled && configProviders.github !== false && githubConfigured,
-    },
-  });
+export default function AuthPage() {
+  const router = useRouter();
+  const [mode, setMode] = useState<"login" | "register">("login");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); setBusy(true); setError("");
+    try {
+      const response = await fetch("/api/auth/" + mode, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password, name }) });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.error || "Authentication failed");
+      router.push("/"); router.refresh();
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Authentication failed"); }
+    finally { setBusy(false); }
+  }
+  return <main className="min-h-screen grid place-items-center bg-slate-950 p-6 text-white"><section className="w-full max-w-md rounded-3xl border border-white/10 bg-white/5 p-8">
+    <h1 className="text-3xl font-bold">${config.app.name}</h1><p className="mt-2 text-slate-300">{mode === "register" ? "Create your account" : "Sign in with email and password"}</p>
+    <div className="mt-6 grid grid-cols-2 rounded-xl bg-black/30 p-1"><button type="button" onClick={() => setMode("login")} className="rounded-lg p-2">Sign in</button><button type="button" onClick={() => setMode("register")} className="rounded-lg p-2">Register</button></div>
+    <form onSubmit={submit} className="mt-6 space-y-4">{mode === "register" && <label className="block text-sm">Name<input autoComplete="name" value={name} onChange={(event) => setName(event.target.value)} className="mt-1 w-full rounded-xl bg-black/30 p-3" maxLength={100} /></label>}
+      <label className="block text-sm">Email<input type="email" required autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} className="mt-1 w-full rounded-xl bg-black/30 p-3" /></label>
+      <label className="block text-sm">Password<input type="password" required minLength={12} maxLength={128} autoComplete={mode === "register" ? "new-password" : "current-password"} value={password} onChange={(event) => setPassword(event.target.value)} className="mt-1 w-full rounded-xl bg-black/30 p-3" /></label>
+      {error && <p role="alert" className="text-sm text-rose-300">{error}</p>}<button disabled={busy} className="w-full rounded-xl bg-indigo-500 p-3 font-semibold disabled:opacity-50">{busy ? "Please wait…" : mode === "register" ? "Create account" : "Sign in"}</button></form>
+    <p className="mt-5 text-xs text-slate-400">Email and password sign-in is supported. OAuth, email verification, and password reset are not available in generated projects.</p>
+  </section></main>;
+}`;
+}
+
+function generateAuthRoute(): string {
+  return `import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import prisma from "@/lib/prisma";
+
+const COOKIE = "configflow_session";
+function secret() { const value = process.env.AUTH_SECRET; return value && value.length >= 32 && !/replace|change-me|your-secret/i.test(value) ? value : null; }
+function invalidBody() { return NextResponse.json({ success: false, error: "Invalid request body" }, { status: 400 }); }
+function cookie(token: string) { return COOKIE + "=" + token + "; HttpOnly; Path=/; SameSite=Lax; Max-Age=43200" + (process.env.NODE_ENV === "production" ? "; Secure" : ""); }
+function issueSession(user: { id: string; email: string; name: string | null }, status = 200) {
+  const key = secret(); if (!key) return null;
+  const token = jwt.sign({ sub: user.id }, key, { expiresIn: "12h", issuer: "configflow-generated" });
+  return NextResponse.json({ success: true, data: { user: { id: user.id, email: user.email, name: user.name } } }, { status, headers: { "Set-Cookie": cookie(token) } });
+}
+
+export async function POST(request: Request, context: { params: Promise<{ action: string }> }) {
+  const { action } = await context.params;
+  if (action === "logout") return NextResponse.json({ success: true }, { headers: { "Set-Cookie": COOKIE + "=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0" + (process.env.NODE_ENV === "production" ? "; Secure" : "") } });
+  if (action !== "login" && action !== "register") return NextResponse.json({ success: false, error: "Not found" }, { status: 404 });
+  if (!secret()) return NextResponse.json({ success: false, error: "Authentication is not configured" }, { status: 503 });
+  let body: any; try { body = await request.json(); } catch { return invalidBody(); }
+  if (!body || typeof body !== "object" || Array.isArray(body)) return invalidBody();
+  const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+  const password = typeof body.password === "string" ? body.password : "";
+  const name = typeof body.name === "string" ? body.name.trim().slice(0, 100) : null;
+  if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email) || email.length > 254 || password.length < 12 || password.length > 128) {
+    return NextResponse.json({ success: false, error: "Enter a valid email and a password between 12 and 128 characters" }, { status: 400 });
+  }
+  try {
+    if (action === "register") {
+      const user = await prisma.user.create({ data: { email, passwordHash: await bcrypt.hash(password, 12), name }, select: { id: true, email: true, name: true } });
+      return issueSession(user, 201) || NextResponse.json({ success: false, error: "Authentication is not configured" }, { status: 503 });
+    }
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user || !(await bcrypt.compare(password, user.passwordHash))) return NextResponse.json({ success: false, error: "Invalid email or password" }, { status: 401 });
+    return issueSession({ id: user.id, email: user.email, name: user.name }) || NextResponse.json({ success: false, error: "Authentication is not configured" }, { status: 503 });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") return NextResponse.json({ success: false, error: "An account with this email already exists" }, { status: 409 });
+    console.error("[Generated auth] Request failed", error);
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
+  }
 }`;
 }
 
 function generateAuthPage(config: AppConfig): string {
-  const authEnabled = Boolean(config.app.auth?.enabled);
-  const providers = config.app.auth?.providers || {};
-
-  return `"use client";
-
-import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import { AlertCircle, ArrowRight, Loader2, ShieldCheck } from "lucide-react";
-
-type ProviderState = {
-  enabled: boolean;
-  google: boolean;
-  github: boolean;
-};
-
-function GoogleLogo({ className = "h-4 w-4" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
-      <path fill="#EA4335" d="M12 10.2v3.9h5.4c-.2 1.2-.9 2.2-1.9 2.9l3 2.3c1.8-1.6 2.8-3.9 2.8-6.7 0-.7-.1-1.4-.2-2H12z" />
-      <path fill="#34A853" d="M12 22c2.6 0 4.8-.9 6.4-2.4l-3-2.3c-.8.6-2 .9-3.4.9-2.6 0-4.8-1.8-5.6-4.2H3.3v2.6C4.9 19.8 8.2 22 12 22z" />
-      <path fill="#4A90E2" d="M6.4 14c-.2-.6-.3-1.3-.3-2s.1-1.4.3-2V7.4H3.3A10 10 0 002 12c0 1.7.4 3.4 1.3 4.6L6.4 14z" />
-      <path fill="#FBBC05" d="M12 5.8c1.5 0 2.8.5 3.8 1.5l2.8-2.8C16.8 2.8 14.6 2 12 2 8.2 2 4.9 4.2 3.3 7.4L6.4 10c.8-2.4 3-4.2 5.6-4.2z" />
-    </svg>
-  );
-}
-
-function GitHubLogo({ className = "h-4 w-4" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
-      <path
-        fill="currentColor"
-        d="M12 .5C5.6.5.5 5.7.5 12.1c0 5.1 3.3 9.5 7.9 11.1.6.1.8-.2.8-.6v-2.2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.4-1.3-1.7-1.3-1.7-1.1-.7.1-.7.1-.7 1.2.1 1.9 1.3 1.9 1.3 1.1 1.9 2.9 1.3 3.6 1 .1-.8.4-1.3.8-1.6-2.5-.3-5.2-1.3-5.2-5.8 0-1.3.5-2.4 1.2-3.3-.1-.3-.5-1.6.1-3.2 0 0 1-.3 3.3 1.2a11.5 11.5 0 016 0c2.3-1.5 3.3-1.2 3.3-1.2.6 1.6.2 2.9.1 3.2.8.9 1.2 2 1.2 3.3 0 4.6-2.7 5.5-5.2 5.8.4.3.8 1 .8 2v3c0 .4.2.7.8.6a11.6 11.6 0 007.9-11.1C23.5 5.7 18.4.5 12 .5z"
-      />
-    </svg>
-  );
-}
-
-const AUTH_ENABLED = ${JSON.stringify(authEnabled)};
-const CONFIG_PROVIDERS: Record<string, boolean> = ${JSON.stringify(providers)};
+  const authEnabled = Boolean(config.app.auth?.enabled) || Object.values(config.entities).some((entity) => entity.userScoped);
+  if (authEnabled) return generateSupportedAuthPage(config);
+  return `import Link from "next/link";
+import { ArrowRight, ShieldCheck } from "lucide-react";
 
 export default function AuthPage() {
-  const [mode, setMode] = useState<"login" | "register">("login");
-  const [providers, setProviders] = useState<ProviderState | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let mounted = true;
-    fetch("/api/auth/providers")
-      .then((res) => res.json())
-      .then((json) => {
-        if (!mounted) return;
-        if (json?.success) {
-          setProviders(json.data as ProviderState);
-        }
-      })
-      .catch(() => {
-        if (mounted) setProviders({ enabled: AUTH_ENABLED, google: false, github: false });
-      })
-      .finally(() => {
-        if (mounted) setLoading(false);
-      });
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  const providerState = useMemo(() => {
-    const base = providers || { enabled: AUTH_ENABLED, google: false, github: false };
-    return {
-      enabled: base.enabled && AUTH_ENABLED,
-      google: base.google && CONFIG_PROVIDERS.google !== false,
-      github: base.github && CONFIG_PROVIDERS.github !== false,
-    };
-  }, [providers]);
-
-  if (!AUTH_ENABLED) {
-    return (
-      <main className="min-h-screen bg-slate-950 px-6 py-16 text-white">
-        <div className="mx-auto flex w-full max-w-3xl flex-col items-center rounded-[2rem] border border-white/10 bg-white/5 p-8 text-center shadow-2xl shadow-black/30 backdrop-blur-xl">
-          <ShieldCheck className="h-12 w-12 text-emerald-400" />
-          <h1 className="mt-4 text-3xl font-bold">Authentication is disabled</h1>
-          <p className="mt-3 max-w-xl text-sm leading-7 text-slate-300">This app was generated with auth turned off in the config, so users can go straight to the application experience.</p>
-          <Link href="/" className="mt-8 inline-flex items-center gap-2 rounded-full bg-indigo-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-400">
-            Continue to app
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
-      </main>
-    );
-  }
-
-  const showRegister = mode === "register";
-
-  return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(99,102,241,0.22),_transparent_35%),linear-gradient(180deg,#020617_0%,#030712_100%)] px-4 py-6 text-white sm:px-6 lg:px-8">
-      <div className="mx-auto grid min-h-[calc(100vh-3rem)] w-full max-w-6xl items-center gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-        <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-white/5 p-8 shadow-2xl shadow-black/30 backdrop-blur-xl lg:p-10">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(56,189,248,0.18),_transparent_28%),radial-gradient(circle_at_bottom_left,_rgba(168,85,247,0.2),_transparent_32%)]" />
-          <div className="relative">
-            <h1 className="mt-6 max-w-xl text-4xl font-black tracking-tight sm:text-5xl">${config.app.name}</h1>
-            <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300 sm:text-base">${config.app.description || "Welcome to your generated app."}</p>
-          </div>
-        </section>
-
-        <section className="rounded-[2rem] border border-white/10 bg-slate-950/80 p-6 shadow-2xl shadow-black/30 backdrop-blur-xl sm:p-8">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-2xl font-bold">{showRegister ? "Create your account" : "Sign in to continue"}</h2>
-          </div>
-
-          <div className="mt-6 flex rounded-2xl border border-white/10 bg-white/5 p-1">
-            <button onClick={() => setMode("login")} className={"flex-1 rounded-xl px-4 py-3 text-sm font-semibold transition " + (mode === "login" ? "bg-white text-black" : "text-white/60 hover:text-white")}>Login</button>
-            <button onClick={() => setMode("register")} className={"flex-1 rounded-xl px-4 py-3 text-sm font-semibold transition " + (mode === "register" ? "bg-white text-black" : "text-white/60 hover:text-white")}>Register</button>
-          </div>
-
-          <div className="mt-6 space-y-4">
-            <label className="block">
-              <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Email</span>
-              <input className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none ring-0 placeholder:text-slate-500 focus:border-indigo-400" placeholder="you@example.com" />
-            </label>
-            <label className="block">
-              <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Password</span>
-              <input type="password" className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none ring-0 placeholder:text-slate-500 focus:border-indigo-400" placeholder="••••••••" />
-            </label>
-
-            {showRegister && (
-              <label className="block">
-                <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Name</span>
-                <input className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none ring-0 placeholder:text-slate-500 focus:border-indigo-400" placeholder="Your name" />
-              </label>
-            )}
-
-            <button className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-indigo-500 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-indigo-400">
-              {showRegister ? "Create account" : "Sign in"}
-              <ArrowRight className="h-4 w-4" />
-            </button>
-          </div>
-
-          {providerState.google || providerState.github ? (
-            <div className="mt-8">
-              <div className="flex items-center gap-3">
-                <div className="h-px flex-1 bg-white/10" />
-                <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-500">Or continue with</span>
-                <div className="h-px flex-1 bg-white/10" />
-              </div>
-
-              <div className="mt-4 grid gap-3">
-                {providerState.google && (
-                  <button className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10">
-                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleLogo className="h-4 w-4" />}
-                    Continue with Google
-                  </button>
-                )}
-                {providerState.github && (
-                  <button className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10">
-                    <GitHubLogo className="h-4 w-4" />
-                    Continue with GitHub
-                  </button>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="mt-8 rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-200">
-              <div className="flex items-start gap-2">
-                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                <p>OAuth buttons are hidden until the app config and environment both enable a provider.</p>
-              </div>
-            </div>
-          )}
-        </section>
-      </div>
-    </main>
-  );
+  return <main className="min-h-screen grid place-items-center bg-slate-950 p-6 text-white"><section className="max-w-2xl rounded-3xl border border-white/10 bg-white/5 p-8 text-center"><ShieldCheck className="mx-auto h-12 w-12 text-emerald-400" /><h1 className="mt-4 text-3xl font-bold">Authentication is disabled</h1><p className="mt-3 text-slate-300">This generated project is public and read-only. Entity reads are exposed only when the entity explicitly enables publicAccess.</p><Link href="/" className="mt-8 inline-flex items-center gap-2 rounded-full bg-indigo-500 px-5 py-3 font-semibold">Continue to app<ArrowRight className="h-4 w-4" /></Link></section></main>;
 }`;
 }
+function generateApiAuth(config: AppConfig): string {
+  const needsAuth = Boolean(config.app.auth?.enabled) || Object.values(config.entities).some((entity) => entity.userScoped);
+  return `import jwt from "jsonwebtoken";
+import { NextResponse } from "next/server";
 
-function generateApiRoute(entityName: string, entityConfig: EntityConfig): string {
-  const modelName = entityName.charAt(0).toUpperCase() + entityName.slice(1);
-  return `import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
-
-function sanitizePayload(raw: Record<string, any>) {
-  const data: Record<string, any> = {};
-${Object.entries(entityConfig?.fields || {}).map(([fieldName, field]) => {
-  if (field.type === "number") {
-    return `  if (raw.${fieldName} !== undefined && raw.${fieldName} !== "" && raw.${fieldName} !== null) data.${fieldName} = Number(raw.${fieldName});`;
+export type ApiActor = { userId: string | null; response?: NextResponse };
+export async function getApiActor(request: Request, required: boolean): Promise<ApiActor> {
+  if (!required) return { userId: null };
+  const secret = process.env.AUTH_SECRET;
+  if (!secret || secret.length < 32) return { userId: null, response: NextResponse.json({ success: false, error: "Authentication is not configured" }, { status: 503 }) };
+  const cookie = request.headers.get("cookie") || "";
+  const token = cookie.split(";").map((part) => part.trim()).find((part) => part.startsWith("configflow_session="))?.slice("configflow_session=".length);
+  if (!token) return { userId: null, response: NextResponse.json({ success: false, error: "Authentication required" }, { status: 401 }) };
+  try {
+    const payload = jwt.verify(token, secret, { issuer: "configflow-generated" }) as jwt.JwtPayload;
+    if (typeof payload.sub !== "string") throw new Error("Invalid session");
+    return { userId: payload.sub };
+  } catch {
+    return { userId: null, response: NextResponse.json({ success: false, error: "Authentication required" }, { status: 401 }) };
   }
-  if (field.type === "boolean") {
-    return `  if (raw.${fieldName} !== undefined && raw.${fieldName} !== "" && raw.${fieldName} !== null) data.${fieldName} = raw.${fieldName} === true || raw.${fieldName} === "true";`;
-  }
-  if (field.type === "date" || field.type === "datetime") {
-    return `  if (raw.${fieldName}) data.${fieldName} = new Date(raw.${fieldName});`;
-  }
-  return `  if (raw.${fieldName} !== undefined) data.${fieldName} = String(raw.${fieldName});`;
-}).join("\n")}
-  return data;
+}
+`;
 }
 
-export async function GET(request: Request) {
-  try {
-    const records = await prisma.${modelName.toLowerCase()}.findMany({
-      orderBy: { createdAt: "desc" }
-    });
-    return NextResponse.json({ success: true, data: records });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error?.message || "Failed to fetch data" }, { status: 500 });
+function generateApiValidation(): string {
+  return `export type FieldRule = { type: string; required?: boolean; options?: string[]; min?: number; max?: number; pattern?: string; default?: unknown };
+export type ValidationResult = { data?: Record<string, unknown>; errors?: Record<string, string> };
+
+export function validatePayload(raw: unknown, rules: Record<string, FieldRule>, partial = false): ValidationResult {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return { errors: { body: "Expected a JSON object" } };
+  const input = raw as Record<string, unknown>;
+  const errors: Record<string, string> = {};
+  const data: Record<string, unknown> = {};
+  for (const key of Object.keys(input)) if (!(key in rules)) errors[key] = "Unknown field";
+  for (const [name, rule] of Object.entries(rules)) {
+    let value = input[name];
+    if (value === undefined && !partial && rule.default !== undefined) value = rule.default;
+    if (value === undefined || value === null || value === "") {
+      if (!partial && rule.required) errors[name] = "This field is required";
+      continue;
+    }
+    if (typeof value === "string" && value.length > 10000) { errors[name] = "Value is too long"; continue; }
+    if (["string", "text", "email", "url", "enum", "relation"].includes(rule.type)) {
+      if (typeof value !== "string") { errors[name] = "Expected a string"; continue; }
+      if (rule.type === "email" && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(value)) errors[name] = "Enter a valid email";
+      if (rule.type === "url") { try { const url = new URL(value); if (!["http:", "https:"].includes(url.protocol)) throw new Error(); } catch { errors[name] = "Enter a valid HTTP or HTTPS URL"; } }
+      if (rule.type === "enum" && !rule.options?.includes(value)) errors[name] = "Choose a valid option";
+      if (rule.pattern) { try { if (!new RegExp(rule.pattern).test(value)) errors[name] = "Value does not match the required pattern"; } catch { errors[name] = "Field validation is misconfigured"; } }
+      data[name] = value;
+    } else if (rule.type === "number") {
+      const number = typeof value === "number" ? value : typeof value === "string" && value.trim() ? Number(value) : NaN;
+      if (!Number.isFinite(number)) errors[name] = "Expected a finite number";
+      else if (rule.min !== undefined && number < rule.min) errors[name] = "Value is below the minimum";
+      else if (rule.max !== undefined && number > rule.max) errors[name] = "Value exceeds the maximum";
+      else data[name] = number;
+    } else if (rule.type === "boolean") {
+      if (value === true || value === "true") data[name] = true;
+      else if (value === false || value === "false") data[name] = false;
+      else errors[name] = "Expected true or false";
+    } else if (rule.type === "date" || rule.type === "datetime") {
+      const date = value instanceof Date ? value : typeof value === "string" ? new Date(value) : new Date(NaN);
+      if (Number.isNaN(date.getTime())) errors[name] = "Expected a valid date";
+      else data[name] = date;
+    } else errors[name] = "Unsupported field type";
   }
+  return Object.keys(errors).length ? { errors } : { data };
+}
+`;
+}
+
+function generateApiRoute(entityName: string, entityConfig: EntityConfig, config: AppConfig): string {
+  const model = entityName.charAt(0).toLowerCase() + entityName.slice(1);
+  const rules = JSON.stringify(entityConfig.fields);
+  const authRequired = Boolean(config.app.auth?.enabled) || Boolean(entityConfig.userScoped);
+  const publicRead = !config.app.auth?.enabled && !entityConfig.userScoped && entityConfig.publicAccess === true;
+  return `import { NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
+import { getApiActor } from "@/lib/api-auth";
+import { validatePayload, FieldRule } from "@/lib/api-validation";
+const rules = ${rules} as Record<string, FieldRule>;
+const scoped = ${JSON.stringify(Boolean(entityConfig.userScoped))};
+const authRequired = ${JSON.stringify(authRequired)};
+const publicRead = ${JSON.stringify(publicRead)};
+const model = prisma.${model};
+function bad(errors: Record<string, string>) { return NextResponse.json({ success: false, error: "Validation failed", errors }, { status: 400 }); }
+function internal() { return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 }); }
+function scope(userId: string | null) { return scoped ? { userId: userId || "" } : {}; }
+
+export async function GET(request: Request) {
+  const actor = await getApiActor(request, authRequired);
+  if (actor.response) return actor.response;
+  if (!publicRead && !authRequired) return NextResponse.json({ success: false, error: "Public read access is disabled" }, { status: 403 });
+  try {
+    const records = await model.findMany({ where: scope(actor.userId), orderBy: { createdAt: "desc" } } as any);
+    return NextResponse.json({ success: true, data: records });
+  } catch (error) { console.error("[Generated API] List failed", error); return internal(); }
 }
 
 export async function POST(request: Request) {
+  if (!${JSON.stringify(authRequired)}) return NextResponse.json({ success: false, error: "Writes require configured authentication" }, { status: 403 });
+  const actor = await getApiActor(request, true);
+  if (actor.response) return actor.response;
+  let body: unknown; try { body = await request.json(); } catch { return bad({ body: "Malformed JSON" }); }
+  const validated = validatePayload(body, rules);
+  if (!validated.data) return bad(validated.errors || {});
   try {
-    const body = await request.json();
-    const data = sanitizePayload(body);
-    const record = await prisma.${modelName.toLowerCase()}.create({
-      data: data as any
-    });
+    const record = await model.create({ data: { ...validated.data, ...(scoped ? { userId: actor.userId } : {}) } as any });
     return NextResponse.json({ success: true, data: record }, { status: 201 });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error?.message || "Failed to create record" }, { status: 500 });
-  }
+  } catch (error) { console.error("[Generated API] Create failed", error); return internal(); }
 }`;
 }
 
-function generateApiIdRoute(entityName: string, entityConfig?: EntityConfig): string {
-  const modelName = entityName.charAt(0).toUpperCase() + entityName.slice(1);
+function generateApiIdRoute(entityName: string, entityConfig: EntityConfig, config: AppConfig): string {
+  const model = entityName.charAt(0).toLowerCase() + entityName.slice(1);
+  const rules = JSON.stringify(entityConfig.fields);
+  const authRequired = Boolean(config.app.auth?.enabled) || Boolean(entityConfig.userScoped);
+  const publicRead = !config.app.auth?.enabled && !entityConfig.userScoped && entityConfig.publicAccess === true;
+  const scope = entityConfig.userScoped ? `, userId: actor.userId || ""` : "";
   return `import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-
-function sanitizePayload(raw: Record<string, any>) {
-  const data: Record<string, any> = {};
-${Object.entries(entityConfig?.fields || {}).map(([fieldName, field]) => {
-  if (field.type === "number") {
-    return `  if (raw.${fieldName} !== undefined && raw.${fieldName} !== "" && raw.${fieldName} !== null) data.${fieldName} = Number(raw.${fieldName});`;
-  }
-  if (field.type === "boolean") {
-    return `  if (raw.${fieldName} !== undefined && raw.${fieldName} !== "" && raw.${fieldName} !== null) data.${fieldName} = raw.${fieldName} === true || raw.${fieldName} === "true";`;
-  }
-  if (field.type === "date" || field.type === "datetime") {
-    return `  if (raw.${fieldName}) data.${fieldName} = new Date(raw.${fieldName});`;
-  }
-  return `  if (raw.${fieldName} !== undefined) data.${fieldName} = String(raw.${fieldName});`;
-}).join("\n")}
-  return data;
-}
+import { getApiActor } from "@/lib/api-auth";
+import { validatePayload, FieldRule } from "@/lib/api-validation";
+const rules = ${rules} as Record<string, FieldRule>;
+const model = prisma.${model};
+const authRequired = ${JSON.stringify(authRequired)};
+const publicRead = ${JSON.stringify(publicRead)};
+const scoped = ${JSON.stringify(Boolean(entityConfig.userScoped))};
+function notFound() { return NextResponse.json({ success: false, error: "Record not found" }, { status: 404 }); }
+function bad(errors: Record<string, string>) { return NextResponse.json({ success: false, error: "Validation failed", errors }, { status: 400 }); }
+function internal() { return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 }); }
 
 export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
+  const actor = await getApiActor(request, authRequired); if (actor.response) return actor.response;
+  if (!publicRead && !authRequired) return NextResponse.json({ success: false, error: "Public read access is disabled" }, { status: 403 });
   const { id } = await context.params;
-  try {
-    const record = await prisma.${modelName.toLowerCase()}.findUnique({
-      where: { id }
-    });
-    if (!record) return NextResponse.json({ success: false, error: "Not found" }, { status: 404 });
-    return NextResponse.json({ success: true, data: record });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error?.message || "Failed to fetch record" }, { status: 500 });
-  }
+  try { const record = await model.findFirst({ where: { id${scope} } } as any); return record ? NextResponse.json({ success: true, data: record }) : notFound(); }
+  catch (error) { console.error("[Generated API] Get failed", error); return internal(); }
 }
 
 export async function PUT(request: Request, context: { params: Promise<{ id: string }> }) {
-  const { id } = await context.params;
+  if (!${JSON.stringify(authRequired)}) return NextResponse.json({ success: false, error: "Writes require configured authentication" }, { status: 403 });
+  const actor = await getApiActor(request, true); if (actor.response) return actor.response;
+  const { id } = await context.params; let body: unknown; try { body = await request.json(); } catch { return bad({ body: "Malformed JSON" }); }
+  const validated = validatePayload(body, rules, true); if (!validated.data) return bad(validated.errors || {});
+  if (!Object.keys(validated.data).length) return bad({ body: "At least one field is required" });
   try {
-    const body = await request.json();
-    const data = sanitizePayload(body);
-    const record = await prisma.${modelName.toLowerCase()}.update({
-      where: { id },
-      data: data as any
-    });
-    return NextResponse.json({ success: true, data: record });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error?.message || "Failed to update record" }, { status: 500 });
-  }
+    const result = await model.updateMany({ where: { id${scope} }, data: validated.data as any } as any);
+    if (result.count !== 1) return notFound();
+    const record = await model.findFirst({ where: { id${scope} } } as any);
+    return record ? NextResponse.json({ success: true, data: record }) : notFound();
+  } catch (error) { console.error("[Generated API] Update failed", error); return internal(); }
 }
 
 export async function DELETE(request: Request, context: { params: Promise<{ id: string }> }) {
+  if (!${JSON.stringify(authRequired)}) return NextResponse.json({ success: false, error: "Writes require configured authentication" }, { status: 403 });
+  const actor = await getApiActor(request, true); if (actor.response) return actor.response;
   const { id } = await context.params;
-  try {
-    await prisma.${modelName.toLowerCase()}.delete({
-      where: { id }
-    });
-    return NextResponse.json({ success: true, data: { message: "Deleted" } });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error?.message || "Failed to delete record" }, { status: 500 });
-  }
+  try { const result = await model.deleteMany({ where: { id${scope} } } as any); if (result.count !== 1) return notFound(); return NextResponse.json({ success: true, data: { message: "Record deleted" } }); }
+  catch (error) { console.error("[Generated API] Delete failed", error); return internal(); }
 }`;
 }
 
@@ -1438,6 +1451,7 @@ function generateDashboardPage(page: Extract<AppConfig["pages"][number], { type:
 
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
+import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 const widgets = ${widgets};
 
@@ -1469,12 +1483,14 @@ export default function Page() {
           }
 
           if (widget.type === "chart") {
-            const counts: Record<string, number> = {};
+            const values: Record<string, number[]> = {};
             for (const r of list) {
               const k = String(r[widget.groupBy || "status"] || "Other");
-              counts[k] = (counts[k] || 0) + 1;
+              const n = widget.operation === "sum" || widget.operation === "avg" ? Number(r[widget.field]) : 1;
+              if (!Number.isFinite(n)) continue;
+              (values[k] ||= []).push(n);
             }
-            const groups = Object.entries(counts).map(([key, value]) => ({ key, value }));
+            const groups = Object.entries(values).map(([key, group]) => ({ key, value: widget.operation === "avg" ? group.reduce((a: number, b: number) => a + b, 0) / group.length : group.reduce((a: number, b: number) => a + b, 0) }));
             return [widget.label, { loading: false, value: list.length, groups }];
           }
 
@@ -1511,7 +1527,13 @@ export default function Page() {
           if (widget.type === "list") {
             return `<div className=\"rounded-2xl border border-white/10 bg-slate-950/60 p-5\"><p className=\"text-sm font-medium text-white/70\">${widget.label}</p><div className=\"mt-4 space-y-2\">{(widgetState[\"${widget.label}\"]?.records || []).map((record: any) => <div key={record.id} className=\"rounded-xl bg-white/5 px-3 py-2 text-sm text-slate-200\">{String(record.title || record.name || record.label || Object.values(record)[1] || "Item")}</div>)}</div></div>`;
           }
-          return `<div className=\"rounded-2xl border border-white/10 bg-slate-950/60 p-5\"><p className=\"text-sm font-medium text-white/70\">${widget.label}</p><p className=\"mt-2 text-sm text-slate-400\">Chart widgets are driven by the entity API endpoint.</p></div>`;
+          const chartState = `widgetState["${widget.label}"]?.groups || []`;
+          const chartBody = widget.chartType === "pie"
+            ? `<ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={${chartState}} dataKey="value" nameKey="key" cx="50%" cy="50%" outerRadius={85} label>{(${chartState}).map((entry: any, index: number) => <Cell key={entry.key} fill={["#818cf8", "#34d399", "#fbbf24", "#fb7185", "#38bdf8", "#c084fc"][index % 6]} />)}</Pie><Tooltip /></PieChart></ResponsiveContainer>`
+            : widget.chartType === "line"
+              ? `<ResponsiveContainer width="100%" height="100%"><LineChart data={${chartState}}><CartesianGrid strokeDasharray="3 3" stroke="#334155" /><XAxis dataKey="key" stroke="#94a3b8" /><YAxis stroke="#94a3b8" allowDecimals={false} /><Tooltip /><Line type="monotone" dataKey="value" stroke="#818cf8" strokeWidth={3} /></LineChart></ResponsiveContainer>`
+              : `<ResponsiveContainer width="100%" height="100%"><BarChart data={${chartState}}><CartesianGrid strokeDasharray="3 3" stroke="#334155" /><XAxis dataKey="key" stroke="#94a3b8" /><YAxis stroke="#94a3b8" allowDecimals={false} /><Tooltip /><Bar dataKey="value" fill="#818cf8" radius={[6, 6, 0, 0]} /></BarChart></ResponsiveContainer>`;
+          return `<div className="rounded-2xl border border-white/10 bg-slate-950/60 p-5"><p className="text-sm font-medium text-white/70">${widget.label}</p><div className="mt-4 h-64 w-full">{widgetState["${widget.label}"]?.loading ? <Loader2 className="h-5 w-5 animate-spin text-indigo-400" /> : (${chartState}).length ? ${chartBody} : <p className="pt-20 text-center text-sm text-slate-400">No chart data available</p>}</div></div>`;
         }).join("\n        ")}
       </div>
     </div>

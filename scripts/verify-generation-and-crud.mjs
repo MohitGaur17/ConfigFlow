@@ -1,194 +1,244 @@
-// ============================================================
-// ConfigFlow — Automated Generation & CRUD Verification Suite
-// ============================================================
-import fs from "fs";
-import path from "path";
-import { execSync } from "child_process";
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { spawn, spawnSync } from "node:child_process";
+import { createServer } from "node:net";
+import { fileURLToPath } from "node:url";
 import { PrismaClient } from "@prisma/client";
 
-const ROOT_DIR = process.cwd();
-const TEMP_APP_DIR = path.join(ROOT_DIR, ".test-generated-app");
-const ISOLATED_SCHEMA = `test_crud_${Date.now()}`;
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const testDatabaseUrl = process.env.CONFIGFLOW_TEST_DATABASE_URL;
+const schema = `verify_crud_${Date.now()}`;
+const databaseUrl = testDatabaseUrl ? new URL(testDatabaseUrl) : null;
+databaseUrl?.searchParams.set("schema", schema);
+const isolatedUrl = databaseUrl?.toString();
+let tempDir;
+let succeeded = false;
+let generatedServer;
 
-async function main() {
-  console.log("=== ConfigFlow Generation & Standalone CRUD Suite ===");
+function run(program, args, options = {}) {
+  const result = spawnSync(program, args, { cwd: options.cwd || root, env: options.env || process.env, stdio: "inherit", shell: options.shell || false });
+  if (result.error) throw result.error;
+  if (result.status !== 0) throw new Error(`${program} ${args.join(" ")} exited with status ${result.status}`);
+}
 
-  // 1. Load sample configuration
-  console.log("\n[1/5] Loading sample configuration from configs/task-manager.json...");
-  const configRaw = fs.readFileSync(path.join(ROOT_DIR, "configs", "task-manager.json"), "utf8");
-  const config = JSON.parse(configRaw);
-  console.log(`✔ Config loaded: ${config.app.name} (${Object.keys(config.entities).length} entities, ${config.pages.length} pages)`);
+function runNpm(args, cwd, env) {
+  if (process.env.npm_execpath) run(process.execPath, [process.env.npm_execpath, ...args], { cwd, env });
+  else run("npm", args, { cwd, env, shell: process.platform === "win32" });
+}
 
-  // 2. Generate codebase virtual file system
-  console.log("\n[2/5] Synthesizing codebase with code-generator...");
+async function cleanup() {
+  if (generatedServer && generatedServer.exitCode === null) {
+    generatedServer.kill("SIGTERM");
+    await Promise.race([new Promise((resolve) => generatedServer.once("exit", resolve)), new Promise((resolve) => setTimeout(resolve, 5000))]);
+    if (generatedServer.exitCode === null) generatedServer.kill("SIGKILL");
+  }
+  if (tempDir) {
+    const resolved = path.resolve(tempDir);
+    if (path.dirname(resolved) !== path.resolve(os.tmpdir()) || !path.basename(resolved).startsWith("configflow-generated-")) {
+      throw new Error(`Refusing to remove unexpected temporary path: ${resolved}`);
+    }
+    fs.rmSync(resolved, { recursive: true, force: true });
+    console.log(`Removed generated project ${resolved}`);
+  }
+  if (testDatabaseUrl) {
+    const prisma = new PrismaClient({ datasources: { db: { url: testDatabaseUrl } } });
+    try {
+      await prisma.$executeRawUnsafe(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
+      console.log(`Dropped isolated database schema ${schema}`);
+    } finally {
+      await prisma.$disconnect();
+    }
+  }
+}
+
+async function testGeneratedApi(nextCli, cwd, env) {
+  const portServer = createServer();
+  await new Promise((resolve, reject) => portServer.once("error", reject).listen(0, "127.0.0.1", resolve));
+  const port = portServer.address().port;
+  await new Promise((resolve, reject) => portServer.close((error) => error ? reject(error) : resolve()));
+  generatedServer = spawn(process.execPath, [nextCli, "start", "-H", "127.0.0.1", "-p", String(port)], { cwd, env, stdio: ["ignore", "pipe", "pipe"] });
+  let serverOutput = "";
+  generatedServer.stdout.on("data", (chunk) => { serverOutput = (serverOutput + chunk.toString()).slice(-4000); });
+  generatedServer.stderr.on("data", (chunk) => { serverOutput = (serverOutput + chunk.toString()).slice(-4000); });
+  const baseUrl = `http://127.0.0.1:${port}`;
+  let ready = false;
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    if (generatedServer.exitCode !== null) throw new Error(`Generated Next server exited early. ${serverOutput}`);
+    try { const response = await fetch(baseUrl); if (response.status < 500) { ready = true; break; } } catch {}
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+  assert.ok(ready, `Generated Next server did not become ready. ${serverOutput}`);
+
+  async function api(route, options = {}) {
+    const headers = { ...(options.cookie ? { Cookie: options.cookie } : {}) };
+    if (options.body !== undefined) headers["Content-Type"] = "application/json";
+    const response = await fetch(`${baseUrl}${route}`, { method: options.method || "GET", headers, body: options.body });
+    const text = await response.text();
+    let body; try { body = JSON.parse(text); } catch { body = null; }
+    const setCookie = response.headers.get("set-cookie");
+    return { status: response.status, body, text, cookie: setCookie?.split(";")[0], setCookie };
+  }
+
+  const password = "StrongPassword123!";
+  const emailA = `owner-${Date.now()}@generated.invalid`;
+  const registerA = await api("/api/auth/register", { method: "POST", body: JSON.stringify({ email: emailA, password, name: "Owner" }) });
+  assert.equal(registerA.status, 201, registerA.text);
+  assert.ok(registerA.cookie?.startsWith("configflow_session="));
+  assert.match(registerA.setCookie, /HttpOnly/);
+  assert.match(registerA.setCookie, /SameSite=Lax/);
+  assert.match(registerA.setCookie, /Secure/);
+  const loginA = await api("/api/auth/login", { method: "POST", body: JSON.stringify({ email: emailA, password }) });
+  assert.equal(loginA.status, 200, loginA.text);
+  assert.ok(loginA.cookie);
+  const wrongPassword = await api("/api/auth/login", { method: "POST", body: JSON.stringify({ email: emailA, password: "WrongPassword123!" }) });
+  assert.equal(wrongPassword.status, 401);
+  const duplicateRegister = await api("/api/auth/register", { method: "POST", body: JSON.stringify({ email: emailA, password, name: "Owner" }) });
+  assert.equal(duplicateRegister.status, 409);
+  const cookieA = loginA.cookie;
+  const unauthenticatedList = await api("/api/task");
+  assert.equal(unauthenticatedList.status, 401);
+  const unauthenticatedCreate = await api("/api/task", { method: "POST", body: JSON.stringify({ title: "No session", status: "todo" }) });
+  assert.equal(unauthenticatedCreate.status, 401);
+
+  const registerB = await api("/api/auth/register", { method: "POST", body: JSON.stringify({ email: `other-${Date.now()}@generated.invalid`, password, name: "Other" }) });
+  assert.equal(registerB.status, 201, registerB.text);
+  const cookieB = registerB.cookie;
+  const forgedOwner = await api("/api/task", { method: "POST", cookie: cookieA, body: JSON.stringify({ title: "Forged owner", status: "todo", userId: registerB.body.data.user.id }) });
+  assert.equal(forgedOwner.status, 400, "Request payload must not choose the record owner");
+  const badRequired = await api("/api/task", { method: "POST", cookie: cookieA, body: JSON.stringify({ status: "todo" }) });
+  assert.equal(badRequired.status, 400);
+  const badUnknown = await api("/api/task", { method: "POST", cookie: cookieA, body: JSON.stringify({ title: "Bad", status: "todo", unexpected: true }) });
+  assert.equal(badUnknown.status, 400);
+  const badEnum = await api("/api/task", { method: "POST", cookie: cookieA, body: JSON.stringify({ title: "Bad enum", status: "invalid" }) });
+  assert.equal(badEnum.status, 400);
+  const malformed = await api("/api/task", { method: "POST", cookie: cookieA, body: "{" });
+  assert.equal(malformed.status, 400);
+  assert.doesNotMatch(malformed.text, /stack|prisma|node_modules/i);
+
+  const created = await api("/api/task", { method: "POST", cookie: cookieA, body: JSON.stringify({ title: "Owner task", status: "todo" }) });
+  assert.equal(created.status, 201, created.text);
+  const recordId = created.body.data.id;
+  assert.equal(created.body.data.userId, registerA.body.data.user.id, "Generated API must assign the authenticated owner");
+  assert.equal((await api(`/api/task/${recordId}`, { cookie: cookieB })).status, 404);
+  assert.equal((await api(`/api/task/${recordId}`, { method: "PUT", cookie: cookieB, body: JSON.stringify({ title: "Tamper" }) })).status, 404);
+  assert.equal((await api(`/api/task/${recordId}`, { method: "DELETE", cookie: cookieB })).status, 404);
+  const otherList = await api("/api/task", { cookie: cookieB });
+  assert.equal(otherList.status, 200);
+  assert.equal(otherList.body.data.length, 0);
+
+  assert.equal((await api(`/api/task/${recordId}`, { cookie: cookieA })).status, 200);
+  const updated = await api(`/api/task/${recordId}`, { method: "PUT", cookie: cookieA, body: JSON.stringify({ status: "done" }) });
+  assert.equal(updated.status, 200);
+  assert.equal(updated.body.data.status, "done");
+  assert.equal((await api(`/api/task/${recordId}`, { method: "DELETE", cookie: cookieA })).status, 200);
+  assert.equal((await api(`/api/task/${recordId}`, { cookie: cookieA })).status, 404);
+  const logout = await api("/api/auth/logout", { method: "POST", cookie: cookieA });
+  assert.equal(logout.status, 200);
+  assert.equal((await api("/api/task", { cookie: logout.cookie })).status, 401);
+  console.log("Generated auth endpoints, CRUD validation/statuses, safe errors, and cross-user ownership passed.");
+}
+
+try {
+  console.log("=== ConfigFlow Generated Project and CRUD Verification ===");
+  const config = JSON.parse(fs.readFileSync(path.join(root, "configs", "task-manager.json"), "utf8"));
   const { generateCodebase } = await import("../server/dist/services/code-generator.js");
   const vfs = generateCodebase(config);
-  console.log(`✔ Generated ${vfs.size} virtual files`);
-
-  // Verify critical files
-  const expectedFiles = [
-    "package.json",
-    "tsconfig.json",
-    "prisma/schema.prisma",
-    "prisma/seed.js",
-    "src/app/layout.tsx",
-    "src/app/manifest.ts",
-    "src/app/api/task/route.ts",
-    "src/app/api/task/[id]/route.ts",
-    "src/app/(pages)/tasks/page.tsx",
+  for (const file of [
+    "package.json", "prisma/schema.prisma", "src/app/api/task/route.ts", "src/app/api/task/[id]/route.ts",
+    "src/app/api/auth/[action]/route.ts", "src/lib/api-auth.ts", "src/lib/api-validation.ts",
     "src/app/(pages)/dashboard/page.tsx",
-  ];
-  for (const file of expectedFiles) {
-    if (!vfs.has(file)) {
-      throw new Error(`Missing expected generated file: ${file}`);
-    }
+  ]) assert.ok(vfs.has(file), `Missing generated file ${file}`);
+  const schemaText = vfs.get("prisma/schema.prisma");
+  const collectionRoute = vfs.get("src/app/api/task/route.ts");
+  const itemRoute = vfs.get("src/app/api/task/[id]/route.ts");
+  const authPage = vfs.get("src/app/auth/page.tsx");
+  const authRoute = vfs.get("src/app/api/auth/[action]/route.ts");
+  assert.match(schemaText, /userId String/);
+  assert.match(collectionRoute, /userId: actor\.userId/);
+  assert.match(itemRoute, /userId: actor\.userId/);
+  assert.match(collectionRoute, /validatePayload/);
+  assert.match(itemRoute, /validatePayload/);
+  assert.match(authPage, /fetch\("\/api\/auth\/" \+ mode/);
+  assert.match(authRoute, /bcrypt\.hash/);
+  assert.match(authRoute, /Set-Cookie/);
+  assert.match(authRoute, /issueSession\(user, 201\)/, "Generated registration must return 201 Created");
+  assert.match(vfs.get("src/app/(pages)/dashboard/page.tsx"), /ResponsiveContainer/);
+  assert.doesNotMatch(vfs.get("src/app/(pages)/dashboard/page.tsx"), /Chart widgets are driven/);
+  assert.throws(() => generateCodebase({ ...config, app: { ...config.app, auth: { enabled: true, providers: { google: true } } } }), /email\/password authentication only/);
+  assert.throws(() => generateCodebase({
+    app: { name: "User Model Collision", auth: { enabled: true } },
+    entities: { user: { fields: { email: { type: "email", required: true } } } },
+    pages: [{ type: "table", name: "Users", path: "/users", entity: "user", actions: [] }],
+  }), /conflicts with the generated authentication User model/);
+  const publicConfig = {
+    app: { name: "Public Read Only", auth: { enabled: false } },
+    entities: { notice: { publicAccess: true, fields: { title: { type: "string", required: true } } } },
+    pages: [{ type: "table", name: "Notices", path: "/notices", entity: "notice", actions: [] }],
+  };
+  const publicVfs = generateCodebase(publicConfig);
+  assert.match(publicVfs.get("src/app/api/notice/route.ts"), /publicRead = true/);
+  assert.match(publicVfs.get("src/app/api/notice/route.ts"), /Writes require configured authentication/);
+  assert.match(publicVfs.get("src/app/auth/page.tsx"), /public and read-only/);
+  assert.doesNotMatch(publicVfs.get("src/app/auth/page.tsx"), /<form/);
+  assert.throws(() => generateCodebase({ ...publicConfig, entities: { notice: { fields: { title: { type: "string" } } } } }), /public read-only apps/);
+  console.log(`Generated ${vfs.size} files and checked auth, owner scoping, validation, and charts.`);
+
+  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "configflow-generated-"));
+  for (const [relative, contents] of vfs) {
+    const target = path.join(tempDir, relative);
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.writeFileSync(target, contents, "utf8");
   }
-  console.log("✔ All critical route and component files synthesized in VFS");
+  const buildOnlyUrl = isolatedUrl || "postgresql://configflow:build-only@127.0.0.1:5432/configflow_build";
+  fs.writeFileSync(path.join(tempDir, ".env"), `DATABASE_URL="${buildOnlyUrl}"\nAUTH_SECRET="${"a".repeat(64)}"\n`, "utf8");
 
-  // 3. Write files to isolated temporary directory
-  console.log(`\n[3/5] Writing files to ${TEMP_APP_DIR}...`);
-  if (fs.existsSync(TEMP_APP_DIR)) {
-    fs.rmSync(TEMP_APP_DIR, { recursive: true, force: true });
-  }
-  fs.mkdirSync(TEMP_APP_DIR, { recursive: true });
-
-  for (const [filePath, content] of vfs.entries()) {
-    const fullPath = path.join(TEMP_APP_DIR, filePath);
-    fs.mkdirSync(path.dirname(fullPath), { recursive: true });
-    fs.writeFileSync(fullPath, content, "utf8");
-  }
-
-  // Read server .env for base DATABASE_URL
-  const serverEnv = fs.readFileSync(path.join(ROOT_DIR, "server", ".env"), "utf8");
-  const dbMatch = serverEnv.match(/DATABASE_URL="?([^"\n]+)"?/);
-  if (!dbMatch) throw new Error("Could not find DATABASE_URL in server/.env");
-  const baseDbUrl = dbMatch[1];
-  const urlObj = new URL(baseDbUrl);
-  urlObj.searchParams.set("schema", ISOLATED_SCHEMA);
-  const isolatedDbUrl = urlObj.toString();
-
-  fs.writeFileSync(
-    path.join(TEMP_APP_DIR, ".env"),
-    `DATABASE_URL="${isolatedDbUrl}"\nNEXTAUTH_SECRET="test-secret"\n`,
-    "utf8"
-  );
-  console.log(`✔ Files written; configured isolated DB schema: ${ISOLATED_SCHEMA}`);
-
-  // Link node_modules from monorepo for instant dependencies
-  const symlinkTarget = path.join(ROOT_DIR, "node_modules");
-  const appNodeModules = path.join(TEMP_APP_DIR, "node_modules");
-  try {
-    execSync(`cmd /c mklink /J "${appNodeModules}" "${symlinkTarget}"`, { stdio: "ignore" });
-    console.log("✔ Linked workspace node_modules");
-  } catch (e) {
-    console.log("Installing dependencies via npm...");
-    execSync("npm.cmd install", { cwd: TEMP_APP_DIR, stdio: "inherit" });
+  console.log("Installing generated project dependencies...");
+  runNpm(["install", "--no-audit", "--no-fund"], tempDir, { ...process.env, DATABASE_URL: isolatedUrl });
+  const nodeModules = path.join(tempDir, "node_modules");
+  const prismaCli = path.join(nodeModules, "prisma", "build", "index.js");
+  const nextCli = path.join(nodeModules, "next", "dist", "bin", "next");
+  const childEnv = { ...process.env, DATABASE_URL: buildOnlyUrl, AUTH_SECRET: "a".repeat(64), NEXT_TELEMETRY_DISABLED: "1" };
+  run(process.execPath, [prismaCli, "generate"], { cwd: tempDir, env: childEnv });
+  if (testDatabaseUrl) {
+    run(process.execPath, [prismaCli, "db", "push", "--skip-generate"], { cwd: tempDir, env: childEnv });
+    run(process.execPath, ["prisma/seed.js"], { cwd: tempDir, env: childEnv });
   }
 
-  try {
-    // 4. Database push and CRUD operations
-    console.log("\n[4/5] Running prisma db push and verifying standalone CRUD...");
-  const childEnv = { ...process.env, DATABASE_URL: isolatedDbUrl };
-  execSync("npx.cmd prisma db push --skip-generate", { cwd: TEMP_APP_DIR, env: childEnv, stdio: "inherit" });
-  execSync("npx.cmd prisma generate", { cwd: TEMP_APP_DIR, env: childEnv, stdio: "inherit" });
-  execSync("node prisma/seed.js", { cwd: TEMP_APP_DIR, env: childEnv, stdio: "inherit" });
-
-  // Run standalone CRUD verification script in child process
-  const crudTestScript = `
-const { PrismaClient } = require('@prisma/client');
+  const crudScript = `const assert = require("node:assert/strict");
+const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
-
-async function run() {
-  const initialTasks = await prisma.task.findMany();
-  console.log("✔ Read " + initialTasks.length + " seeded tasks from database");
-  if (initialTasks.length === 0) throw new Error("Seeded tasks not found");
-
-  const newTask = await prisma.task.create({
-    data: {
-      title: "Generated Standalone Task",
-      priority: "high",
-      status: "todo",
-      dueDate: new Date(),
-    },
-  });
-  console.log("✔ Created task: " + newTask.id + " (" + newTask.title + ")");
-
-  const fetched = await prisma.task.findUnique({ where: { id: newTask.id } });
-  if (!fetched || fetched.title !== "Generated Standalone Task") {
-    throw new Error("Failed to read created task");
+(async () => {
+  const owner = await prisma.user.create({ data: { email: "owner-" + Date.now() + "@test.invalid", passwordHash: "test-only" } });
+  const other = await prisma.user.create({ data: { email: "other-" + Date.now() + "@test.invalid", passwordHash: "test-only" } });
+  const task = await prisma.task.create({ data: { userId: owner.id, title: "Generated CRUD task", status: "todo" } });
+  const ownRead = await prisma.task.findFirst({ where: { id: task.id, userId: owner.id } });
+  const crossUserRead = await prisma.task.findFirst({ where: { id: task.id, userId: other.id } });
+  assert.equal(ownRead.title, "Generated CRUD task"); assert.equal(crossUserRead, null);
+  const updated = await prisma.task.update({ where: { id: task.id }, data: { status: "done" } });
+  assert.equal(updated.status, "done");
+  const ownedCount = await prisma.task.count({ where: { userId: owner.id } }); assert.equal(ownedCount, 1);
+  const deleted = await prisma.task.deleteMany({ where: { id: task.id, userId: owner.id } }); assert.equal(deleted.count, 1);
+  assert.equal(await prisma.task.findUnique({ where: { id: task.id } }), null);
+  await prisma.user.deleteMany({ where: { id: { in: [owner.id, other.id] } } });
+  console.log("Generated database CRUD and user isolation passed.");
+})().catch((error) => { console.error(error); process.exitCode = 1; }).finally(() => prisma.$disconnect());`;
+  fs.writeFileSync(path.join(tempDir, "verify-crud.cjs"), crudScript, "utf8");
+  if (testDatabaseUrl) {
+    run(process.execPath, ["verify-crud.cjs"], { cwd: tempDir, env: childEnv });
+  } else {
+    console.log("Skipping Prisma database CRUD checks: CONFIGFLOW_TEST_DATABASE_URL is unset.");
   }
-  console.log("✔ Fetched task by ID: " + fetched.id);
-
-  const updated = await prisma.task.update({
-    where: { id: newTask.id },
-    data: { status: "done", priority: "critical" },
-  });
-  if (updated.status !== "done" || updated.priority !== "critical") {
-    throw new Error("Failed to update task");
-  }
-  console.log("✔ Updated task: status = " + updated.status + ", priority = " + updated.priority);
-
-  await prisma.task.delete({ where: { id: newTask.id } });
-  const afterDelete = await prisma.task.findUnique({ where: { id: newTask.id } });
-  if (afterDelete !== null) throw new Error("Task was not deleted");
-  console.log("✔ Deleted task successfully");
+  console.log("Building generated Next.js project...");
+  run(process.execPath, [nextCli, "build"], { cwd: tempDir, env: { ...childEnv, NODE_ENV: "production" } });
+  if (testDatabaseUrl) await testGeneratedApi(nextCli, tempDir, { ...childEnv, NODE_ENV: "production" });
+  succeeded = true;
+} finally {
+  await cleanup();
 }
 
-run()
-  .catch((e) => { console.error(e); process.exit(1); })
-  .finally(async () => { await prisma.$disconnect(); });
-`;
-  fs.writeFileSync(path.join(TEMP_APP_DIR, "test-crud.js"), crudTestScript, "utf8");
-  execSync("node test-crud.js", { cwd: TEMP_APP_DIR, env: childEnv, stdio: "inherit" });
-
-  // 5. Next.js production build of the generated application
-  console.log("\n[5/5] Executing Next.js production build of the generated application...");
-  execSync("npx.cmd next build", {
-    cwd: TEMP_APP_DIR,
-    stdio: "inherit",
-    env: { ...process.env, NEXT_TELEMETRY_DISABLED: "1", NODE_ENV: "production" },
-  });
-  console.log("✔ Standalone generated application completed production build with 0 errors!");
-
-  } finally {
-    // Clean up temporary directory
-    if (fs.existsSync(TEMP_APP_DIR)) {
-      fs.rmSync(TEMP_APP_DIR, { recursive: true, force: true });
-      console.log("✔ Cleaned up temporary build directory");
-    }
-
-    // Drop isolated test schema from PostgreSQL
-    try {
-      const cleanupPrisma = new PrismaClient({
-        datasources: { db: { url: baseDbUrl } },
-      });
-      await cleanupPrisma.$executeRawUnsafe(`DROP SCHEMA IF EXISTS "${ISOLATED_SCHEMA}" CASCADE;`);
-      await cleanupPrisma.$disconnect();
-      console.log(`✔ Dropped isolated database schema ${ISOLATED_SCHEMA}`);
-    } catch (e) {
-      // Ignore if database cleanup fails
-    }
-
-    // Always restore server Prisma Client bindings
-    try {
-      execSync("cmd /c npx.cmd prisma generate", {
-        cwd: path.join(ROOT_DIR, "server"),
-        env: { ...process.env, DATABASE_URL: baseDbUrl },
-        stdio: "inherit",
-        shell: true,
-      });
-      console.log("✔ Restored server Prisma Client bindings");
-    } catch (e) {
-      console.warn("Notice: could not restore server Prisma Client:", e?.message);
-    }
-  }
-
-  console.log("\n========================================================");
-  console.log("🎉 GENERATION & CRUD VERIFICATION SUITE PASSED! 🎉");
-  console.log("========================================================\n");
-}
-
-main().catch((err) => {
-  console.error("❌ Generation and CRUD suite failed:", err);
-  process.exit(1);
-});
+if (!succeeded) process.exitCode = 1;
+console.log(testDatabaseUrl
+  ? "Generated project install, Prisma CRUD/isolation, and production build passed."
+  : "Generated project installation and production build passed; database CRUD/isolation checks were not run.");

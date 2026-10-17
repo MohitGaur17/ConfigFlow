@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { validateConfig, validateRecordData } from "shared";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -159,6 +160,48 @@ const codeGenContent = fs.readFileSync(
 assert.ok(codeGenContent.includes("generateManifest"), "Code generator must generate PWA manifest");
 assert.ok(codeGenContent.includes("generateServiceWorker"), "Code generator must generate service worker");
 assert.ok(codeGenContent.includes("generatePwaRegister"), "Code generator must generate PwaRegister");
+
+const entityRouteContent = fs.readFileSync(path.join(root, "server", "src", "routes", "entity.ts"), "utf8");
+assert.ok(entityRouteContent.includes("app?.userId !== req.userId"), "Entity routes must enforce app ownership");
+assert.ok(entityRouteContent.includes("requestedEntity?.publicAccess === true"), "Anonymous reads must require explicit publicAccess");
+assert.ok(entityRouteContent.includes("!publicRead && !req.userId"), "Public read policy must not permit unauthenticated writes");
+
+const configValidatorContent = fs.readFileSync(path.join(root, "shared", "src", "config-validator.ts"), "utf8");
+assert.ok(configValidatorContent.includes("User-scoped entities cannot allow unauthenticated public reads"), "Public policy must reject user-scoped entities");
+assert.ok(codeGenContent.includes("function generateAuthRoute()"), "Generated email auth API routes must exist");
+assert.ok(codeGenContent.includes("function generateApiValidation()"), "Generated CRUD payload validation must exist");
+assert.ok(codeGenContent.includes("getApiActor(request"), "Generated CRUD handlers must enforce sessions");
+assert.ok(codeGenContent.includes("userId: actor.userId"), "Generated user-scoped CRUD must filter by owner");
+assert.ok(codeGenContent.includes("ResponsiveContainer"), "Generated dashboards must render real charts");
+assert.ok(!codeGenContent.includes("Chart widgets are driven by the entity API endpoint"), "Dashboard chart placeholder must be removed");
+
+const validationFields = {
+  title: { type: "string", required: true },
+  amount: { type: "number", min: 1, max: 10 },
+  state: { type: "enum", options: ["open", "closed"] },
+  active: { type: "boolean" },
+};
+assert.equal(validateRecordData({ amount: "2", state: "open", active: "false" }, validationFields).valid, false, "Required fields must be enforced");
+assert.equal(validateRecordData({ title: "ok", extra: "blocked" }, validationFields).valid, false, "Unknown payload fields must be rejected");
+assert.equal(validateRecordData({ title: { unexpected: true } }, validationFields).valid, false, "Object values must not be coerced to strings");
+assert.equal(validateRecordData({ title: "ok", amount: "Infinity" }, validationFields).valid, false, "Non-finite numbers must be rejected");
+assert.equal(validateRecordData({ title: "ok", state: "other" }, validationFields).valid, false, "Unknown enum values must be rejected");
+const validPayload = validateRecordData({ title: "ok", amount: "2", state: "open", active: "false" }, validationFields);
+assert.equal(validPayload.valid, true);
+assert.equal(validPayload.sanitized.amount, 2);
+assert.equal(validPayload.sanitized.active, false);
+const invalidPublicPolicy = validateConfig({
+  app: { name: "Invalid public policy" },
+  entities: { privateItems: { userScoped: true, publicAccess: true, fields: { title: { type: "string" } } } },
+  pages: [{ type: "table", name: "Items", path: "/items", entity: "privateItems", actions: [] }],
+});
+assert.equal(invalidPublicPolicy.success, false, "User-scoped entities must reject anonymous public access");
+const publicWithAuthentication = validateConfig({
+  app: { name: "Authenticated public policy", auth: { enabled: true } },
+  entities: { notices: { publicAccess: true, fields: { title: { type: "string" } } } },
+  pages: [{ type: "table", name: "Notices", path: "/notices", entity: "notices", actions: [] }],
+});
+assert.equal(publicWithAuthentication.success, false, "Authenticated apps must reject public entity access");
 
 console.log("✔ Code generator export consistency verified!");
 
