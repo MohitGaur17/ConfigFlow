@@ -2,14 +2,14 @@
 
 > **Declarative JSON-Driven Full-Stack App Generator & Live Preview Studio**
 
-ConfigFlow turns declarative JSON architecture specifications into fully functional, production-ready web applications. Define your data models, fields, relations, pages, and auth settings in a single JSON schema, preview the app interactively in your browser with dynamic CRUD engines, and export a clean, standard full-stack **Next.js (App Router) + Prisma + PostgreSQL + Tailwind CSS** codebase in a single click.
+ConfigFlow turns a JSON application configuration into an interactive preview and an exportable **Next.js (App Router) + Prisma + PostgreSQL + Tailwind CSS** project scaffold. Define entities, fields, pages, and authentication settings in one schema, then review and download the generated source code. Generated features depend on the configuration and the limitations described below; review and test an export before deploying it.
 
 [![Next.js](https://img.shields.io/badge/Next.js-16%20(Turbopack)-black?style=flat&logo=next.js)](https://nextjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.4-blue?style=flat&logo=typescript)](https://www.typescriptlang.org/)
-[![Express](https://img.shields.io/badge/Express-4.19-lightgrey?style=flat&logo=express)](https://expressjs.com/)
-[![Prisma](https://img.shields.io/badge/Prisma-5.14-2D3748?style=flat&logo=prisma)](https://www.prisma.io/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue?style=flat&logo=typescript)](https://www.typescriptlang.org/)
+[![Express](https://img.shields.io/badge/Express-4.x-lightgrey?style=flat&logo=express)](https://expressjs.com/)
+[![Prisma](https://img.shields.io/badge/Prisma-5.x-2D3748?style=flat&logo=prisma)](https://www.prisma.io/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-38B2AC?style=flat&logo=tailwind-css)](https://tailwindcss.com/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-336791?style=flat&logo=postgresql)](https://www.postgresql.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-database-336791?style=flat&logo=postgresql)](https://www.postgresql.org/)
 
 ---
 
@@ -35,23 +35,24 @@ ConfigFlow turns declarative JSON architecture specifications into fully functio
 
 ## Core Capabilities
 
-- **Declarative Schema Compiler**: Define complete apps (entities, fields, relations, UI pages, and auth providers) using standard, validated JSON schemas with zero imperative boilerplate.
+- **Declarative Schema Compiler**: Define entities, fields, pages, and auth settings in a validated JSON configuration instead of hand-writing the initial app scaffold.
 - **In-Browser Dynamic Runtime**:
-  - **Table Views**: Search, pagination, column sorting, and custom action buttons.
-  - **Forms**: Dynamic validation, data type rendering (text, numbers, booleans, dates), and creation/edit modes.
+  - **Table Views**: Search, pagination, column sorting, and configurable create, edit, and delete actions.
+  - **Forms**: Field-aware inputs, create/edit modes, and server-side validation feedback.
   - **Dashboards**: Configurable metric cards, recharts visualizations (bar, line, pie), and recent activity lists.
-  - **Detail Views**: Scoped record inspection and relation navigation.
 - **Interactive Code Viewer**: Browse the generated codebase in-browser before exporting, featuring an interactive file tree and source previews (`prisma/schema.prisma`, `package.json`, API routes, and page components).
 - **Vendor-Agnostic Source Code Export**: Exports a standard Next.js (App Router) project with Prisma ORM, PostgreSQL connection strings, Tailwind CSS styling, and PWA assets. No proprietary runtime lock-in.
-- **Complete Authentication & Security**:
+- **ConfigFlow Platform Authentication & Security**:
   - JWT session tokens and bcrypt password hashing.
   - Email verification workflow with Nodemailer / Brevo API, token expiration, and resend recovery.
   - Google and GitHub OAuth 2.0 integration with automatic user profile sync.
-- **Responsive & Accessible Design**:
+- **Responsive Interface**:
   - Obsidian dark theme with glassmorphic accents and mobile-first responsiveness.
-  - Touch-friendly mobile navigation drawer with backdrop light-dismiss, keyboard navigation (<kbd>Esc</kbd>), and body-scroll locking.
+  - Mobile navigation drawer with backdrop dismissal, Escape-key closing, and body-scroll locking.
 - **Real-Time Notification System**: Server-Sent Events (SSE) stream for instant event delivery and an in-app slide-out notification drawer.
 - **Progressive Web App (PWA)**: Web App Manifest, Service Worker caching, and custom offline fallback page.
+
+Generated projects support email/password registration and login with hashed passwords and HttpOnly session cookies. When app authentication is enabled, records are isolated by user only for entities marked `userScoped: true`; other entities are shared by authenticated users. Generated projects do not support OAuth, email verification, or password reset. Exporting a config with Google or GitHub enabled is rejected. With `auth.enabled: false` and no `userScoped` entities, export is supported only as a read-only app: every entity must set `publicAccess: true`, and the pages must not request write actions. A `userScoped` entity enables email/password authentication even when `auth.enabled` is false.
 
 ---
 
@@ -76,10 +77,10 @@ ConfigFlow turns declarative JSON architecture specifications into fully functio
 └──────────────┘   └──────────────┘
 ```
 
-1. **Create or Upload**: Select a pre-built starter template (e.g. Project Tracker or Inventory Manager) or paste your custom JSON architecture schema in `/builder`.
+1. **Define a Config**: Paste your JSON application configuration in `/builder`. Sample JSON configurations for Task Manager and Inventory Pro are available in [`configs/`](./configs/).
 2. **Instant Live Preview**: Test your application immediately in the browser at `/builder/:appId`. Interact with live data tables, forms, and analytical dashboards backed by PostgreSQL.
 3. **Inspect Code**: Switch to the **Code** tab to review the generated Prisma models, REST route handlers, and page components in the virtual file explorer.
-4. **Download & Deploy**: Download a standard ZIP package and deploy it anywhere (Vercel, Render, Railway, Docker, or bare metal).
+4. **Download & Deploy**: Download a standard ZIP package and deploy it to a compatible Node.js host, such as Vercel, Render, Railway, Docker, or a Node.js server.
 
 ---
 
@@ -96,7 +97,7 @@ ConfigFlow/
 │   │   └── lib/                # API client, AuthContext, ConfigContext, NotificationContext
 │   └── public/                 # Static assets, PWA icons, Service Worker
 ├── server/                     # Express.js + TypeScript Backend
-│   ├── prisma/                 # Prisma schema & migrations
+│   ├── prisma/                 # Prisma schema and email-verification SQL support script; no migrations directory is committed
 │   ├── src/
 │   │   ├── middleware/         # JWT authentication & request validation
 │   │   ├── routes/             # Auth, Apps, Dynamic Entities, Notifications
@@ -117,7 +118,7 @@ ConfigFlow/
 
 - **Node.js**: v20.9.0 or higher (required for Next.js 16)
 - **npm**: v9.0.0 or higher
-- **PostgreSQL**: v14.0 or higher (local instance or cloud like [Neon](https://neon.tech) / [Supabase](https://supabase.com))
+- **PostgreSQL**: A local or cloud database such as [Neon](https://neon.tech) or [Supabase](https://supabase.com). CI currently verifies against PostgreSQL 16.
 
 ### Installation
 
@@ -186,7 +187,7 @@ npm install
 
 ### Database Initialization
 
-Push the Prisma schema to your PostgreSQL database and generate the Prisma Client:
+The checked-in database definition is `server/prisma/schema.prisma`; this repository does not include a Prisma migrations directory. Push the schema to your PostgreSQL database and generate the Prisma Client:
 
 ```bash
 npm run prisma:push --workspace=server
@@ -231,8 +232,8 @@ Below is an annotated example of a valid ConfigFlow JSON configuration (`AppConf
       "enabled": true,
       "providers": {
         "email": true,
-        "google": true,
-        "github": true
+        "google": false,
+        "github": false
       }
     }
   },
@@ -262,7 +263,7 @@ Below is an annotated example of a valid ConfigFlow JSON configuration (`AppConf
       "type": "dashboard",
       "widgets": [
         { "type": "stat", "title": "Active Projects", "entity": "projects" },
-        { "type": "chart", "title": "Tasks by Priority", "entity": "tasks", "chartType": "bar" }
+        { "type": "chart", "title": "Tasks by Priority", "entity": "tasks", "groupBy": "priority", "chartType": "bar" }
       ]
     },
     {
@@ -292,7 +293,7 @@ Pre-made templates are available in the [`configs/`](./configs/) directory:
 
 - **Table Pages**: Specifying `columns` is optional. If omitted or empty, tables automatically fall back to rendering all fields declared in the target entity.
 - **Dashboard Pages**: The `widgets` list is optional (defaults to `[]`). Widgets accept either `label` or `title` for descriptive text.
-- **Authentication**: `auth.enabled` toggles application authentication requirements. Custom OAuth providers and settings can be configured via environment variables.
+- **Authentication**: `auth.enabled` controls authentication requirements for preview entity operations. The platform runtime supports email/password and configured Google/GitHub OAuth; generated projects support email/password only. Generated exports reject configs that enable Google or GitHub. A `userScoped` entity also requires authentication; `publicAccess` cannot be combined with app authentication or user scoping.
 
 ---
 
@@ -302,7 +303,7 @@ Pre-made templates are available in the [`configs/`](./configs/) directory:
 
 | Method | Endpoint | Description | Auth Required |
 | :--- | :--- | :--- | :---: |
-| `POST` | `/api/auth/register` | Register user account & send verification email | No |
+| `POST` | `/api/auth/register` | Register an unverified account and attempt to send a verification email | No |
 | `POST` | `/api/auth/login` | Sign in with email and password (returns JWT) | No |
 | `GET` | `/api/auth/verify-email` | Confirm email verification token | No |
 | `POST` | `/api/auth/resend-verification` | Resend verification email | No |
@@ -311,6 +312,8 @@ Pre-made templates are available in the [`configs/`](./configs/) directory:
 | `GET` | `/api/auth/google/callback`| Handle Google OAuth callback | No |
 | `GET` | `/api/auth/github/start` | Initiate GitHub OAuth flow | No |
 | `GET` | `/api/auth/github/callback`| Handle GitHub OAuth callback | No |
+
+Email delivery requires a configured Brevo API key or SMTP credentials. Platform login rejects unverified accounts; generated-project email authentication does not include email verification.
 
 ### Apps & Generation (`/api/apps`)
 
@@ -337,7 +340,20 @@ Pre-made templates are available in the [`configs/`](./configs/) directory:
 | `GET` | `/api/entities/:appId/:entityName/stats` | Aggregated record count & field statistics | Conditional* |
 | `GET` | `/api/entities/:appId/:entityName/recent`| Fetch latest records for dashboard widgets | Conditional* |
 
-*\*Authentication is strictly required if the application specifies `auth.enabled: true` or if the entity is configured with `userScoped: true`. All mutate endpoints (`POST`, `PUT`, `DELETE`) require a valid Bearer token. When `userScoped: true`, strict user-level multi-tenant isolation is enforced across all operations (cross-user access attempts return `404 Not Found`).*
+All private entity operations require an authenticated user who owns the requested app. A non-owner receives `404 Not Found`. Authentication is required when the app specifies `auth.enabled: true` or the entity is `userScoped: true`. The only anonymous exception is `publicAccess: true` on a non-user-scoped entity in an app with authentication disabled; this allows GET requests only. All writes require an authenticated app owner. `userScoped: true` additionally filters records by the authenticated user across lists, reads, updates, deletes, recent records, and statistics.
+
+Example public read policy:
+
+```json
+{
+  "entities": {
+    "announcements": {
+      "publicAccess": true,
+      "fields": { "title": { "type": "string", "required": true } }
+    }
+  }
+}
+```
 
 ### Notifications (`/api/notifications`)
 
@@ -346,18 +362,20 @@ Pre-made templates are available in the [`configs/`](./configs/) directory:
 | `GET` | `/api/notifications` | Fetch user notification history | Yes (Bearer) |
 | `PATCH`| `/api/notifications/:id/read` | Mark individual notification as read | Yes (Bearer) |
 | `POST` | `/api/notifications/read-all` | Mark all user notifications as read | Yes (Bearer) |
-| `GET` | `/api/notifications/stream` | Real-time Server-Sent Events (SSE) notification stream | Yes (Bearer) |
+| `GET` | `/api/notifications/stream` | Real-time Server-Sent Events (SSE) notification stream | Yes (token) |
+
+The notification stream accepts a Bearer token or a `token` query parameter for EventSource clients.
 
 ---
 
 ## Interactive Code Viewer & Export Pipeline
 
-When you click **Download ZIP** or view code in the **Code Viewer**, the server's code generation engine (`server/src/services/code-generator.ts`) synthesizes a turnkey Next.js App Router project containing:
+When you click **Download ZIP** or view code in the **Code Viewer**, the server's code generation engine (`server/src/services/code-generator.ts`) creates a Next.js App Router project scaffold containing:
 
-1. **Prisma Configuration**: `prisma/schema.prisma` with models, relations, CUID primary keys, and PostgreSQL datasource.
-2. **REST API Handlers**: Type-safe Next.js Route Handlers (`src/app/api/[entity]/route.ts` and `[id]/route.ts`) implementing complete CRUD endpoints.
+1. **Prisma Configuration**: `prisma/schema.prisma` with entity models, UUID primary keys, user ownership relations for user-scoped entities, and a PostgreSQL datasource.
+2. **REST API Handlers**: Next.js Route Handlers (`src/app/api/[entity]/route.ts` and `[id]/route.ts`) for list, create, read, update, and delete operations, with generated validation and authorization behavior based on the config.
 3. **Interactive React Pages**: Next.js client pages (`src/app/(pages)/...`) leveraging Tailwind CSS, Lucide icons, and responsive layouts.
-4. **PWA Integration**: Ready-to-deploy `manifest.ts`, service worker (`public/sw.js`), and registration hooks.
+4. **PWA Files**: `manifest.ts`, service worker (`public/sw.js`), and registration hooks.
 5. **Standard Tooling**: Fully configured `package.json`, `tsconfig.json`, `tailwind.config.ts`, and `.env.example`.
 
 ---
@@ -369,7 +387,7 @@ When you click **Download ZIP** or view code in the **Code Viewer**, the server'
 You can spin up the full PostgreSQL, Express backend, and Next.js frontend stack with Docker Compose:
 
 ```bash
-docker-compose up --build
+docker compose up --build
 ```
 
 - **Frontend**: [http://localhost:3000](http://localhost:3000)
@@ -378,11 +396,11 @@ docker-compose up --build
 
 ### Cloud Deployment Guides
 
-Detailed production deployment runbooks and checklists are included in the repository:
+Deployment guides and checklists are included in the repository:
 
 - [**DEPLOYMENT_QUICKSTART.md**](./DEPLOYMENT_QUICKSTART.md) — 5-minute setup with Vercel, Railway, and Neon.
-- [**DEPLOYMENT.md**](./DEPLOYMENT.md) — Complete manual deployment across AWS, Render, Vercel, and DigitalOcean.
-- [**CI_CD_DEPLOYMENT.md**](./CI_CD_DEPLOYMENT.md) — Automated CI/CD pipelines with GitHub Actions.
+- [**DEPLOYMENT.md**](./DEPLOYMENT.md) — Deployment guide for a Vercel frontend and Railway or Render backend.
+- [**CI_CD_DEPLOYMENT.md**](./CI_CD_DEPLOYMENT.md) — Guide to configuring deployment workflows with GitHub Actions.
 - [**PRODUCTION_CHECKLIST.md**](./PRODUCTION_CHECKLIST.md) — Security audits, CORS configuration, and production hardening.
 
 ---
@@ -397,7 +415,10 @@ Detailed production deployment runbooks and checklists are included in the repos
 | `npm run build` | Build `shared`, `server`, and `client` packages for production |
 | `npm run prisma:generate --workspace=server` | Regenerate Prisma Client types |
 | `npm run prisma:push --workspace=server` | Synchronize Prisma schema with database |
-| `npm run prisma:migrate --workspace=server` | Run Prisma database migrations |
+| `npm run prisma:migrate --workspace=server` | Create/apply a Prisma migration in development (`prisma migrate dev`) |
+| `npm run verify:features` | Run static feature and configuration checks |
+| `npm run verify:security` | Run database-backed authentication, app ownership, and entity isolation checks (requires `CONFIGFLOW_TEST_DATABASE_URL`) |
+| `npm run verify:generation` | Install and build a generated project; database CRUD/API checks run only when `CONFIGFLOW_TEST_DATABASE_URL` is set |
 
 ---
 
