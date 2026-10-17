@@ -29,17 +29,14 @@ services:
       DATABASE_URL: postgresql://appuser:apppassword@postgres:5432/configflow
       JWT_SECRET: dev-jwt-secret-change-in-production
       PORT: 4000
-      NODE_ENV: development
+      NODE_ENV: production
       CLIENT_URL: http://localhost:3000
     ports:
       - "4000:4000"
     depends_on:
       postgres:
         condition: service_healthy
-    volumes:
-      - ./server:/app/server
-      - /app/server/node_modules
-    command: npm run dev --workspace=server
+    command: npm run start --workspace=server
 
   # Frontend Client
   client:
@@ -52,7 +49,8 @@ services:
     ports:
       - "3000:3000"
     depends_on:
-      - server
+      server:
+        condition: service_healthy
 
 volumes:
   postgres_data:

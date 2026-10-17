@@ -10,6 +10,7 @@ RUN apt-get update -y && apt-get install -y openssl ca-certificates && rm -rf /v
 COPY package.json package-lock.json ./
 COPY server ./server
 COPY shared ./shared
+COPY client/package.json ./client/package.json
 COPY tsconfig.base.json ./
 
 # Install dependencies
@@ -34,6 +35,7 @@ RUN apt-get update -y && apt-get install -y openssl ca-certificates && rm -rf /v
 COPY package.json package-lock.json ./
 COPY server ./server
 COPY shared ./shared
+COPY client/package.json ./client/package.json
 
 # Install production dependencies only
 RUN npm ci --omit=dev

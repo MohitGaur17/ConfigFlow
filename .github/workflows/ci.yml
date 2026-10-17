@@ -7,11 +7,29 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
+  build-and-verify:
     runs-on: ubuntu-latest
     strategy:
       matrix:
         node-version: [20.x]
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: configflow
+          POSTGRES_PASSWORD: configflow_test_password
+          POSTGRES_DB: configflow_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U configflow -d configflow_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      CONFIGFLOW_TEST_DATABASE_URL: postgresql://configflow:configflow_test_password@localhost:5432/configflow_test
+      DATABASE_URL: postgresql://configflow:configflow_test_password@localhost:5432/configflow_test
+      JWT_SECRET: configflow-ci-jwt-secret-use-only-in-tests
 
     steps:
       - uses: actions/checkout@v4
@@ -19,15 +37,42 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
+          cache: npm
 
-      - name: Install root deps
+      - name: Install workspace dependencies
         run: npm ci
 
-      - name: Build shared
-        run: npm run build --workspace=shared
+      - name: Generate server Prisma client
+        run: npm run prisma:generate --workspace=server
 
-      - name: Build server
-        run: npm run build --workspace=server
+      - name: Prepare disposable verification database
+        run: npm run prisma:push --workspace=server
 
-      - name: Build client
-        run: npm run build --workspace=client
+      - name: Build all workspaces
+        run: npm run build
+
+      - name: Verify feature consistency
+        run: npm run verify:features
+
+      - name: Verify security and tenant isolation
+        run: npm run verify:security
+
+      - name: Install, build, and verify generated project CRUD
+        run: npm run verify:generation
+
+  docker-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start Docker Compose stack
+        run: docker compose up --build --detach
+      - name: Verify server and client startup
+        run: |
+          curl --fail --silent --show-error --retry 60 --retry-all-errors --retry-delay 2 --retry-max-time 150 http://localhost:4000/api/health
+          curl --fail --silent --show-error --retry 60 --retry-all-errors --retry-delay 2 --retry-max-time 150 http://localhost:3000/
+      - name: Show container status
+        if: always()
+        run: docker compose ps
+      - name: Stop and clean Docker Compose stack
+        if: always()
+        run: docker compose down --volumes --remove-orphans
