@@ -71,21 +71,21 @@ export default function Footer() {
           <p className="text-label-tech text-on-surface-variant">The operating system for software generation.</p>
         </div>
                 <div>
-          <h4 className="text-label-caps font-label-caps text-on-surface mb-4 tracking-widest">PRODUCT</h4>
+          <h4 className="text-label-caps font-body-md text-on-surface mb-4 tracking-widest">PRODUCT</h4>
           <ul className="space-y-2 text-sm text-on-surface-variant">
             <li><Link href="/#how-it-works" className="hover:text-primary transition-colors">How it Works</Link></li>
             <li><Link href="/#features" className="hover:text-primary transition-colors">Features</Link></li>
           </ul>
         </div>
         <div>
-          <h4 className="text-label-caps font-label-caps text-on-surface mb-4 tracking-widest">COMPANY</h4>
+          <h4 className="text-label-caps font-body-md text-on-surface mb-4 tracking-widest">COMPANY</h4>
           <ul className="space-y-2 text-sm text-on-surface-variant">
             <li><Link href="/mission" className="hover:text-primary transition-colors">Mission</Link></li>
             <li><Link href="#" className="hover:text-primary transition-colors">Blog (Coming Soon)</Link></li>
           </ul>
         </div>
         <div>
-          <h4 className="text-label-caps font-label-caps text-on-surface mb-4 tracking-widest">RESOURCES</h4>
+          <h4 className="text-label-caps font-body-md text-on-surface mb-4 tracking-widest">RESOURCES</h4>
           <ul className="space-y-2 text-sm text-on-surface-variant">
             <li><Link href="/#how-it-works" className="hover:text-primary transition-colors">Documentation</Link></li>
             <li><a href="https://github.com/MohitGaur17/ConfigFlow" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">GitHub Repository</a></li>

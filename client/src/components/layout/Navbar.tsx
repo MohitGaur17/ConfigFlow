@@ -171,7 +171,7 @@ export default function Navbar() {
             <div className="flex items-center gap-3">
               <Link
                 href="/dashboard"
-                className="flex items-center gap-2 bg-surface-elevated hover:bg-surface-container-high border border-outline-hairline text-on-surface px-3.5 py-1.5 rounded text-sm font-label-tech transition-colors shadow-sm"
+                className="flex items-center gap-2 bg-surface-elevated hover:bg-surface-container-high border border-outline-hairline text-on-surface px-3.5 py-1.5 rounded text-sm font-body-md transition-colors shadow-sm"
               >
                 <LayoutDashboard className="w-4 h-4 text-primary-container" />
                 <span>Dashboard</span>
@@ -209,7 +209,7 @@ export default function Navbar() {
             <Link
               href="/dashboard"
               aria-label="Open dashboard"
-              className="flex items-center gap-1.5 px-2 py-1.5 sm:px-2.5 rounded bg-surface-container border border-outline-hairline text-xs font-label-tech text-on-surface"
+              className="flex items-center gap-1.5 px-2 py-1.5 sm:px-2.5 rounded bg-surface-container border border-outline-hairline text-xs font-body-md text-on-surface"
             >
               <LayoutDashboard className="w-3.5 h-3.5 text-primary-container" />
               <span className="hidden sm:inline">Dashboard</span>
@@ -261,7 +261,7 @@ export default function Navbar() {
         <div className="p-4 sm:p-6 space-y-4">
           {/* Navigation Links Group */}
           <div className="space-y-1">
-            <div className="px-3 py-1 text-[10px] font-label-caps text-on-surface-variant uppercase tracking-widest">
+            <div className="px-3 py-1 text-[10px] font-body-md text-on-surface-variant uppercase tracking-widest">
               Navigation
             </div>
             {NAV_LINKS.map((link) => {
@@ -305,7 +305,7 @@ export default function Navbar() {
                       {user.email.charAt(0).toUpperCase()}
                     </div>
                     <div className="min-w-0">
-                      <div className="text-xs font-label-tech text-on-surface truncate">
+                      <div className="text-xs font-body-md text-on-surface truncate">
                         {user.email}
                       </div>
                       <div className="flex items-center gap-1.5 text-[10px] text-tertiary">
@@ -358,7 +358,7 @@ export default function Navbar() {
           </div>
 
           {/* Drawer Bottom Bar */}
-          <div className="pt-2 flex items-center justify-between text-[11px] font-label-tech text-on-surface-variant border-t border-outline-hairline/60">
+          <div className="pt-2 flex items-center justify-between text-[11px] font-body-md text-on-surface-variant border-t border-outline-hairline/60">
             <span>ConfigFlow v1.0.0</span>
             <a
               href="https://github.com/MohitGaur17/ConfigFlow"

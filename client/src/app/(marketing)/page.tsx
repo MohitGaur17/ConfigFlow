@@ -39,7 +39,7 @@ export default function Home() {
         <div className="w-full min-w-0 flex-1 z-10 relative">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-outline-variant bg-surface-container-low mb-6">
             <span className="w-2 h-2 rounded-full bg-primary-container animate-pulse"></span>
-            <span className="text-label-caps font-label-caps text-on-surface-variant uppercase tracking-widest">Configuration is the new compiler</span>
+            <span className="text-label-caps font-body-md text-on-surface-variant uppercase tracking-widest">Configuration is the new compiler</span>
           </div>
           <h1 className="text-4xl sm:text-5xl lg:text-display-hero font-display-hero text-on-surface mb-6">
             <div className="reveal-text-1">Define it.</div>
@@ -62,11 +62,11 @@ export default function Home() {
           <div className="mt-10 sm:mt-12 pt-6 sm:pt-8 border-t border-outline-hairline flex flex-wrap gap-x-6 gap-y-3 sm:gap-x-8">
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-primary-container text-sm">memory</span>
-              <span className="text-label-tech font-label-tech text-on-surface-variant">Config-Driven Architecture</span>
+              <span className="text-label-tech font-body-md text-on-surface-variant">Config-Driven Architecture</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-primary-container text-sm">verified</span>
-              <span className="text-label-tech font-label-tech text-on-surface-variant">Production Ready</span>
+              <span className="text-label-tech font-body-md text-on-surface-variant">Production Ready</span>
             </div>
           </div>
         </div>
@@ -93,7 +93,7 @@ export default function Home() {
               <div className="w-16 h-16 rounded bg-surface-container border border-outline-variant flex items-center justify-center hover-lift cursor-default relative">
                 <span className="material-symbols-outlined text-on-surface-variant/60">chat_bubble_outline</span>
               </div>
-              <span className="text-label-caps font-label-caps text-on-surface-variant/40 tracking-[0.2em] text-[9px] text-center">DEFINE</span>
+              <span className="text-label-caps font-body-md text-on-surface-variant/40 tracking-[0.2em] text-[9px] text-center">DEFINE</span>
             </div>
 
             <div className="flex flex-col items-center gap-4 bg-background px-2 relative z-10 w-32 -mt-4">
@@ -103,14 +103,14 @@ export default function Home() {
                 <div className="w-6 h-1 bg-primary-container/30 rounded-full"></div>
                 <div className="absolute top-full left-1/2 -translate-x-1/2 w-[1px] h-24 bg-gradient-to-b from-primary-container to-transparent opacity-50"></div>
               </div>
-              <span className="text-label-caps font-label-caps text-primary-container tracking-[0.3em] text-[10px] font-bold text-center mt-2">CONFIG</span>
+              <span className="text-label-caps font-body-md text-primary-container tracking-[0.3em] text-[10px] font-bold text-center mt-2">CONFIG</span>
             </div>
 
             <div className="flex flex-col items-center gap-4 bg-background px-2 relative z-10 w-24">
               <div className="w-16 h-16 rounded bg-surface-container border border-tertiary-container/30 flex items-center justify-center hover-lift cursor-default shadow-[0_0_20px_rgba(0,174,120,0.1)] relative">
                 <span className="material-symbols-outlined text-tertiary-container">layers</span>
               </div>
-              <span className="text-label-caps font-label-caps text-tertiary-container/80 tracking-[0.2em] text-[9px] text-center">PRODUCTION</span>
+              <span className="text-label-caps font-body-md text-tertiary-container/80 tracking-[0.2em] text-[9px] text-center">PRODUCTION</span>
             </div>
           </div>
         </div>
@@ -121,27 +121,27 @@ export default function Home() {
         <div className="max-w-container-max mx-auto px-margin-safe flex flex-wrap justify-center items-center gap-8 md:gap-16 opacity-60">
           <div className="flex items-center gap-2 text-on-surface-variant">
             <span className="material-symbols-outlined">language</span>
-            <span className="text-label-caps font-label-caps">NEXT.JS</span>
+            <span className="text-label-caps font-body-md">NEXT.JS</span>
           </div>
           <div className="flex items-center gap-2 text-on-surface-variant">
             <span className="material-symbols-outlined">code</span>
-            <span className="text-label-caps font-label-caps">REACT</span>
+            <span className="text-label-caps font-body-md">REACT</span>
           </div>
           <div className="flex items-center gap-2 text-on-surface-variant">
             <span className="material-symbols-outlined">api</span>
-            <span className="text-label-caps font-label-caps">EXPRESS</span>
+            <span className="text-label-caps font-body-md">EXPRESS</span>
           </div>
           <div className="flex items-center gap-2 text-on-surface-variant">
             <span className="material-symbols-outlined">database</span>
-            <span className="text-label-caps font-label-caps">POSTGRESQL</span>
+            <span className="text-label-caps font-body-md">POSTGRESQL</span>
           </div>
           <div className="flex items-center gap-2 text-on-surface-variant">
             <span className="material-symbols-outlined">schema</span>
-            <span className="text-label-caps font-label-caps">PRISMA</span>
+            <span className="text-label-caps font-body-md">PRISMA</span>
           </div>
           <div className="flex items-center gap-2 text-on-surface-variant">
             <span className="material-symbols-outlined">palette</span>
-            <span className="text-label-caps font-label-caps">TAILWIND CSS</span>
+            <span className="text-label-caps font-body-md">TAILWIND CSS</span>
           </div>
         </div>
       </section>
@@ -149,7 +149,7 @@ export default function Home() {
       {/* Problem / Workflow Comparison */}
       <section className="max-w-container-max mx-auto px-4 sm:px-6 lg:px-margin-safe py-20 border-t border-outline-hairline">
         <div className="text-center mb-16">
-          <h2 className="text-label-caps font-label-caps text-primary-container tracking-widest mb-2">THE PROBLEM</h2>
+          <h2 className="text-label-caps font-body-md text-primary-container tracking-widest mb-2">THE PROBLEM</h2>
           <h3 className="text-headline-lg font-headline-lg text-on-surface mb-4">Stop writing boilerplate.</h3>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -163,19 +163,19 @@ export default function Home() {
             <div className="space-y-4">
               <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between border-b border-outline-variant/30 pb-4">
                 <span className="text-on-surface-variant text-body-md">Timeline</span>
-                <span className="text-error font-label-tech">Weeks to Months</span>
+                <span className="text-error font-body-md">Weeks to Months</span>
               </div>
               <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between border-b border-outline-variant/30 pb-4">
                 <span className="text-on-surface-variant text-body-md">APIs</span>
-                <span className="text-error font-label-tech">Manual implementation</span>
+                <span className="text-error font-body-md">Manual implementation</span>
               </div>
               <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between border-b border-outline-variant/30 pb-4">
                 <span className="text-on-surface-variant text-body-md">Database</span>
-                <span className="text-error font-label-tech">Manual schemas & migrations</span>
+                <span className="text-error font-body-md">Manual schemas & migrations</span>
               </div>
               <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                 <span className="text-on-surface-variant text-body-md">UI Components</span>
-                <span className="text-error font-label-tech">Manual wiring & state</span>
+                <span className="text-error font-body-md">Manual wiring & state</span>
               </div>
             </div>
           </div>
@@ -192,19 +192,19 @@ export default function Home() {
             <div className="space-y-4 relative z-10">
               <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between border-b border-outline-variant/30 pb-4">
                 <span className="text-on-surface-variant text-body-md">Timeline</span>
-                <span className="text-primary-container font-label-tech">Minutes</span>
+                <span className="text-primary-container font-body-md">Minutes</span>
               </div>
               <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between border-b border-outline-variant/30 pb-4">
                 <span className="text-on-surface-variant text-body-md">APIs</span>
-                <span className="text-primary-container font-label-tech">Auto-generated CRUD</span>
+                <span className="text-primary-container font-body-md">Auto-generated CRUD</span>
               </div>
               <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between border-b border-outline-variant/30 pb-4">
                 <span className="text-on-surface-variant text-body-md">Database</span>
-                <span className="text-primary-container font-label-tech">Auto-generated schemas</span>
+                <span className="text-primary-container font-body-md">Auto-generated schemas</span>
               </div>
               <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                 <span className="text-on-surface-variant text-body-md">UI Components</span>
-                <span className="text-primary-container font-label-tech">Auto-generated & wired</span>
+                <span className="text-primary-container font-body-md">Auto-generated & wired</span>
               </div>
             </div>
           </div>
@@ -215,7 +215,7 @@ export default function Home() {
       {/* Generate Section (Showpiece) */}
       <section className="max-w-container-max mx-auto px-4 sm:px-6 lg:px-margin-safe py-20 border-t border-outline-hairline" id="how-it-works">
         <div className="text-center mb-16">
-          <h2 className="text-label-caps font-label-caps text-primary-container tracking-widest mb-2">THE ENGINE</h2>
+          <h2 className="text-label-caps font-body-md text-primary-container tracking-widest mb-2">THE ENGINE</h2>
           <h3 className="text-headline-lg font-headline-lg text-on-surface mb-4">A complete, production-ready architecture.</h3>
           <p className="text-body-lg text-on-surface-variant max-w-2xl mx-auto">Every layer. Every file. Every configuration. Generated, connected, and ready to scale.</p>
         </div>
@@ -260,7 +260,7 @@ export default function Home() {
               <div className="w-24 h-24 rounded-2xl bg-surface-elevated border border-primary-container shadow-[0_0_40px_rgba(255,107,0,0.2)] flex items-center justify-center relative z-10 hover-lift">
                 <span className="material-symbols-outlined text-4xl text-primary-container animate-pulse">settings_b_roll</span>
               </div>
-              <div className="mt-4 text-label-caps font-label-caps text-primary tracking-widest text-center">
+              <div className="mt-4 text-label-caps font-body-md text-primary tracking-widest text-center">
                 GENERATION ENGINE<br />
                 <span className="text-[9px] text-on-surface-variant">RESOLVING DEPENDENCIES</span>
               </div>
@@ -271,21 +271,21 @@ export default function Home() {
               <div className="glass-panel p-4 rounded border-l-2 border-l-tertiary-container flex items-center gap-4 hover-lift">
                 <span className="material-symbols-outlined text-tertiary-container">database</span>
                 <div>
-                  <div className="text-label-caps text-on-surface font-label-caps mb-1">DATABASE</div>
+                  <div className="text-label-caps text-on-surface font-body-md mb-1">DATABASE</div>
                   <div className="text-code-base font-code-base text-on-surface-variant text-xs">schema.prisma generated</div>
                 </div>
               </div>
               <div className="glass-panel p-4 rounded border-l-2 border-l-secondary-container flex items-center gap-4 hover-lift">
                 <span className="material-symbols-outlined text-secondary-container">api</span>
                 <div>
-                  <div className="text-label-caps text-on-surface font-label-caps mb-1">BACKEND API</div>
+                  <div className="text-label-caps text-on-surface font-body-md mb-1">BACKEND API</div>
                   <div className="text-code-base font-code-base text-on-surface-variant text-xs">Next.js Route Handlers</div>
                 </div>
               </div>
               <div className="glass-panel p-4 rounded border-l-2 border-l-primary-container flex items-center gap-4 hover-lift">
                 <span className="material-symbols-outlined text-primary-container">web</span>
                 <div>
-                  <div className="text-label-caps text-on-surface font-label-caps mb-1">FRONTEND</div>
+                  <div className="text-label-caps text-on-surface font-body-md mb-1">FRONTEND</div>
                   <div className="text-code-base font-code-base text-on-surface-variant text-xs">Next.js Client Components & Tailwind</div>
                 </div>
               </div>
@@ -297,7 +297,7 @@ export default function Home() {
       {/* Features Grid */}
       <section className="max-w-container-max mx-auto px-4 sm:px-6 lg:px-margin-safe py-20 border-t border-outline-hairline" id="features">
         <div className="text-center mb-16">
-          <h2 className="text-label-caps font-label-caps text-primary-container tracking-widest mb-2">FEATURES</h2>
+          <h2 className="text-label-caps font-body-md text-primary-container tracking-widest mb-2">FEATURES</h2>
           <h3 className="text-headline-lg font-headline-lg text-on-surface mb-4">Everything you need. Out of the box.</h3>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -337,7 +337,7 @@ export default function Home() {
       {/* Use Cases Section */}
       <section className="max-w-container-max mx-auto px-4 sm:px-6 lg:px-margin-safe py-20 border-t border-outline-hairline bg-surface-container-low/50" id="use-cases">
         <div className="text-center mb-16">
-          <h2 className="text-label-caps font-label-caps text-primary-container tracking-widest mb-2">USE CASES</h2>
+          <h2 className="text-label-caps font-body-md text-primary-container tracking-widest mb-2">USE CASES</h2>
           <h3 className="text-headline-lg font-headline-lg text-on-surface mb-4">Built for any domain.</h3>
         </div>
         <div className="flex flex-wrap justify-center gap-6">
