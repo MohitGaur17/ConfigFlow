@@ -26,3 +26,6 @@ client/src/components/renderers/fix3.js
 # OS artifacts
 .DS_Store
 Thumbs.db
+
+# Local editor settings
+.vscode/
