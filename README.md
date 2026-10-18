@@ -395,6 +395,10 @@ Compose starts PostgreSQL, then runs a one-shot `db-init` service that applies `
 
 This Compose setup is for local demos only. It uses local database credentials and defaults to a public demo JWT secret; never use those defaults in production. The server rejects missing, short, or local-demo JWT secrets when `NODE_ENV=production`. Production deployments must supply a unique, high-entropy `JWT_SECRET` of at least 32 characters from a secret manager. Generate one with `openssl rand -base64 48`.
 
+`NEXT_PUBLIC_API_URL` is compiled into the browser frontend during the Docker image build. To use a different API address, set it in the shell or the Compose `.env` file and rebuild the client image, for example `NEXT_PUBLIC_API_URL=https://api.example.com docker compose up --build client`. Changing the container's runtime environment alone does not update the URL embedded in the frontend.
+
+For production, set the server's `NODE_ENV=production` and provide a unique randomly generated `JWT_SECRET` of at least 32 characters through your deployment secret manager. The application exits before opening its HTTP port if the secret is missing, too short, or marked as a local-demo secret. Do not deploy this local-demo Compose configuration unchanged.
+
 This repository does not yet contain a Prisma migrations directory. `prisma db push` is for local schema synchronization, not a production migration process; production database changes need reviewed migrations and a deployment migration job.
 
 - **Frontend**: [http://localhost:3000](http://localhost:3000)

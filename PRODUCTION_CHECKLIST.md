@@ -32,7 +32,8 @@ Use this checklist before deploying to production.
 ### Environment Variables
 - [ ] All required `.env` variables documented
 - [ ] Production values different from dev (especially secrets)
-- [ ] `JWT_SECRET` is cryptographically secure (32+ random chars)
+- [ ] `JWT_SECRET` is unique, generated with a cryptographically secure random generator, and at least 32 characters (for example, `openssl rand -base64 48`)
+- [ ] The production `JWT_SECRET` is stored in the deployment secret manager and differs from every local/demo environment
 - [ ] `DATABASE_URL` points to production database
 - [ ] `CLIENT_URL` points to production frontend domain
 - [ ] `NODE_ENV=production`

@@ -171,7 +171,8 @@ DATABASE_URL=postgresql://user:password@host/configflow
 CLIENT_URL=https://your-app.vercel.app
 
 # JWT
-JWT_SECRET=your-super-secret-jwt-key-min-32-chars
+# Generate with `openssl rand -base64 48` and store it as a deployment secret.
+JWT_SECRET=<unique-production-secret-from-secret-manager>
 
 # OAuth (if using)
 GOOGLE_CLIENT_ID=your_google_client_id

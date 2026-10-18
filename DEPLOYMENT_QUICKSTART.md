@@ -28,7 +28,7 @@ npm run prisma:push --workspace=server
    - `PORT`: `4000`
    - `NODE_ENV`: `production`
    - `CLIENT_URL`: Will update after Vercel deploy (e.g., `https://your-app.vercel.app`)
-   - `JWT_SECRET`: Generate secure key → `openssl rand -base64 32`
+   - `JWT_SECRET`: Generate a unique production secret with `openssl rand -base64 48`; store it in the provider's secret manager and never reuse the Docker local-demo value
 5. **Build Command**: `npm run build --workspace=server`
 6. **Start Command**: `npm run start --workspace=server`
 7. Deploy and note your URL (e.g., `https://configflow-api-prod.railway.app`)
@@ -79,7 +79,7 @@ https://your-app.vercel.app
 
 ### Server (Railway/Render)
 - [ ] `DATABASE_URL` - Neon connection string
-- [ ] `JWT_SECRET` - Generated secure key (32+ chars)
+- [ ] `JWT_SECRET` - Unique generated production secret (32+ chars), stored in the provider's secret manager
 - [ ] `PORT` - `4000`
 - [ ] `NODE_ENV` - `production`
 - [ ] `CLIENT_URL` - Your Vercel URL
