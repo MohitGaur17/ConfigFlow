@@ -41,7 +41,7 @@ export default function Home() {
             <span className="w-2 h-2 rounded-full bg-primary-container animate-pulse"></span>
             <span className="text-label-caps font-body-md text-on-surface-variant uppercase tracking-widest">Configuration is the new compiler</span>
           </div>
-          <h1 className="text-4xl sm:text-5xl lg:text-display-hero font-display-hero text-on-surface mb-6">
+          <h1 className="text-4xl sm:text-5xl lg:text-display-hero font-display-hero font-black text-on-surface mb-6">
             <div className="reveal-text-1">Define it.</div>
             <div className="reveal-text-2">Generate it.</div>
             <div className="reveal-text-3 text-primary-container">Ship it.</div>
