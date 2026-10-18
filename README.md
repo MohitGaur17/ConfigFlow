@@ -40,7 +40,7 @@ ConfigFlow turns a JSON application configuration into an interactive preview an
   - **Table Views**: Search, pagination, column sorting, and configurable create, edit, and delete actions.
   - **Forms**: Field-aware inputs, create/edit modes, and server-side validation feedback.
   - **Dashboards**: Configurable metric cards, recharts visualizations (bar, line, pie), and recent activity lists.
-- **Interactive Code Viewer**: Browse the generated codebase in-browser before exporting, featuring an interactive file tree and source previews (`prisma/schema.prisma`, `package.json`, API routes, and page components).
+- **Interactive Code Viewer**: Browse the generated codebase in-browser before exporting, using a file tree on larger screens and a compact file picker on smaller screens, with source previews (`prisma/schema.prisma`, `package.json`, API routes, and page components).
 - **Vendor-Agnostic Source Code Export**: Exports a standard Next.js (App Router) project with Prisma ORM, PostgreSQL connection strings, Tailwind CSS styling, and PWA assets. No proprietary runtime lock-in.
 - **ConfigFlow Platform Authentication & Security**:
   - JWT session tokens and bcrypt password hashing.
