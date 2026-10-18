@@ -34,9 +34,9 @@ export default function Home() {
   return (
     <div className="font-body-md antialiased selection:bg-primary-container selection:text-white bg-grid min-h-screen">
       {/* Hero Section */}
-      <section ref={heroRef} className="relative max-w-container-max mx-auto px-4 sm:px-6 lg:px-margin-safe py-16 sm:py-20 lg:py-32 flex flex-col lg:flex-row items-center gap-8 sm:gap-12" id="hero-section">
+      <section ref={heroRef} className="relative max-w-container-max mx-auto overflow-x-clip px-4 sm:px-6 lg:px-margin-safe py-16 sm:py-20 lg:py-32 flex flex-col lg:flex-row items-center gap-8 sm:gap-12" id="hero-section">
         <div ref={glowRef} id="mouse-glow" style={{ left: '50%', top: '50%' }}></div>
-        <div className="flex-1 z-10 relative">
+        <div className="w-full min-w-0 flex-1 z-10 relative">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-outline-variant bg-surface-container-low mb-6">
             <span className="w-2 h-2 rounded-full bg-primary-container animate-pulse"></span>
             <span className="text-label-caps font-label-caps text-on-surface-variant uppercase tracking-widest">Configuration is the new compiler</span>
