@@ -12,9 +12,36 @@ process.env.DATABASE_URL = process.env.CONFIGFLOW_TEST_DATABASE_URL;
 process.env.JWT_SECRET ||= "configflow-security-suite-secret-change-me";
 
 const { app } = await import("../server/dist/index.js");
+const { getJwtSecret } = await import("../server/dist/middleware/auth.js");
 
 const PORT = 4099;
 const BASE_URL = `http://127.0.0.1:${PORT}`;
+
+function verifyProductionJwtSecretConfiguration() {
+  const originalNodeEnv = process.env.NODE_ENV;
+  const originalJwtSecret = process.env.JWT_SECRET;
+
+  try {
+    process.env.NODE_ENV = "production";
+    delete process.env.JWT_SECRET;
+    assert.throws(() => getJwtSecret(), /Production requires JWT_SECRET/);
+
+    process.env.JWT_SECRET = "too-short";
+    assert.throws(() => getJwtSecret(), /at least 32 characters/);
+
+    process.env.JWT_SECRET = "configflow-local-demo-secret-not-for-production-change-me";
+    assert.throws(() => getJwtSecret(), /local-demo secrets are not allowed/);
+
+    const productionSecret = `${Date.now()}-${Math.random()}-${Math.random()}`.padEnd(32, "x");
+    process.env.JWT_SECRET = productionSecret;
+    assert.strictEqual(getJwtSecret(), productionSecret);
+    console.log("Production JWT configuration rejects missing and local-demo secrets");
+  } finally {
+    process.env.NODE_ENV = originalNodeEnv;
+    if (originalJwtSecret === undefined) delete process.env.JWT_SECRET;
+    else process.env.JWT_SECRET = originalJwtSecret;
+  }
+}
 
 async function request(path, options = {}) {
   const url = `${BASE_URL}${path}`;
@@ -30,6 +57,7 @@ async function request(path, options = {}) {
 
 async function runSecuritySuite() {
   console.log("=== ConfigFlow Security & Authorization Test Suite ===");
+  verifyProductionJwtSecretConfiguration();
   const { PrismaClient } = await import("@prisma/client");
   const prisma = new PrismaClient();
   const server = app.listen(PORT);

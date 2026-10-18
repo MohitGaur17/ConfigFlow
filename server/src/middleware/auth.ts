@@ -12,7 +12,16 @@ export interface AuthRequest extends Request {
 }
 
 export function getJwtSecret(): string {
-  return process.env.JWT_SECRET || "fallback-secret-change-me";
+  const secret = process.env.JWT_SECRET?.trim();
+
+  if (process.env.NODE_ENV === "production") {
+    const isLocalDemoSecret = secret?.toLowerCase().includes("local-demo") || secret === "dev-jwt-secret-change-in-production";
+    if (!secret || secret.length < 32 || isLocalDemoSecret) {
+      throw new Error("Production requires JWT_SECRET with at least 32 characters; local-demo secrets are not allowed.");
+    }
+  }
+
+  return secret || "fallback-secret-change-me";
 }
 
 /**

@@ -210,7 +210,8 @@ npm run dev
 
 - **Frontend**: [http://localhost:3000](http://localhost:3000)
 - **Backend API**: [http://localhost:4000](http://localhost:4000)
-- **API Health Check**: [http://localhost:4000/api/health](http://localhost:4000/api/health)
+- **HTTP liveness check**: [http://localhost:4000/api/health](http://localhost:4000/api/health)
+- **Database readiness check**: [http://localhost:4000/api/ready](http://localhost:4000/api/ready)
 
 ---
 
@@ -390,6 +391,12 @@ You can spin up the full PostgreSQL, Express backend, and Next.js frontend stack
 docker compose up --build
 ```
 
+Compose starts PostgreSQL, then runs a one-shot `db-init` service that applies `server/prisma/schema.prisma` with `prisma db push`. The API starts only after that command succeeds, and its readiness check also verifies the database tables are available. This safely reuses the `postgres_data` volume; `docker compose down` keeps the data, while `docker compose down --volumes` deletes it.
+
+This Compose setup is for local demos only. It uses local database credentials and defaults to a public demo JWT secret; never use those defaults in production. The server rejects missing, short, or local-demo JWT secrets when `NODE_ENV=production`. Production deployments must supply a unique, high-entropy `JWT_SECRET` of at least 32 characters from a secret manager. Generate one with `openssl rand -base64 48`.
+
+This repository does not yet contain a Prisma migrations directory. `prisma db push` is for local schema synchronization, not a production migration process; production database changes need reviewed migrations and a deployment migration job.
+
 - **Frontend**: [http://localhost:3000](http://localhost:3000)
 - **Backend**: [http://localhost:4000](http://localhost:4000)
 - **PostgreSQL**: `localhost:5432`
@@ -419,6 +426,7 @@ Deployment guides and checklists are included in the repository:
 | `npm run verify:features` | Run static feature and configuration checks |
 | `npm run verify:security` | Run database-backed authentication, app ownership, and entity isolation checks (requires `CONFIGFLOW_TEST_DATABASE_URL`) |
 | `npm run verify:generation` | Install and build a generated project; database CRUD/API checks run only when `CONFIGFLOW_TEST_DATABASE_URL` is set |
+| `npm run verify:docker-smoke` | Verify the Compose API health, database readiness, registration, and isolated test-data cleanup (requires a running Compose stack) |
 
 ---
 

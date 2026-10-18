@@ -7,8 +7,11 @@ import authRoutes from "./routes/auth";
 import appsRoutes from "./routes/apps";
 import entityRoutes from "./routes/entity";
 import notificationsRoutes from "./routes/notifications";
+import { PrismaClient } from "@prisma/client";
+import { getJwtSecret } from "./middleware/auth";
 
 const app = express();
+const healthPrisma = new PrismaClient();
 const PORT = process.env.PORT || 4000;
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:3000";
 
@@ -34,6 +37,19 @@ app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
+// Readiness requires the database connection and Prisma tables to be available.
+app.get("/api/ready", async (_req, res) => {
+  try {
+    await Promise.all([
+      healthPrisma.user.findFirst({ select: { id: true } }),
+      healthPrisma.emailVerificationToken.findFirst({ select: { id: true } }),
+    ]);
+    res.json({ status: "ready", checks: { database: "ok" }, timestamp: new Date().toISOString() });
+  } catch {
+    res.status(503).json({ status: "not_ready", checks: { database: "unavailable" }, timestamp: new Date().toISOString() });
+  }
+});
+
 // ============================================================
 // Global Error Handler
 // ============================================================
@@ -56,6 +72,8 @@ let serverInstance: any = null;
 
 async function start() {
   try {
+    // Fail before accepting requests if a production secret is missing or unsafe.
+    getJwtSecret();
     serverInstance = app.listen(PORT, () => {
       console.log(`[Server] Running on http://localhost:${PORT}`);
     });

@@ -23,6 +23,10 @@ RUN npm run build --workspace=server
 # Generate Prisma client during build (requires dev deps available in builder)
 RUN npm run prisma:generate --workspace=server
 
+# One-shot target used by Docker Compose to synchronize the checked-in Prisma schema.
+FROM builder AS db-init
+CMD ["npm", "run", "prisma:push", "--workspace=server"]
+
 # Runtime stage
 FROM node:20-bookworm-slim
 
@@ -47,9 +51,9 @@ COPY --from=builder /app/server/dist ./server/dist
 # Copy generated Prisma client from builder stage into runtime image
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
-# Health check
+# Readiness check: the API and Prisma schema must both be available.
 HEALTHCHECK --interval=10s --timeout=5s --start-period=40s --retries=3 \
-  CMD node -e "const req=require('http').get('http://127.0.0.1:'+(process.env.PORT||4000)+'/api/health',r=>{r.resume();r.on('end',()=>process.exit(r.statusCode===200?0:1))});req.setTimeout(3000,()=>req.destroy());req.on('error',()=>process.exit(1))"
+  CMD node -e "const req=require('http').get('http://127.0.0.1:'+(process.env.PORT||4000)+'/api/ready',r=>{r.resume();r.on('end',()=>process.exit(r.statusCode===200?0:1))});req.setTimeout(3000,()=>req.destroy());req.on('error',()=>process.exit(1))"
 
 # Expose port
 EXPOSE ${PORT:-4000}

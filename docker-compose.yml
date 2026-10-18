@@ -17,6 +17,19 @@ services:
       timeout: 5s
       retries: 5
 
+  # Applies the checked-in Prisma schema without deleting persistent database data.
+  db-init:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: db-init
+    environment:
+      DATABASE_URL: postgresql://appuser:apppassword@postgres:5432/configflow
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
   # Backend Server
   server:
     build:
@@ -25,15 +38,16 @@ services:
     container_name: configflow_server
     environment:
       DATABASE_URL: postgresql://appuser:apppassword@postgres:5432/configflow
-      JWT_SECRET: dev-jwt-secret-change-in-production
+      # Local-demo default only. Set a unique JWT_SECRET for deployment.
+      JWT_SECRET: ${JWT_SECRET:-configflow-local-demo-secret-not-for-production-change-me}
       PORT: 4000
-      NODE_ENV: production
+      NODE_ENV: development
       CLIENT_URL: http://localhost:3000
     ports:
       - "4000:4000"
     depends_on:
-      postgres:
-        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
     command: npm run start --workspace=server
 
   # Frontend Client
