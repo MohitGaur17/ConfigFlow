@@ -114,7 +114,7 @@ export default function BuilderPage() {
   );
 
   return (
-    <div className="p-8 max-w-4xl mx-auto w-full">
+    <div className="p-4 sm:p-8 max-w-4xl mx-auto w-full">
       {/* Brand Navigation Bar */}
       <div className="flex items-center justify-between pb-6 mb-8 border-b border-outline-hairline">
         <div className="flex items-center gap-4">
@@ -193,14 +193,14 @@ export default function BuilderPage() {
         <div className="glass-panel border border-outline-hairline rounded-xl overflow-hidden flex flex-col shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-500">
           
           {/* Editor Header */}
-          <div className="bg-surface-container-lowest border-b border-outline-hairline px-4 py-3 flex items-center justify-between">
+          <div className="bg-surface-container-lowest border-b border-outline-hairline px-4 py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-[16px] text-primary-container">code</span>
               <span className="font-label-tech text-label-tech text-on-surface">config.json</span>
             </div>
             
             {/* Action Buttons */}
-            <div className="flex gap-3">
+            <div className="flex items-center justify-between gap-2 sm:justify-end sm:gap-3">
               <button onClick={() => setJsonConfig("")} className="px-4 py-1.5 rounded font-label-tech text-label-tech text-on-surface-variant hover:text-on-surface transition-colors">
                 Clear
               </button>
@@ -245,7 +245,7 @@ export default function BuilderPage() {
             <textarea
               value={jsonConfig}
               onChange={(e) => setJsonConfig(e.target.value)}
-              className="w-full h-[400px] bg-transparent text-primary font-code-base text-sm resize-none outline-none border-none focus:ring-0 leading-relaxed"
+              className="w-full h-[50svh] min-h-[240px] max-h-[560px] sm:h-[400px] bg-transparent text-primary font-code-base text-sm resize-y outline-none border-none focus:ring-0 leading-relaxed"
               spellCheck="false"
               placeholder="Paste your JSON configuration here..."
             />

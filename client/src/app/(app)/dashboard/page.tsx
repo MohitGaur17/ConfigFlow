@@ -63,7 +63,7 @@ export default function DashboardPage() {
   }, [authLoading, fetchProjects, isAuthenticated, router]);
 
   return (
-    <div className="p-8 max-w-6xl mx-auto w-full">
+    <div className="p-4 sm:p-8 max-w-6xl mx-auto w-full">
       {/* Brand Navigation Bar */}
       <div className="flex items-center justify-between pb-6 mb-8 border-b border-outline-hairline">
         <Link href="/" className="flex items-center gap-2.5 hover:opacity-85 transition-opacity">
@@ -71,12 +71,12 @@ export default function DashboardPage() {
           <span className="font-headline-md text-lg font-black tracking-tight text-on-surface">ConfigFlow</span>
         </Link>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <NotificationBell />
           {user && (
             <div className="hidden sm:flex items-center gap-2 text-xs font-code-base text-on-surface-variant bg-surface-variant/30 border border-outline-hairline px-3 py-1.5 rounded-full">
               <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-              <span>{user.email}</span>
+              <span className="max-w-48 truncate">{user.email}</span>
             </div>
           )}
           <button
@@ -97,7 +97,7 @@ export default function DashboardPage() {
         </div>
         <Link 
           href="/builder"
-          className="bg-primary-container hover:bg-orange-600 text-white px-5 py-2.5 rounded font-label-tech text-label-tech transition-all flex items-center gap-2 shadow-[0_0_10px_rgba(255,107,0,0.3)] active:scale-95"
+          className="w-full md:w-auto justify-center bg-primary-container hover:bg-orange-600 text-white px-5 py-2.5 rounded font-label-tech text-label-tech transition-all flex items-center gap-2 shadow-[0_0_10px_rgba(255,107,0,0.3)] active:scale-95"
         >
           <span className="material-symbols-outlined text-[18px]">add</span>
           Create New Project
@@ -118,7 +118,7 @@ export default function DashboardPage() {
                 
                 <div className="p-5 flex-1">
                   <div className="flex justify-between items-start mb-3">
-                    <h3 className="font-headline-md text-lg text-on-surface">{project.name}</h3>
+                    <h3 className="min-w-0 truncate font-headline-md text-lg text-on-surface">{project.name}</h3>
                     <button onClick={() => handleDelete(project.id)} className="text-on-surface-variant hover:text-error-red transition-colors">
                       <span className="material-symbols-outlined text-[20px]">delete</span>
                     </button>
@@ -129,7 +129,7 @@ export default function DashboardPage() {
                   </p>
                   
                   {/* Status Badges */}
-                  <div className="flex items-center gap-3 mb-4">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-4">
                     <span className="px-2 py-0.5 rounded-sm bg-primary-container/10 border border-primary-container/30 text-[10px] font-label-caps text-primary-container tracking-widest">
                       LIVE PREVIEW
                     </span>

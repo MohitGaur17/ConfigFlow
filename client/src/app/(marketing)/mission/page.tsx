@@ -2,8 +2,8 @@ import Link from "next/link";
 
 export default function MissionPage() {
   return (
-    <div className="font-body-md antialiased bg-background min-h-screen pt-24 pb-32">
-      <div className="max-w-5xl mx-auto px-margin-safe">
+    <div className="font-body-md antialiased bg-background min-h-screen pt-24 pb-20 sm:pb-32">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-margin-safe">
         
         {/* Header */}
         <div className="mb-16">
@@ -11,7 +11,7 @@ export default function MissionPage() {
             <span className="w-2 h-2 rounded-full bg-tertiary animate-pulse"></span>
             <span className="text-label-caps font-label-caps text-on-surface-variant uppercase tracking-widest">Our Mission</span>
           </div>
-          <h1 className="text-display-hero font-display-hero text-on-surface mb-6">
+          <h1 className="text-4xl sm:text-5xl lg:text-display-hero font-display-hero text-on-surface mb-6">
             Software should be <span className="text-primary-container">generated</span>, not written.
           </h1>
         </div>
@@ -52,7 +52,7 @@ export default function MissionPage() {
         </div>
 
         {/* CTA */}
-        <div className="mt-20 pt-12 border-t border-outline-hairline flex items-center justify-between">
+        <div className="mt-12 sm:mt-20 pt-8 sm:pt-12 border-t border-outline-hairline flex flex-col sm:flex-row sm:items-center justify-between gap-6">
           <div className="flex items-center gap-4">
             <span className="material-symbols-outlined text-4xl text-primary-container">account_tree</span>
             <div>

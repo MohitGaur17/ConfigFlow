@@ -34,14 +34,14 @@ export default function Home() {
   return (
     <div className="font-body-md antialiased selection:bg-primary-container selection:text-white bg-grid min-h-screen">
       {/* Hero Section */}
-      <section ref={heroRef} className="relative max-w-container-max mx-auto px-margin-safe py-20 lg:py-32 flex flex-col lg:flex-row items-center gap-12" id="hero-section">
+      <section ref={heroRef} className="relative max-w-container-max mx-auto px-4 sm:px-6 lg:px-margin-safe py-16 sm:py-20 lg:py-32 flex flex-col lg:flex-row items-center gap-8 sm:gap-12" id="hero-section">
         <div ref={glowRef} id="mouse-glow" style={{ left: '50%', top: '50%' }}></div>
         <div className="flex-1 z-10 relative">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-outline-variant bg-surface-container-low mb-6">
             <span className="w-2 h-2 rounded-full bg-primary-container animate-pulse"></span>
             <span className="text-label-caps font-label-caps text-on-surface-variant uppercase tracking-widest">Configuration is the new compiler</span>
           </div>
-          <h1 className="text-display-hero font-display-hero text-on-surface mb-6">
+          <h1 className="text-4xl sm:text-5xl lg:text-display-hero font-display-hero text-on-surface mb-6">
             <div className="reveal-text-1">Define it.</div>
             <div className="reveal-text-2">Generate it.</div>
             <div className="reveal-text-3 text-primary-container">Ship it.</div>
@@ -59,7 +59,7 @@ export default function Home() {
               See How It Works
             </Link>
           </div>
-          <div className="mt-12 pt-8 border-t border-outline-hairline flex gap-8">
+          <div className="mt-10 sm:mt-12 pt-6 sm:pt-8 border-t border-outline-hairline flex flex-wrap gap-x-6 gap-y-3 sm:gap-x-8">
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-primary-container text-sm">memory</span>
               <span className="text-label-tech font-label-tech text-on-surface-variant">Config-Driven Architecture</span>
@@ -72,7 +72,7 @@ export default function Home() {
         </div>
 
         {/* Abstract Isometric Diagram */}
-        <div className="flex-1 relative w-full lg:h-[600px] flex items-center justify-center overflow-hidden">
+        <div className="flex-1 relative w-full min-h-[280px] sm:min-h-[400px] lg:h-[600px] flex items-center justify-center overflow-hidden">
           <div className="absolute inset-0 bg-grid opacity-20"></div>
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary-container/5 blur-[120px] rounded-full pointer-events-none"></div>
           <div className="absolute w-full h-[1px] bg-outline-variant/20 top-1/2"></div>
@@ -80,7 +80,7 @@ export default function Home() {
           <div className="absolute w-[400px] h-[400px] border border-outline-variant/10 rounded-full"></div>
           <div className="absolute w-[250px] h-[250px] border border-outline-variant/20 rounded-full"></div>
 
-          <div className="relative z-10 flex items-start justify-between w-full max-w-2xl px-4 float-diagram pt-8">
+          <div className="relative z-10 flex items-start justify-between w-full max-w-2xl px-4 scale-[0.82] sm:scale-100 float-diagram pt-8">
             <div className="absolute top-[64px] left-[5rem] right-[5rem] h-[2px] bg-outline-variant/30 -z-10"></div>
             <div className="absolute top-[64px] left-[5rem] w-[calc(50%-7rem)] h-[2px] -z-10 overflow-hidden">
               <div className="absolute top-0 h-full w-12 bg-gradient-to-r from-transparent via-primary-container to-primary-container animate-[circuitPulse1_3s_linear_infinite]"></div>
@@ -147,7 +147,7 @@ export default function Home() {
       </section>
 
       {/* Problem / Workflow Comparison */}
-      <section className="max-w-container-max mx-auto px-margin-safe py-20 border-t border-outline-hairline">
+      <section className="max-w-container-max mx-auto px-4 sm:px-6 lg:px-margin-safe py-20 border-t border-outline-hairline">
         <div className="text-center mb-16">
           <h2 className="text-label-caps font-label-caps text-primary-container tracking-widest mb-2">THE PROBLEM</h2>
           <h3 className="text-headline-lg font-headline-lg text-on-surface mb-4">Stop writing boilerplate.</h3>
@@ -155,25 +155,25 @@ export default function Home() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 
           {/* Traditional */}
-          <div className="glass-panel p-8 rounded-xl border border-error-container/30">
+          <div className="glass-panel p-5 sm:p-8 rounded-xl border border-error-container/30">
             <h4 className="text-headline-md font-headline-md text-on-surface mb-6 flex items-center gap-2">
               <span className="material-symbols-outlined text-error">warning</span>
               Traditional Development
             </h4>
             <div className="space-y-4">
-              <div className="flex justify-between items-center border-b border-outline-variant/30 pb-4">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between border-b border-outline-variant/30 pb-4">
                 <span className="text-on-surface-variant text-body-md">Timeline</span>
                 <span className="text-error font-label-tech">Weeks to Months</span>
               </div>
-              <div className="flex justify-between items-center border-b border-outline-variant/30 pb-4">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between border-b border-outline-variant/30 pb-4">
                 <span className="text-on-surface-variant text-body-md">APIs</span>
                 <span className="text-error font-label-tech">Manual implementation</span>
               </div>
-              <div className="flex justify-between items-center border-b border-outline-variant/30 pb-4">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between border-b border-outline-variant/30 pb-4">
                 <span className="text-on-surface-variant text-body-md">Database</span>
                 <span className="text-error font-label-tech">Manual schemas & migrations</span>
               </div>
-              <div className="flex justify-between items-center">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                 <span className="text-on-surface-variant text-body-md">UI Components</span>
                 <span className="text-error font-label-tech">Manual wiring & state</span>
               </div>
@@ -181,7 +181,7 @@ export default function Home() {
           </div>
 
           {/* ConfigFlow */}
-          <div className="glass-panel p-8 rounded-xl border border-primary-container/30 relative overflow-hidden">
+          <div className="glass-panel p-5 sm:p-8 rounded-xl border border-primary-container/30 relative overflow-hidden">
             <div className="absolute top-0 right-0 p-4 opacity-10">
               <span className="material-symbols-outlined text-9xl text-primary-container">bolt</span>
             </div>
@@ -190,19 +190,19 @@ export default function Home() {
               ConfigFlow
             </h4>
             <div className="space-y-4 relative z-10">
-              <div className="flex justify-between items-center border-b border-outline-variant/30 pb-4">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between border-b border-outline-variant/30 pb-4">
                 <span className="text-on-surface-variant text-body-md">Timeline</span>
                 <span className="text-primary-container font-label-tech">Minutes</span>
               </div>
-              <div className="flex justify-between items-center border-b border-outline-variant/30 pb-4">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between border-b border-outline-variant/30 pb-4">
                 <span className="text-on-surface-variant text-body-md">APIs</span>
                 <span className="text-primary-container font-label-tech">Auto-generated CRUD</span>
               </div>
-              <div className="flex justify-between items-center border-b border-outline-variant/30 pb-4">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between border-b border-outline-variant/30 pb-4">
                 <span className="text-on-surface-variant text-body-md">Database</span>
                 <span className="text-primary-container font-label-tech">Auto-generated schemas</span>
               </div>
-              <div className="flex justify-between items-center">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                 <span className="text-on-surface-variant text-body-md">UI Components</span>
                 <span className="text-primary-container font-label-tech">Auto-generated & wired</span>
               </div>
@@ -213,7 +213,7 @@ export default function Home() {
       </section>
 
       {/* Generate Section (Showpiece) */}
-      <section className="max-w-container-max mx-auto px-margin-safe py-20 border-t border-outline-hairline" id="how-it-works">
+      <section className="max-w-container-max mx-auto px-4 sm:px-6 lg:px-margin-safe py-20 border-t border-outline-hairline" id="how-it-works">
         <div className="text-center mb-16">
           <h2 className="text-label-caps font-label-caps text-primary-container tracking-widest mb-2">THE ENGINE</h2>
           <h3 className="text-headline-lg font-headline-lg text-on-surface mb-4">A complete, production-ready architecture.</h3>
@@ -295,7 +295,7 @@ export default function Home() {
       </section>
 
       {/* Features Grid */}
-      <section className="max-w-container-max mx-auto px-margin-safe py-20 border-t border-outline-hairline" id="features">
+      <section className="max-w-container-max mx-auto px-4 sm:px-6 lg:px-margin-safe py-20 border-t border-outline-hairline" id="features">
         <div className="text-center mb-16">
           <h2 className="text-label-caps font-label-caps text-primary-container tracking-widest mb-2">FEATURES</h2>
           <h3 className="text-headline-lg font-headline-lg text-on-surface mb-4">Everything you need. Out of the box.</h3>
@@ -335,7 +335,7 @@ export default function Home() {
       </section>
 
       {/* Use Cases Section */}
-      <section className="max-w-container-max mx-auto px-margin-safe py-20 border-t border-outline-hairline bg-surface-container-low/50" id="use-cases">
+      <section className="max-w-container-max mx-auto px-4 sm:px-6 lg:px-margin-safe py-20 border-t border-outline-hairline bg-surface-container-low/50" id="use-cases">
         <div className="text-center mb-16">
           <h2 className="text-label-caps font-label-caps text-primary-container tracking-widest mb-2">USE CASES</h2>
           <h3 className="text-headline-lg font-headline-lg text-on-surface mb-4">Built for any domain.</h3>
@@ -360,7 +360,7 @@ export default function Home() {
       </section>
 
       {/* Final CTA */}
-      <section className="max-w-container-max mx-auto px-margin-safe py-32 text-center">
+      <section className="max-w-container-max mx-auto px-4 sm:px-6 lg:px-margin-safe py-20 sm:py-32 text-center">
         <h2 className="text-headline-lg font-headline-lg text-on-surface mb-6">Ready to build your next app in minutes?</h2>
         <p className="text-body-md text-on-surface-variant mb-10">Join developers who are shipping faster with ConfigFlow.</p>
         <Link href="/register" className="inline-block bg-primary-container hover:bg-orange-600 text-white px-8 py-4 rounded-md text-body-lg font-bold transition-all shadow-[0_0_20px_rgba(255,107,0,0.5)] shine-effect">

@@ -45,7 +45,7 @@ export default function AppShell({ children, hideSidebar = false }: AppShellProp
       {/* Mobile overlay */}
       {!hideSidebar && sidebarOpen && (
         <div
-          className="absolute inset-x-0 bottom-0 top-14 z-30 bg-black/50 lg:hidden"
+          className="fixed inset-x-0 bottom-0 top-14 z-30 bg-black/50 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -53,7 +53,7 @@ export default function AppShell({ children, hideSidebar = false }: AppShellProp
       {/* Sidebar */}
       {!hideSidebar && (
         <aside
-          className={`absolute left-0 top-14 bottom-0 z-40 flex w-64 flex-col transform border-r border-white/5 bg-gray-900/80 backdrop-blur-xl transition-transform duration-200 ease-in-out lg:static lg:top-0 lg:bottom-auto lg:translate-x-0 ${
+          className={`fixed left-0 top-14 bottom-0 z-40 flex w-64 flex-col transform border-r border-white/5 bg-gray-900/80 backdrop-blur-xl transition-transform duration-200 ease-in-out lg:static lg:top-0 lg:bottom-auto lg:translate-x-0 ${
             sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
           }`}
         >

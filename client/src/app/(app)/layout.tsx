@@ -1,6 +1,6 @@
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex h-screen bg-background text-on-surface overflow-hidden font-body-md">
+    <div className="app-viewport-height flex h-screen bg-background text-on-surface overflow-hidden font-body-md">
       {/* Main Stage Panel */}
       <main className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-background relative">
         {/* Subtle grid background for the workspace */}

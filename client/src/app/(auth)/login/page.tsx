@@ -46,7 +46,7 @@ export default function LoginPage() {
 
   return (
     <>
-      <div className="glass-panel rounded-xl w-full border border-outline-hairline p-8 shadow-2xl flex flex-col gap-6 relative overflow-hidden animate-in fade-in zoom-in-95 duration-300">
+      <div className="glass-panel rounded-xl w-full border border-outline-hairline p-5 sm:p-8 shadow-2xl flex flex-col gap-6 relative overflow-hidden animate-in fade-in zoom-in-95 duration-300">
         <div className="text-center">
           <h1 className="font-headline-lg text-headline-lg text-on-surface mb-2">Welcome back.</h1>
           <p className="font-body-md text-body-md text-on-surface-variant">Sign in to continue to your workspace.</p>

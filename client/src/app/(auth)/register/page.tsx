@@ -42,7 +42,7 @@ export default function RegisterPage() {
 
   return (
     <>
-      <div className="glass-card w-full border border-outline-hairline rounded-xl p-8 flex flex-col shadow-2xl relative overflow-hidden animate-in fade-in zoom-in-95 duration-300">
+      <div className="glass-card w-full border border-outline-hairline rounded-xl p-5 sm:p-8 flex flex-col shadow-2xl relative overflow-hidden animate-in fade-in zoom-in-95 duration-300">
         
         {/* Subtle accent top line */}
         <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-primary-container to-transparent opacity-50"></div>

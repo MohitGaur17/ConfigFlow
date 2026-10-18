@@ -3,7 +3,7 @@ import Link from "next/link";
 export default function Footer() {
   return (
     <footer className="border-t border-outline-hairline bg-surface-container-lowest pt-16 pb-8">
-      <div className="max-w-container-max mx-auto px-margin-safe grid grid-cols-2 md:grid-cols-4 gap-8 mb-16">
+      <div className="max-w-container-max mx-auto px-4 sm:px-6 lg:px-margin-safe grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 mb-12 sm:mb-16">
         <div className="col-span-2 md:col-span-1">
           <div className="flex items-center gap-2 mb-4">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 350" width="58" height="40" className="flex-shrink-0">
@@ -92,9 +92,9 @@ export default function Footer() {
           </ul>
         </div>
       </div>
-      <div className="max-w-container-max mx-auto px-margin-safe pt-8 border-t border-outline-hairline flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-on-surface-variant">
+      <div className="max-w-container-max mx-auto px-4 sm:px-6 lg:px-margin-safe pt-8 border-t border-outline-hairline flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-on-surface-variant text-center md:text-left">
         <div>© 2026 ConfigFlow Engineering. All rights reserved.</div>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center justify-center gap-4 md:justify-start">
           <Link href="#" className="hover:text-primary transition-colors">Privacy</Link>
           <Link href="#" className="hover:text-primary transition-colors">Terms</Link>
           <div className="flex items-center gap-2">

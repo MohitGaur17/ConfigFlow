@@ -6,7 +6,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <div className="absolute inset-0 bg-background/40 -z-10"></div>
       
       {/* Header */}
-      <header className="w-full px-margin-safe py-6 flex justify-between items-center z-10">
+      <header className="w-full px-4 sm:px-margin-safe py-6 flex justify-between items-center gap-4 z-10">
         <div className="flex items-center gap-2">
           <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 350" width="32" height="22" className="flex-shrink-0">
@@ -19,11 +19,12 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
                 <rect x="350" y="130" width="80" height="80" rx="14" fill="#FF6B00" />
               </g>
             </svg>
-            <span className="font-headline-md text-headline-md font-black tracking-tighter text-on-surface">ConfigFlow</span>
+            <span className="font-headline-md text-lg sm:text-headline-md font-black tracking-tighter text-on-surface">ConfigFlow</span>
           </Link>
         </div>
-        <Link className="text-on-surface-variant hover:text-primary transition-colors duration-200 flex items-center gap-2 font-label-caps text-label-caps" href="/">
-          <span>Back to Home</span>
+        <Link className="shrink-0 text-on-surface-variant hover:text-primary transition-colors duration-200 flex items-center gap-1 sm:gap-2 font-label-caps text-label-caps" href="/">
+          <span className="hidden sm:inline">Back to Home</span>
+          <span className="sm:hidden">Home</span>
           <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
         </Link>
       </header>

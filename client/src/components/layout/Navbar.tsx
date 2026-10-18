@@ -58,7 +58,7 @@ export default function Navbar() {
     };
 
     const handleResize = () => {
-      if (window.innerWidth >= 768) {
+      if (window.innerWidth >= 1024) {
         setIsOpen(false);
       }
     };
@@ -100,7 +100,7 @@ export default function Navbar() {
           : "bg-transparent border-b border-transparent"
       }`}
     >
-      <div className="flex justify-between items-center w-full px-4 sm:px-6 md:px-margin-safe h-16 max-w-container-max mx-auto">
+      <div className="flex justify-between items-center gap-2 w-full px-4 sm:px-6 lg:px-margin-safe h-16 max-w-container-max mx-auto">
         {/* Brand Logo */}
         <div className="flex items-center gap-2">
           <Link
@@ -145,19 +145,19 @@ export default function Navbar() {
                 <rect x="350" y="130" width="80" height="80" rx="14" fill="#FF6B00" />
               </g>
             </svg>
-            <span className="text-xl sm:text-headline-md font-headline-md font-black tracking-tighter text-on-surface">
+            <span className="text-lg sm:text-xl font-headline-md font-black tracking-tighter text-on-surface">
               ConfigFlow
             </span>
           </Link>
         </div>
 
         {/* Desktop Links */}
-        <div className="hidden md:flex items-center gap-1 lg:gap-2">
+        <div className="hidden lg:flex items-center gap-0 xl:gap-2">
           {NAV_LINKS.map((link) => (
             <Link
               key={link.name}
               href={link.href}
-              className="text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/30 px-3 py-1.5 rounded text-sm font-medium transition-colors"
+              className="text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/30 px-2 xl:px-3 py-1.5 rounded text-sm font-medium transition-colors"
             >
               {link.name}
             </Link>
@@ -165,7 +165,7 @@ export default function Navbar() {
         </div>
 
         {/* Desktop Right Actions */}
-        <div className="hidden md:flex items-center gap-3">
+        <div className="hidden lg:flex items-center gap-2 xl:gap-3">
           {mounted && isAuthenticated && <NotificationBell />}
           {mounted && isAuthenticated && user ? (
             <div className="flex items-center gap-3">
@@ -203,22 +203,24 @@ export default function Navbar() {
         </div>
 
         {/* Mobile Header Actions: Quick CTA + Notification + Hamburger Toggle */}
-        <div className="flex md:hidden items-center gap-2">
+        <div className="flex lg:hidden items-center gap-1 sm:gap-2 shrink-0">
           {mounted && isAuthenticated && <NotificationBell />}
           {mounted && isAuthenticated ? (
             <Link
               href="/dashboard"
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded bg-surface-container border border-outline-hairline text-xs font-label-tech text-on-surface"
+              aria-label="Open dashboard"
+              className="flex items-center gap-1.5 px-2 py-1.5 sm:px-2.5 rounded bg-surface-container border border-outline-hairline text-xs font-label-tech text-on-surface"
             >
               <LayoutDashboard className="w-3.5 h-3.5 text-primary-container" />
-              <span>Dashboard</span>
+              <span className="hidden sm:inline">Dashboard</span>
             </Link>
           ) : (
             <Link
               href="/register"
               className="px-3 py-1.5 rounded bg-primary-container hover:bg-orange-600 text-white text-xs font-bold transition-colors shadow-[0_0_10px_rgba(255,107,0,0.3)]"
             >
-              Get Started
+              <span className="sm:hidden">Start</span>
+              <span className="hidden sm:inline">Get Started</span>
             </Link>
           )}
 
@@ -238,7 +240,7 @@ export default function Navbar() {
       {/* Mobile Backdrop Overlay (Tap to Dismiss) */}
       {isOpen && (
         <div
-          className="fixed inset-0 top-16 bg-black/60 backdrop-blur-sm z-40 md:hidden animate-in fade-in duration-200"
+          className="fixed inset-0 top-16 bg-black/60 backdrop-blur-sm z-40 lg:hidden animate-in fade-in duration-200"
           onClick={() => setIsOpen(false)}
           aria-hidden="true"
         />
@@ -250,7 +252,7 @@ export default function Navbar() {
         role="dialog"
         aria-modal="true"
         aria-label="Mobile Navigation"
-        className={`fixed top-16 left-0 right-0 max-h-[calc(100svh-4rem)] bg-surface-container-lowest/95 backdrop-blur-2xl border-b border-outline-hairline shadow-2xl overflow-y-auto z-50 md:hidden transition-all duration-300 ease-out ${
+        className={`fixed top-16 left-0 right-0 max-h-[calc(100svh-4rem)] bg-surface-container-lowest/95 backdrop-blur-2xl border-b border-outline-hairline shadow-2xl overflow-y-auto z-50 lg:hidden transition-all duration-300 ease-out ${
           isOpen
             ? "opacity-100 translate-y-0 pointer-events-auto visible"
             : "opacity-0 -translate-y-2 pointer-events-none invisible"

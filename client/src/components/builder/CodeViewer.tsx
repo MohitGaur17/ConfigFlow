@@ -52,9 +52,9 @@ export default function CodeViewer({ config }: CodeViewerProps) {
   }, [fileKeys, selectedFile]);
 
   return (
-    <div className="flex h-full bg-[#09090B] text-white">
+    <div className="flex h-full min-h-0 min-w-0 flex-col bg-[#09090B] text-white lg:flex-row">
       {/* Explorer Sidebar */}
-      <div className="w-72 border-r border-white/10 bg-[#0F1115] flex flex-col shrink-0">
+      <div className="hidden lg:flex w-72 border-r border-white/10 bg-[#0F1115] flex-col shrink-0">
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
           <div>
             <div className="text-[10px] font-bold text-white/40 tracking-[0.28em] uppercase">Explorer</div>
@@ -73,8 +73,20 @@ export default function CodeViewer({ config }: CodeViewerProps) {
         </div>
       </div>
 
+      <div className="flex lg:hidden items-center gap-2 border-b border-white/10 bg-[#0F1115] p-2">
+        <label htmlFor="code-file-select" className="shrink-0 text-xs text-white/50">File</label>
+        <select
+          id="code-file-select"
+          value={selectedFile}
+          onChange={(event) => setSelectedFile(event.target.value)}
+          className="min-w-0 flex-1 rounded-md border border-white/10 bg-[#09090B] px-3 py-2 text-xs text-white"
+        >
+          {fileKeys.map((file) => <option key={file} value={file}>{file}</option>)}
+        </select>
+      </div>
+
       {/* Code Area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex min-h-0 min-w-0 flex-col">
         <div className="h-11 bg-[#111318] border-b border-white/10 flex items-center px-4 overflow-x-auto no-scrollbar">
           <div className="flex items-center gap-2 rounded-t-md border border-b-0 border-indigo-500/40 bg-[#09090B] px-3 py-2 text-xs text-indigo-200 shadow-[0_-1px_0_rgba(129,140,248,0.35)] shrink-0">
             <FileCode className="w-3.5 h-3.5" />
