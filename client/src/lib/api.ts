@@ -31,7 +31,10 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 && typeof window !== "undefined") {
+    const requestPath = error.config?.url?.split("?")[0];
+    const isCredentialSubmission = requestPath === "/auth/login" || requestPath === "/auth/register";
+
+    if (error.response?.status === 401 && !isCredentialSubmission && typeof window !== "undefined") {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       if (!isPublicPath(window.location.pathname)) {

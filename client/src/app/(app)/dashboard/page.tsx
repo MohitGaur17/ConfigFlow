@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import Logo from "@/components/Logo";
@@ -19,7 +19,7 @@ interface Project {
 export default function DashboardPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { user, logout } = useAuth();
+  const { user, logout, loading: authLoading, isAuthenticated } = useAuth();
   const router = useRouter();
 
   const handleLogout = () => {
@@ -27,17 +27,18 @@ export default function DashboardPage() {
     router.push("/login");
   };
 
-  const fetchProjects = async () => {
+  const fetchProjects = useCallback(async () => {
     try {
       const response = await api.get("/apps");
       setProjects(response.data.data || []);
     } catch (error: any) {
+      if (error.response?.status === 401) return;
       toast.error("Failed to load projects");
       console.error(error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this project?")) return;
@@ -52,8 +53,14 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!isAuthenticated) {
+      setIsLoading(false);
+      router.replace("/login");
+      return;
+    }
     fetchProjects();
-  }, []);
+  }, [authLoading, fetchProjects, isAuthenticated, router]);
 
   return (
     <div className="p-8 max-w-6xl mx-auto w-full">

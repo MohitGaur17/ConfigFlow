@@ -38,7 +38,7 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, token } = useAuth();
+  const { isAuthenticated, token, loading: authLoading } = useAuth();
   const [notifications, setNotifications] = useState<NotificationRecord[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -52,19 +52,21 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   }, []);
 
   const refresh = useCallback(async () => {
-    if (!isAuthenticated) return;
+    if (authLoading || !isAuthenticated) return;
     try {
       setIsLoading(true);
       const res = await api.get("/notifications");
       if (res.data?.success && Array.isArray(res.data.data?.notifications)) {
         setNotifications(res.data.data.notifications);
       }
-    } catch (error) {
-      console.error("[Notifications] Fetch error:", error);
+    } catch (error: any) {
+      if (error.response?.status !== 401) {
+        console.error("[Notifications] Fetch error:", error);
+      }
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated]);
+  }, [authLoading, isAuthenticated]);
 
   const markAsRead = useCallback(async (notificationId: string) => {
     try {
@@ -72,8 +74,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         prev.map((n) => (n.id === notificationId ? { ...n, isRead: true, readAt: new Date().toISOString() } : n))
       );
       await api.patch(`/notifications/${notificationId}/read`);
-    } catch (error) {
-      console.error("[Notifications] Failed to mark read:", error);
+    } catch (error: any) {
+      if (error.response?.status !== 401) {
+        console.error("[Notifications] Failed to mark read:", error);
+      }
     }
   }, []);
 
@@ -83,13 +87,17 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         prev.map((n) => ({ ...n, isRead: true, readAt: new Date().toISOString() }))
       );
       await api.post("/notifications/read-all");
-    } catch (error) {
-      console.error("[Notifications] Failed to mark all read:", error);
+    } catch (error: any) {
+      if (error.response?.status !== 401) {
+        console.error("[Notifications] Failed to mark all read:", error);
+      }
     }
   }, []);
 
   // Connect to SSE stream
   useEffect(() => {
+    if (authLoading) return;
+
     if (!isAuthenticated || !token || typeof window === "undefined") {
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
@@ -158,7 +166,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       eventSourceRef.current = null;
       setIsConnected(false);
     };
-  }, [isAuthenticated, token, refresh]);
+  }, [authLoading, isAuthenticated, token, refresh]);
 
   return (
     <NotificationContext.Provider

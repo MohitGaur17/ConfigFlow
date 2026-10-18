@@ -29,16 +29,25 @@ export default function BuilderLayout({ children }: { children: React.ReactNode 
   }, [loading, isAuthenticated, router]);
 
   useEffect(() => {
-    if (appId) {
-      setLoadError(null);
-      api.get(`/apps/${appId}`)
-        .then(res => setAppData(res.data.data))
-        .catch(err => {
-          console.error("Failed to fetch app data", err);
-          setLoadError(err.response?.data?.error || "Failed to load app config");
-        });
-    }
-  }, [appId]);
+    if (loading || !isAuthenticated || !appId) return;
+
+    let active = true;
+    setAppData(null);
+    setLoadError(null);
+    api.get(`/apps/${appId}`)
+      .then(res => {
+        if (active) setAppData(res.data.data);
+      })
+      .catch(err => {
+        if (!active || err.response?.status === 401) return;
+        console.error("Failed to fetch app data", err);
+        setLoadError(err.response?.data?.error || "Failed to load app config");
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [appId, isAuthenticated, loading]);
 
   const handleDownload = async () => {
     try {

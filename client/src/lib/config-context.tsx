@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
+import { useAuth } from "./auth-context";
 import api from "./api";
 
 // ============================================================
@@ -88,12 +89,22 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { isAuthenticated, loading: authLoading } = useAuth();
 
   const params = useParams();
   const appId = params?.appId as string;
 
   const fetchConfig = useCallback(async () => {
     if (!appId) {
+      setLoading(false);
+      return;
+    }
+
+    if (authLoading) return;
+
+    if (!isAuthenticated) {
+      setConfig(null);
+      setError(null);
       setLoading(false);
       return;
     }
@@ -115,7 +126,7 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [appId]);
+  }, [appId, authLoading, isAuthenticated]);
 
   useEffect(() => {
     fetchConfig();
