@@ -16,6 +16,14 @@ export DATABASE_URL="postgresql://user:password@host/database?sslmode=require"
 npm run prisma:push --workspace=server
 ```
 
+If this database already existed before password reset was added, apply
+`server/prisma/password-reset.sql` to it once. Until that table exists, reset
+link requests cannot be stored or sent:
+
+```bash
+npm run prisma:reset-schema --workspace=server
+```
+
 ### 2. Deploy Backend (Choose one)
 
 #### Option A: Railway (1 click)

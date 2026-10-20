@@ -59,6 +59,16 @@ npm run prisma:push --workspace=server
 npm run prisma:generate --workspace=server
 ```
 
+For an existing production database, apply schema updates with a reviewed SQL
+change. The password reset API requires the table defined in
+`server/prisma/password-reset.sql`; run that file once against the production
+database before relying on password reset links. It only adds the token table,
+indexes, and user foreign key:
+
+```bash
+npm run prisma:reset-schema --workspace=server
+```
+
 ## 2. Backend Deployment (Railway or Render)
 
 ### Option A: Railway (Recommended)
