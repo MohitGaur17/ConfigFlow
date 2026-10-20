@@ -18,6 +18,7 @@ const CLIENT_AUTH_CALLBACK_URL = process.env.CLIENT_AUTH_CALLBACK_URL || `${CLIE
 const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || `${SERVER_URL}/api/auth/google/callback`;
 const GITHUB_REDIRECT_URI = process.env.GITHUB_REDIRECT_URI || `${SERVER_URL}/api/auth/github/callback`;
 const VERIFICATION_TOKEN_TTL_MS = 30 * 60 * 1000;
+const PASSWORD_RESET_TOKEN_TTL_MS = 30 * 60 * 1000;
 
 const oauthStates = new Map<string, { provider: "google" | "github"; expiresAt: number }>();
 
@@ -74,7 +75,7 @@ function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
 }
 
-function createVerificationToken() {
+function createOpaqueToken() {
   const rawToken = crypto.randomBytes(32).toString("base64url");
   const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
 
@@ -85,8 +86,23 @@ function buildVerificationLink(rawToken: string) {
   return `${SERVER_URL}/api/auth/verify-email?token=${encodeURIComponent(rawToken)}`;
 }
 
+function buildPasswordResetLink(rawToken: string) {
+  return `${CLIENT_URL.replace(/\/+$/, "")}/reset-password?token=${encodeURIComponent(rawToken)}`;
+}
+
+function escapeHtml(value: string) {
+  const entities: Record<string, string> = {
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  };
+  return value.replace(/[&<>"']/g, (character) => entities[character]);
+}
+
 async function createAndSendVerificationEmail(user: { id: string; email: string; name: string | null }) {
-  const { rawToken, tokenHash } = createVerificationToken();
+  const { rawToken, tokenHash } = createOpaqueToken();
   const expiresAt = new Date(Date.now() + VERIFICATION_TOKEN_TTL_MS);
 
   await prisma.emailVerificationToken.create({
@@ -132,18 +148,56 @@ async function createAndSendVerificationEmail(user: { id: string; email: string;
   return delivery.status !== "failed";
 }
 
-async function issueVerifiedSession(userId: string) {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { id: true, email: true, name: true },
+async function createAndSendPasswordResetEmail(user: { id: string; email: string; name: string | null }) {
+  const { rawToken, tokenHash } = createOpaqueToken();
+  const expiresAt = new Date(Date.now() + PASSWORD_RESET_TOKEN_TTL_MS);
+
+  await prisma.passwordResetToken.create({
+    data: { userId: user.id, tokenHash, expiresAt },
   });
 
-  if (!user) {
-    throw new Error("User not found");
+  const resetLink = buildPasswordResetLink(rawToken);
+  const greeting = user.name ? `, ${escapeHtml(user.name)}` : "";
+  const subject = "Reset your ConfigFlow password";
+  const body = [
+    "We received a request to reset your ConfigFlow password.",
+    "",
+    `Create a new password by opening this link: ${resetLink}`,
+    "",
+    "This link expires in 30 minutes and can only be used once.",
+    "If you did not request this, you can ignore this message.",
+  ].join("\n");
+  const htmlBody = `
+    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827;">
+      <h2 style="margin: 0 0 16px;">Reset your ConfigFlow password</h2>
+      <p style="margin: 0 0 16px;">Hello${greeting}, we received a request to reset your password.</p>
+      <p style="margin: 0 0 24px;">
+        <a href="${resetLink}" style="display:inline-block;background:#4f46e5;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:8px;font-weight:600;">Reset password</a>
+      </p>
+      <p style="margin: 0 0 8px;">Or copy and paste this link into your browser:</p>
+      <p style="word-break: break-all; color: #4f46e5; margin: 0 0 16px;">${resetLink}</p>
+      <p style="margin: 0; color: #6b7280;">This link expires in 30 minutes and can only be used once. If you did not request this, ignore this email.</p>
+    </div>
+  `;
+
+  const delivery = await sendTransactionalEmail({
+    to: user.email,
+    subject,
+    body,
+    htmlBody,
+    eventType: "auth",
+    userId: user.id,
+  });
+
+  if (delivery.status === "failed") {
+    await prisma.passwordResetToken.updateMany({
+      where: { tokenHash, usedAt: null },
+      data: { usedAt: new Date() },
+    });
+    return false;
   }
 
-  const token = generateToken(user.id, user.email);
-  return { token, user };
+  return true;
 }
 
 async function findOrCreateOAuthUser(email: string, name?: string | null) {
@@ -317,11 +371,10 @@ router.get("/verify-email", async (req: Request, res: Response) => {
       return;
     }
 
-    // Already verified — just issue a session (idempotent)
+    // Treat a previously verified link as success, without signing the user in.
     if (verificationToken.user.emailVerifiedAt) {
-      const session = await issueVerifiedSession(verificationToken.userId);
       res.redirect(
-        `${CLIENT_AUTH_CALLBACK_URL}?token=${encodeURIComponent(session.token)}&user=${encodeURIComponent(JSON.stringify(session.user))}`
+        `${CLIENT_AUTH_CALLBACK_URL}?verified=1&email=${encodeURIComponent(verificationToken.user.email)}`
       );
       return;
     }
@@ -357,14 +410,117 @@ router.get("/verify-email", async (req: Request, res: Response) => {
       });
     });
 
-    const session = await issueVerifiedSession(user.id);
-
     res.redirect(
-      `${CLIENT_AUTH_CALLBACK_URL}?token=${encodeURIComponent(session.token)}&user=${encodeURIComponent(JSON.stringify(session.user))}`
+      `${CLIENT_AUTH_CALLBACK_URL}?verified=1&email=${encodeURIComponent(user.email)}`
     );
   } catch (error: any) {
     console.error("[Auth] Email verification error:", error);
     redirectToClientAuthError(res, error?.message || "Verification failed");
+  }
+});
+
+/**
+ * POST /api/auth/forgot-password
+ * Send a password reset link only when an account exists for the email.
+ */
+router.post("/forgot-password", async (req: Request, res: Response) => {
+  try {
+    const email = typeof req.body?.email === "string" ? normalizeEmail(req.body.email) : "";
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      res.status(400).json({ success: false, error: "Enter a valid email address" });
+      return;
+    }
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      res.json({ success: true, data: { registered: false } });
+      return;
+    }
+
+    let resetEmailSent = false;
+    try {
+      resetEmailSent = await createAndSendPasswordResetEmail(user);
+    } catch (error) {
+      console.error("[Auth] Password reset email error:", error);
+    }
+
+    res.json({
+      success: true,
+      data: {
+        registered: true,
+        resetEmailSent,
+        emailVerified: Boolean(user.emailVerifiedAt),
+      },
+    });
+  } catch (error) {
+    console.error("[Auth] Forgot password error:", error);
+    res.status(500).json({ success: false, error: "Unable to process the request" });
+  }
+});
+
+/**
+ * POST /api/auth/reset-password
+ * Consume a valid one-time token and replace the account password.
+ */
+router.post("/reset-password", async (req: Request, res: Response) => {
+  try {
+    const token = typeof req.body?.token === "string" ? req.body.token : "";
+    const password = typeof req.body?.password === "string" ? req.body.password : "";
+
+    if (!token) {
+      res.status(400).json({ success: false, error: "This password reset link is invalid or expired. Request a new one." });
+      return;
+    }
+
+    if (password.length < 8 || password.length > 128) {
+      res.status(400).json({ success: false, error: "Password must be between 8 and 128 characters" });
+      return;
+    }
+
+    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+    const resetToken = await prisma.passwordResetToken.findUnique({
+      where: { tokenHash },
+      select: { id: true, userId: true, expiresAt: true, usedAt: true },
+    });
+    const now = new Date();
+
+    if (!resetToken || resetToken.usedAt || resetToken.expiresAt <= now) {
+      res.status(400).json({ success: false, error: "This password reset link is invalid or expired. Request a new one." });
+      return;
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 12);
+    const resetCompleted = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const consumed = await tx.passwordResetToken.updateMany({
+        where: { id: resetToken.id, usedAt: null, expiresAt: { gt: now } },
+        data: { usedAt: now },
+      });
+
+      if (consumed.count !== 1) return false;
+
+      await tx.user.update({
+        where: { id: resetToken.userId },
+        data: { password: hashedPassword },
+      });
+
+      // Invalidate any other outstanding links for this account after the reset.
+      await tx.passwordResetToken.updateMany({
+        where: { userId: resetToken.userId, usedAt: null },
+        data: { usedAt: now },
+      });
+
+      return true;
+    });
+
+    if (!resetCompleted) {
+      res.status(400).json({ success: false, error: "This password reset link is invalid or expired. Request a new one." });
+      return;
+    }
+
+    res.json({ success: true, message: "Password reset successful" });
+  } catch (error) {
+    console.error("[Auth] Reset password error:", error);
+    res.status(500).json({ success: false, error: "Unable to reset your password" });
   }
 });
 

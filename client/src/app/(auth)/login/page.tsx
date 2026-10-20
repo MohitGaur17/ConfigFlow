@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { useAuth } from "@/lib/auth-context";
@@ -15,6 +15,11 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const emailFromVerification = new URLSearchParams(window.location.search).get("email");
+    if (emailFromVerification) setEmail(emailFromVerification);
+  }, []);
 
   // The function that talks to your Express backend
   const handleLogin = async (e: React.FormEvent) => {
@@ -76,6 +81,8 @@ export default function LoginPage() {
           <div className="flex flex-col gap-1.5">
             <label className="font-label-tech text-label-tech text-on-surface-variant ml-1">EMAIL ADDRESS</label>
             <input 
+              name="email"
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full bg-surface-container/50 border border-outline-hairline rounded px-4 py-2 text-on-surface font-code-base text-code-base input-glow outline-none transition-shadow" 
@@ -88,6 +95,8 @@ export default function LoginPage() {
           <div className="flex flex-col gap-1.5">
             <label className="font-label-tech text-label-tech text-on-surface-variant ml-1">PASSWORD</label>
             <input 
+              name="password"
+              autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full bg-surface-container/50 border border-outline-hairline rounded px-4 py-2 text-on-surface font-code-base text-code-base input-glow outline-none transition-shadow" 
@@ -98,7 +107,7 @@ export default function LoginPage() {
           </div>
           
           <div className="flex justify-end -mt-2">
-            <a className="font-label-tech text-label-tech text-on-surface-variant hover:text-primary transition-colors" href="#">Forgot password?</a>
+            <Link className="font-label-tech text-label-tech text-on-surface-variant transition-colors hover:text-primary" href="/forgot-password">Forgot password?</Link>
           </div>
           
           <button 

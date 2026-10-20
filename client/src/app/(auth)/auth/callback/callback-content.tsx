@@ -26,6 +26,7 @@ function VerifyErrorPanel({ kind, email }: { kind: VerifyError; email: string | 
   const resend = async () => {
     if (!email) return;
     setResendLoading(true);
+    setResendSuccess(false);
     setResendError(null);
     try {
       const res = await fetch(`${API_BASE}/api/auth/resend-verification`, {
@@ -34,7 +35,9 @@ function VerifyErrorPanel({ kind, email }: { kind: VerifyError; email: string | 
         body: JSON.stringify({ email }),
       });
       const data = await res.json();
-      if (!res.ok || !data?.success) throw new Error(data?.error || "Unable to resend");
+      if (!res.ok || !data?.success || data?.data?.verificationEmailSent !== true) {
+        throw new Error(data?.error || "Unable to send a verification email. Please try again.");
+      }
       setResendSuccess(true);
     } catch (err: any) {
       setResendError(err?.message || "Unable to resend verification email");
@@ -67,28 +70,6 @@ function VerifyErrorPanel({ kind, email }: { kind: VerifyError; email: string | 
     },
   }[kind ?? "invalid"];
 
-  if (resendSuccess) {
-    return (
-      <div className="text-center">
-        <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded bg-surface-elevated ring-1 ring-emerald-400/20">
-          <CheckCircle2 className="h-8 w-8 text-emerald-400" />
-        </div>
-        <h1 className="text-xl font-headline-md text-on-surface mb-2">Verification email sent</h1>
-        <p className="text-sm font-code-base text-on-surface-variant mb-6">
-          We sent a new link to{" "}
-          <span className="font-bold text-on-surface">{email}</span>.{" "}
-          Check your inbox and click the link to verify your account.
-        </p>
-        <button
-          onClick={() => router.replace("/login")}
-          className="inline-flex items-center justify-center rounded bg-primary-container px-5 py-2.5 text-sm font-label-tech text-white hover:bg-orange-600 transition-colors shadow-[0_0_10px_rgba(255,107,0,0.3)]"
-        >
-          Back to login
-        </button>
-      </div>
-    );
-  }
-
   return (
     <div className="text-center">
       {/* Icon */}
@@ -98,6 +79,12 @@ function VerifyErrorPanel({ kind, email }: { kind: VerifyError; email: string | 
 
       <h1 className="text-xl font-headline-md text-on-surface mb-2">{config.title}</h1>
       <p className="text-sm font-code-base text-on-surface-variant mb-6 leading-relaxed">{config.desc}</p>
+
+      {resendSuccess && (
+        <p className="mb-4 text-sm font-code-base text-emerald-400" role="status">
+          A new verification link was sent to {email}.
+        </p>
+      )}
 
       {resendError && (
         <div className="mb-4 flex items-center gap-2 rounded border border-error/20 bg-error/10 px-4 py-3 text-sm font-code-base text-error">
@@ -172,6 +159,7 @@ export default function OAuthCallbackContent() {
   // Verification-specific error params
   const verifyError = searchParams.get("verifyError") as VerifyError;
   const verifyEmail = searchParams.get("email");
+  const emailVerified = searchParams.get("verified") === "1";
 
   const parsedUser = useMemo(() => {
     if (!encodedUser) return null;
@@ -184,7 +172,7 @@ export default function OAuthCallbackContent() {
 
   useEffect(() => {
     // If this is a verification error redirect, don't attempt auth
-    if (verifyError) return;
+    if (verifyError || emailVerified) return;
 
     let cancelled = false;
 
@@ -233,7 +221,7 @@ export default function OAuthCallbackContent() {
     return () => {
       cancelled = true;
     };
-  }, [token, parsedUser, serverError, verifyError, setAuthSession, router]);
+  }, [token, parsedUser, serverError, verifyError, emailVerified, setAuthSession, router]);
 
   // ── Verification error states ──
   if (verifyError) {
@@ -241,6 +229,30 @@ export default function OAuthCallbackContent() {
       <div className="min-h-screen flex items-center justify-center bg-surface px-6">
         <div className="w-full max-w-sm rounded border border-outline-hairline bg-surface-elevated p-8 shadow-2xl">
           <VerifyErrorPanel kind={verifyError} email={verifyEmail} />
+        </div>
+      </div>
+    );
+  }
+
+  // A verified email leads to an explicit email/password sign-in.
+  if (emailVerified) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-surface px-6">
+        <div className="w-full max-w-sm rounded border border-outline-hairline bg-surface-elevated p-8 text-center shadow-2xl">
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-surface-container ring-1 ring-emerald-400/20">
+            <CheckCircle2 className="h-8 w-8 text-emerald-400" />
+          </div>
+          <h1 className="mb-3 font-headline-md text-xl text-on-surface">Email verified</h1>
+          <p className="mb-2 font-code-base text-sm leading-relaxed text-on-surface-variant">
+            Your account is ready. Sign in with your email and password.
+          </p>
+          {verifyEmail && <p className="mb-6 break-all font-code-base text-sm font-bold text-on-surface">{verifyEmail}</p>}
+          <button
+            onClick={() => router.replace(verifyEmail ? `/login?email=${encodeURIComponent(verifyEmail)}` : "/login")}
+            className="inline-flex w-full items-center justify-center rounded bg-primary-container px-5 py-3 font-label-tech text-label-tech text-white shadow-[0_0_10px_rgba(255,107,0,0.3)] transition-colors hover:bg-orange-600"
+          >
+            Continue to login
+          </button>
         </div>
       </div>
     );

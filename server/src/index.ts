@@ -43,6 +43,7 @@ app.get("/api/ready", async (_req, res) => {
     await Promise.all([
       healthPrisma.user.findFirst({ select: { id: true } }),
       healthPrisma.emailVerificationToken.findFirst({ select: { id: true } }),
+      healthPrisma.passwordResetToken.findFirst({ select: { id: true } }),
     ]);
     res.json({ status: "ready", checks: { database: "ok" }, timestamp: new Date().toISOString() });
   } catch {
